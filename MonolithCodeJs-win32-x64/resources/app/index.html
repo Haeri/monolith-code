@@ -1,0 +1,42 @@
+<html>
+    <head>
+        <meta charset="UTF-8">
+        <title>MonolithCodeJs</title>
+
+        <link rel="stylesheet" href="style.css">
+
+        <!-- Codemirror -->
+        <script src="vendor/codemirror-5.51.0/lib/codemirror.js"></script>
+        <link rel="stylesheet" href="vendor/codemirror-5.51.0/lib/codemirror.css">
+        <link rel="stylesheet" href="vendor/codemirror-5.51.0/theme/material-darker.css">
+
+        <!-- Addons -->
+        <script src="vendor/codemirror-5.51.0/addon/mode/loadmode.js"></script>
+        <script src="vendor/codemirror-5.51.0/mode/meta.js"></script>
+
+        <!-- https://electronjs.org/docs/tutorial/security#csp-meta-tag -->
+        <meta http-equiv="Content-Security-Policy" content="script-src 'self' 'unsafe-inline';" />
+    </head>
+    <body>
+        <div id="container">
+            <header>
+                <h1 id="document-name">New Document</h1>
+                <div id="window-buttons">
+                <a id="min-button"></a>
+                <a id="max-button"></a>
+                <a id="close-button"></a>
+                </div>
+            </header>
+            <textarea id="main-text-area"></textarea>
+            <footer>
+                <span id="char-display"></span>
+                <span id="language-display">Text</span>
+            </footer>
+            <div id="status-bar"></div>
+        </div>
+
+        <input id="file-input" type="file" name="file" style="display: none;" />
+        
+        <script src="main.js"></script>
+    </body>
+</html>
