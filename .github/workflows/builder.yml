@@ -1,0 +1,28 @@
+name: packager
+
+on: 
+  push:
+    branches:
+    - master
+
+jobs:
+  build:
+   name: Windows Build
+   runs-on: ${{ matrix.os }}
+   
+   strategy:
+      matrix:
+        os: [macos-latest, ubuntu-latest, windows-latest]
+
+   steps:
+    - name: Download Repository
+      uses: actions/checkout@v2
+    - name: Install Modules
+      run: npm install    
+    - name: Package
+      run: npm run package
+    - name: Upload
+      uses: actions/upload-artifact@v2
+      with:
+        name: ${{ matrix.os }}-64
+        path: MonolithCodeJs-*/

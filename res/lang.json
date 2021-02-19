@@ -1,0 +1,10 @@
+{
+    "text/x-c++src": {
+        "comp": "g++ -std=c++11 <name>.cpp -o <name>",
+        "run": "<path><name>.exe"
+    },
+    "text/x-c": {
+        "comp": "gcc <name>.c -o <name>",
+        "run": "<path><name>.exe"
+    }
+}
