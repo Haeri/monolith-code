@@ -1,23 +1,40 @@
 const { app, BrowserWindow } = require('electron')
 const path = require("path");
+const Store = require('./src/store.js');
 
-const default_window_config = {
-  width: 500,
-  height: 600,
-  frame: false,
-  hasShadow: true,
-  transparent: true, 
-  titleBarStyle: 'hidden',
-  webPreferences: {
-    nodeIntegration: true,
-    contextIsolation: false,      
-    enableRemoteModule: true,
-  },
-  icon: path.join(__dirname, 'res/img/icon.png')
-}
+const store = new Store({
+  configName: 'user-preferences',
+  defaults: {
+    windowBounds: {
+      width: 800, 
+      height: 600
+    }
+  }
+});
+
 
 function createWindow () {
-  let win = new BrowserWindow(default_window_config);
+  let { width, height } = store.get('windowBounds');
+
+  let win = new BrowserWindow({
+    width,
+    height,
+    frame: false,
+    hasShadow: true,
+    transparent: true, 
+    titleBarStyle: 'hidden',
+    webPreferences: {
+      nodeIntegration: true,
+      contextIsolation: false,      
+      enableRemoteModule: true,
+    },
+    icon: path.join(__dirname, 'res/img/icon.png')
+  });
+
+  win.on('resize', () => {
+    let { width, height } = win.getBounds();
+    store.set('windowBounds', { width, height });
+  });
 
   win.loadFile('index.html')
 }
