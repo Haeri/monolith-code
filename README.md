@@ -1,3 +1,3 @@
 # MonolithCodeJs
  
-![Screenshot](./doc/screenshot.png)
+ <img src="./doc/screenshot.png" width="500px">

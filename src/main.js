@@ -1,5 +1,5 @@
 const { remote, webFrame } = require('electron');
-const { dialog, BrowserWindow } = require('electron').remote;
+const { app, dialog, BrowserWindow } = require('electron').remote;
 const path = require("path");
 const fs = require('fs');
 const child_process = require('child_process');
@@ -13,11 +13,15 @@ var file = {
   mime: undefined
 }
 var language_compile_info;
+var running_process = undefined;
+var themes;
+var theme_link;
 
 var file_ui;
 var document_name_ui;
 var text_area_ui;
 var language_display_ui;
+var theme_choice_ui;
 var char_display_ui;
 var console_ui;
 var console_in_ui;
@@ -34,19 +38,38 @@ document.addEventListener('DOMContentLoaded', function (event) {
 
   editor = CodeMirror.fromTextArea(text_area_ui, {
     lineNumbers: true,
+    lineWrapping: true,
+    dragDrop: true,
     theme: "material-darker"
   });
   editor.setSize("100%", "100%");
   CodeMirror.modeURL = path.resolve(__dirname, 'res/lib/codemirror-5.51.0/mode/%N/%N.js');
+  themes = fs.readdirSync(path.resolve(__dirname, 'res/lib/codemirror-5.51.0/theme/'));
 
+  editor.on("drop", (data, e) => {
+    //e.preventDefault();
+    file_ui.value = '';
+    file_ui.files = e.dataTransfer.files;
+    console.log(e.dataTransfer.files, file_ui.files);
+    return true;
+  });
 
-  for(var lang in LANG_MAP){
-    console.log(lang);
+  for(var lang of CodeMirror.modeInfo){
     var option = document.createElement("option");
-    option.text = lang;
-    option.value = LANG_MAP[lang];
+    option.text = lang.name;
+    option.value = lang.mime;
     language_display_ui.add(option);
   }
+  language_display_ui.value = "text/plain";
+
+  for(var theme of themes){
+    var option = document.createElement("option");
+    option.text = toCapitalizedWords(theme.replace(".css", ""));
+    option.value = theme;
+    theme_choice_ui.add(option);
+  }
+  theme_choice_ui.value = "material-darker.css";
+
 
 
 
@@ -79,7 +102,7 @@ document.addEventListener('DOMContentLoaded', function (event) {
       event.preventDefault();
 
       if (file.path === undefined) {
-        _saveFile(getContent(), () => {
+        _save_file(getContent(), () => {
           build_run_file();
         }); 
       }else{
@@ -90,14 +113,14 @@ document.addEventListener('DOMContentLoaded', function (event) {
 
   // Load file content
   file_ui.addEventListener('change', function (event) {
+    console.log("Change!", event);
     const input = event.target
     if ('files' in input && input.files.length > 0) {
-      _readFileContent(input.files[0]).then(content => {
+      _read_file_content(input.files[0]).then(content => {
         editor.setValue(content);
-        _setFileInfo(input.files[0].path);
+        _set_file_info(input.files[0].path);
       });
     }
-    console.log("AFTER file change");
     notify_load_end();
   });
 
@@ -105,7 +128,7 @@ document.addEventListener('DOMContentLoaded', function (event) {
   window.addEventListener('keydown', function (event) {
     if (event.ctrlKey && event.key == "s") {
       event.preventDefault();
-      _saveFile(getContent());
+      _save_file(getContent());
     }
   }, false);
 
@@ -126,17 +149,26 @@ document.addEventListener('DOMContentLoaded', function (event) {
       event.preventDefault();
       let cmd = console_in_ui.value;
       console_in_ui.value = "";
-      run_command(cmd);
+
+
+      if(running_process != undefined){
+        running_process.stdin.write(cmd);
+      }else{
+        run_command(cmd);
+      }
+
+
       return false;
     }
   }, false);
 
   language_display_ui.addEventListener("change", function(event) {
-    let m = CodeMirror.findModeByExtension(language_display_ui.value);
-    setLanguage(m.mime);
+    set_language(language_display_ui.value);
   });
 
-
+  theme_choice_ui.addEventListener("change", function(event) {
+    set_theme(theme_choice_ui.value.replace(".css", ""));
+  });
 
   fs.readFile(path.resolve(__dirname, 'res/lang.json'), 'utf-8', (err, data) => {
     if(err){
@@ -145,7 +177,6 @@ document.addEventListener('DOMContentLoaded', function (event) {
     }
     language_compile_info = JSON.parse(data);
   });
-
 });
 
 
@@ -153,11 +184,13 @@ function initialize() {
   document_name_ui = document.getElementById('document-name');
   text_area_ui = document.getElementById('main-text-area');
   language_display_ui = document.getElementById('language-display');
+  theme_choice_ui = document.getElementById('theme-choice');
   char_display_ui = document.getElementById('fchar-display');
   console_ui = document.getElementById('console');
   console_in_ui = document.getElementById('console-in');
   console_out_ui = document.getElementById('console-out');
   file_ui = document.getElementById('file-input');
+  theme_link = document.getElementById('theme-link');
 }
 
 function getContent(){
@@ -165,22 +198,12 @@ function getContent(){
 }
 
 function newWindow(){
-  let win = new BrowserWindow({
-    width: 800,
-    height: 600,
-    frame: false,
-    titleBarStyle: 'none',
-    backgroundColor: "transparent",
-    webPreferences: {
-      nodeIntegration: true
-    },
-    icon: path.join(__dirname, 'icon.png')
-  });
+  let win = new BrowserWindow();
 
   win.loadFile('index.html')
 }
 
-function _readFileContent(file) {
+function _read_file_content(file) {
   const reader = new FileReader();
   return new Promise((resolve, reject) => {
     reader.onload = event => resolve(event.target.result);
@@ -189,9 +212,9 @@ function _readFileContent(file) {
   });
 }
 
-function _setFileInfo(filePath, mime = undefined) {
+function _set_file_info(filePath, mime = undefined) {
   file.extension = path.extname(filePath);
-  file.path = path.dirname(filePath);
+  file.path = path.dirname(filePath) + path.sep;
   file.name = path.basename(filePath, file.extension);
   if(mime === undefined)
   {
@@ -201,12 +224,11 @@ function _setFileInfo(filePath, mime = undefined) {
   }
 
   document_name_ui.innerHTML = file.name + file.extension;
-  setLanguage(file.mime);
+  set_language(file.mime);
 }
 
-function _saveFile(content, callback = undefined) {
+function _save_file(content, callback = undefined) {
   if (file.path === undefined) {
-    print("Invent a path");
     var options = {
       filters: [
         { name: file.name, extensions: file.extension }
@@ -215,38 +237,35 @@ function _saveFile(content, callback = undefined) {
     dialog.showSaveDialog(null, options).then((ret) => {
       if (!ret.canceled) {
 
-        writeFile(ret.filePath, content);
-        _setFileInfo(ret.filePath);
+        write_file(ret.filePath, content);
+        _set_file_info(ret.filePath);
         
       }
 
       if(callback != undefined) callback();
     });
   }else{
-    writeFile(file.path + "/"  + file.name + file.extension, getContent());
+    write_file(file.path + file.name + file.extension, getContent());
     if(callback != undefined) callback();
   }
 }
 
-function writeFile(path, content){
+function write_file(path, content){
   fs.writeFile(path, content, function (err) {
     if (!err) {
       notify("confirm");
     } else {
-      console.log(err);
+      print(err);
       notify("error");
     }
   });
 }
 
-function setLanguage(mime) {
+function set_language(mime) {
   let info = CodeMirror.findModeByMIME(mime);
-
   editor.setOption("mode", info.mime);
   CodeMirror.autoLoadMode(editor, info.mode);
-  
-  console.log("Index", info.name);
-  language_display_ui.value = LANG_MAP[info.name];
+  language_display_ui.value = info.mime;
 }
 
 function notify(type){
@@ -263,25 +282,34 @@ function notify_load_end(){
   document.getElementById("status-bar").className = "";
 }
 
-
-const LANG_MAP = {
-  "Text": "txt",
-  "C++": "cpp",
-  "C": "c",
-  "HTML": "html",
-  "CSS": "css",
-  "JavaScript": "js",
-}
-
 function print(text){
   console_out_ui.textContent +=  text + '\n';
   console_ui.scrollTo({top: console_ui.scrollHeight, behavior: 'smooth'});
 }
 
 
-function run_command(cmd){
-  notify_load_start();
-  run_script(cmd);
+function set_theme(name){
+  let style_file = path.resolve(__dirname, 'res/lib/codemirror-5.51.0/theme/' + name + ".css");
+
+  if(!document.getElementById("mc-style-"+name)){
+    var styles = document.createElement('link');
+    styles.onload = _reapply_theme;
+    styles.rel = 'stylesheet';
+    styles.type = 'text/css';
+    styles.media = 'screen';
+    styles.href = style_file;
+    styles.id = "mc-style-"+name;
+    document.getElementsByTagName('head')[0].appendChild(styles);
+    editor.setOption("theme", name);  
+  }else{
+    editor.setOption("theme", name);  
+    _reapply_theme();
+  }
+}
+
+function _reapply_theme(){
+  let cm = document.querySelector(".CodeMirror");
+  document.documentElement.style.setProperty('--background', getComputedStyle(cm).backgroundColor);
 }
 
 
@@ -294,9 +322,19 @@ function build_run_file(){
   cmd_run = cmd_run.replaceAll("<name>", file.name);
   cmd_run = cmd_run.replaceAll("<path>", file.path);
 
-  run_command(cmd_comp); //`gcc -o ${file.path}/${file.name}.exe ${file.path}/${file.name}.c -I. -lopengl32 -lgdi32 -mwindows`);
+  run_command(cmd_comp, [], () => {
+    run_command(cmd_run);
+  });
+}
 
-  //run_command(`gcc -o ${file.path}/${file.name}.exe ${file.path}/${file.name}.c -I. -lopengl32 -lgdi32 -mwindows`);
+function toCapitalizedWords(name) {
+  var words = name.match(/[0-9A-Za-z][0-9a-z]*/g) || [];
+
+  return words.map(capitalize).join(" ");
+}
+
+function capitalize(word) {
+  return word.charAt(0).toUpperCase() + word.substring(1);
 }
 
 
@@ -304,15 +342,17 @@ function build_run_file(){
 // This function will output the lines from the script 
 // and will return the full combined output
 // as well as exit code when it's done (using the callback).
-function run_script(command, args, callback) {
-  print("> " + command);
-  var child = child_process.spawn(command, args, {
+function run_command(command, args, callback = undefined) {
+  notify_load_start();
+  print("> " + command);  
+
+  running_process = child_process.spawn(command, args, {
       encoding: 'utf8',
       shell: true,
       cwd: file.path
   });
   // You can also use a variable to save the output for when the script closes later
-  child.on('error', (error) => {
+  running_process.on('error', (error) => {
       /*dialog.showMessageBox({
           title: 'Title',
           type: 'warning',
@@ -320,16 +360,16 @@ function run_script(command, args, callback) {
       });*/
   });
 
-  child.stdout.setEncoding('utf8');
-  child.stdout.on('data', (data) => {
+  running_process.stdout.setEncoding('utf8');
+  running_process.stdout.on('data', (data) => {
       //Here is the output
       data=data.toString();   
       //console.log(data);      
       print(data);
   });
 
-  child.stderr.setEncoding('utf8');
-  child.stderr.on('data', (data) => {
+  running_process.stderr.setEncoding('utf8');
+  running_process.stderr.on('data', (data) => {
       // Return some data to the renderer process with the mainprocess-response ID
       //mainWindow.webContents.send('mainprocess-response', data);
       //Here is the output from the command
@@ -337,8 +377,7 @@ function run_script(command, args, callback) {
       print(data);
   });
 
-  child.on('close', (code) => {
-    notify_load_end();
+  running_process.on('close', (code) => {    
       //Here you can get the exit code of the script  
       switch (code) {
           case 0:
@@ -355,9 +394,13 @@ function run_script(command, args, callback) {
               break;
       }
 
+    notify_load_end();
+    running_process = undefined;
+
+    if (callback !== undefined){
+      callback(code);
+    }
   });
-  if (typeof callback === 'function')
-      callback();
 }
 
 
@@ -411,9 +454,11 @@ document.addEventListener('DOMContentLoaded', function() {
                   break;
           }
 
+          /*
           const cursor = direction === 'horizontal' ? 'col-resize' : 'row-resize';
           resizer.style.cursor = cursor;
           document.body.style.cursor = cursor;
+          */
 
           prevSibling.style.userSelect = 'none';
           prevSibling.style.pointerEvents = 'none';

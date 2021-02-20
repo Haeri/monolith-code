@@ -6,16 +6,17 @@
         <!-- Codemirror -->
         <script src="res/lib/codemirror-5.51.0/lib/codemirror.js"></script>
         <link rel="stylesheet" href="res/lib/codemirror-5.51.0/lib/codemirror.css">
-        <link rel="stylesheet" href="res/lib/codemirror-5.51.0/theme/material-darker.css">
-
+        
         <!-- Addons -->
         <script src="res/lib/codemirror-5.51.0/addon/mode/loadmode.js"></script>
         <script src="res/lib/codemirror-5.51.0/mode/meta.js"></script>
-
+        
         <link rel="stylesheet" href="res/style/style.css">
-
+        
         <!-- https://electronjs.org/docs/tutorial/security#csp-meta-tag -->
         <meta http-equiv="Content-Security-Policy" content="script-src 'self' 'unsafe-inline';" />
+
+        <link id="mc-style-material-darker" rel="stylesheet" href="res/lib/codemirror-5.51.0/theme/material-darker.css">
     </head>
     <body>
         <div id="container">
@@ -32,13 +33,15 @@
                 <div class="resizer" data-direction="vertical"></div>
                 <div id="console">
                     <pre id="console-out"></pre>
-                    <textarea id="console-in"></textarea>
+                    <textarea id="console-in" spellcheck="false"></textarea>
                 </div>
             </div>
             <footer>
                 <span id="char-display"></span>
-                <select id="language-display">
-                </select>
+                <input type="checkbox" name="settings-line-wrap" id="settings-line-wrap">
+                <input type="checkbox" name="settings-line-numbers" id="settings-line-numbers">
+                <select id="theme-choice"></select>
+                <select id="language-display"></select>
             </footer>
             <div id="status-display"><spam id="status-bar"></spam></div>
         </div>
