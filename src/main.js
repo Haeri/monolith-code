@@ -1,8 +1,14 @@
 const { remote, webFrame } = require('electron');
 const { app, dialog, BrowserWindow } = require('electron').remote;
+const app_version = require('electron').remote.app.getVersion();
 const path = require("path");
 const fs = require('fs');
 const child_process = require('child_process');
+
+const app_info = {
+  version: app_version,
+  name: "Monolith Code"
+}
 
 var editor;
 
@@ -16,6 +22,7 @@ var language_compile_info;
 var running_process = undefined;
 var themes;
 var theme_link;
+var is_saved = true;
 
 var file_ui;
 var document_name_ui;
@@ -26,6 +33,18 @@ var char_display_ui;
 var console_ui;
 var console_in_ui;
 var console_out_ui;
+
+var command_list = {};
+var command_history = [];
+var history_index = undefined;
+
+const PRINT_MODE = Object.freeze({
+  user: 0,
+  info: 1,
+  confirm: 2,
+  warn: 3,
+  error: 4
+});
 
 /* ---- DOCUMENT READY ---- */
 
@@ -53,6 +72,15 @@ document.addEventListener('DOMContentLoaded', function (event) {
     console.log(e.dataTransfer.files, file_ui.files);
     return true;
   });
+
+  editor.on("change", () => {
+    if(is_saved){
+      console.log("event");
+      document_name_ui.textContent += "*";
+      is_saved = false;
+    }
+  });
+
 
   for(var lang of CodeMirror.modeInfo){
     var option = document.createElement("option");
@@ -101,7 +129,7 @@ document.addEventListener('DOMContentLoaded', function (event) {
     }else if(event.ctrlKey && event.key == "b"){
       event.preventDefault();
 
-      if (file.path === undefined) {
+      if (file.path === undefined || !is_saved) {
         _save_file(getContent(), () => {
           build_run_file();
         }); 
@@ -117,8 +145,9 @@ document.addEventListener('DOMContentLoaded', function (event) {
     const input = event.target
     if ('files' in input && input.files.length > 0) {
       _read_file_content(input.files[0]).then(content => {
-        editor.setValue(content);
+        editor.setValue(content);        
         _set_file_info(input.files[0].path);
+        is_saved = true;
       });
     }
     notify_load_end();
@@ -145,20 +174,46 @@ document.addEventListener('DOMContentLoaded', function (event) {
 
   
   console_in_ui.addEventListener('keyup', function (event) {
+    //console.log(event);
     if (!event.ctrlKey && event.key == "Enter") {
       event.preventDefault();
-      let cmd = console_in_ui.value;
+      let cmd = console_in_ui.value.replace(/\n$/, "");
       console_in_ui.value = "";
 
+      if(history_index != undefined){
+        command_history.pop();
+        history_index = undefined;
+      }
+      command_history.push(cmd);
 
-      if(running_process != undefined){
-        running_process.stdin.write(cmd);
+      let pre = cmd.split(" ")[0];
+
+      if(pre in command_list){
+        print(pre, PRINT_MODE.user);
+        command_list[pre].func();
+      }else if(running_process != undefined){
+        running_process.stdin.write(cmd + "\n");
       }else{
         run_command(cmd);
       }
 
 
       return false;
+    }else if(!event.ctrlKey && event.key == "ArrowUp"){
+      let curr_cmd = console_in_ui.value;
+
+      if(history_index === undefined){
+        command_history.push(curr_cmd);
+        history_index = command_history.length-2;      
+      }else{
+        if(history_index-1 < 0){
+          history_index = command_history.length;
+        }
+        history_index -= 1;
+      }
+
+      console.log(history_index);
+      console_in_ui.value = command_history[history_index];
     }
   }, false);
 
@@ -177,6 +232,38 @@ document.addEventListener('DOMContentLoaded', function (event) {
     }
     language_compile_info = JSON.parse(data);
   });
+
+
+  command_list = {
+    "!ver": {
+      "desc": "Shows the current version of the application.", 
+      "func": () => { print(app_info.name + " " + app_info.version);}
+    },
+    "!cls": {
+      "desc": "Clear console.", 
+      "func": () => { console_out_ui.innerHTML = "";}
+    },
+    "!kill": {
+      "desc": "Kills the currently running process.", 
+      "func": () => { if(running_process) {running_process.kill();}}
+    },
+    "!hello": {
+      "desc": "Hello There :D", 
+      "func": () => { print("Hi there :D");}}
+      ,
+    "!help": {
+      "desc": "Shows all the available commands.", 
+      "func": () => { let ret =""; 
+      for (const [key, value] of Object.entries(command_list)) {
+        ret += key + "\t" + value.desc + "\n";
+      }  
+      print(ret);
+      }
+    }
+  }
+
+  print(app_info.name + " " + app_info.version);
+
 });
 
 
@@ -236,28 +323,32 @@ function _save_file(content, callback = undefined) {
     }
     dialog.showSaveDialog(null, options).then((ret) => {
       if (!ret.canceled) {
-
-        write_file(ret.filePath, content);
-        _set_file_info(ret.filePath);
-        
+        write_file(ret.filePath, content, (err) => {if(!err){
+          _set_file_info(ret.filePath);
+          is_saved = true;
+        }});        
       }
 
       if(callback != undefined) callback();
     });
   }else{
-    write_file(file.path + file.name + file.extension, getContent());
+    write_file(file.path + file.name + file.extension, getContent(), (err) => {if(!err){
+      document_name_ui.innerHTML = file.name + file.extension;
+      is_saved = true;
+    }});
     if(callback != undefined) callback();
   }
 }
 
-function write_file(path, content){
+function write_file(path, content, callback = undefined){
   fs.writeFile(path, content, function (err) {
     if (!err) {
       notify("confirm");
     } else {
-      print(err);
+      print(err, PRINT_MODE.error);
       notify("error");
     }
+    if(callback != undefined) callback(err);
   });
 }
 
@@ -282,8 +373,12 @@ function notify_load_end(){
   document.getElementById("status-bar").className = "";
 }
 
-function print(text){
-  console_out_ui.textContent +=  text + '\n';
+function print(text, mode = PRINT_MODE.info){
+  var block = document.createElement('div');
+  block.classList.add(Object.keys(PRINT_MODE).find(key => PRINT_MODE[key] === mode));
+  block.innerText = text;
+  console_out_ui.appendChild(block);
+
   console_ui.scrollTo({top: console_ui.scrollHeight, behavior: 'smooth'});
 }
 
@@ -339,42 +434,27 @@ function capitalize(word) {
 
 
 
-// This function will output the lines from the script 
-// and will return the full combined output
-// as well as exit code when it's done (using the callback).
 function run_command(command, args, callback = undefined) {
   notify_load_start();
-  print("> " + command);  
+  print("> " + command, PRINT_MODE.user);
 
   running_process = child_process.spawn(command, args, {
       encoding: 'utf8',
       shell: true,
-      cwd: file.path
+      ... file.path && {cwd: file.path}
   });
-  // You can also use a variable to save the output for when the script closes later
-  running_process.on('error', (error) => {
-      /*dialog.showMessageBox({
-          title: 'Title',
-          type: 'warning',
-          message: 'Error occured.\r\n' + error
-      });*/
-  });
+
+  running_process.on('error', (error) => {});
 
   running_process.stdout.setEncoding('utf8');
   running_process.stdout.on('data', (data) => {
-      //Here is the output
-      data=data.toString();   
-      //console.log(data);      
+      data=data.toString();
       print(data);
   });
 
   running_process.stderr.setEncoding('utf8');
   running_process.stderr.on('data', (data) => {
-      // Return some data to the renderer process with the mainprocess-response ID
-      //mainWindow.webContents.send('mainprocess-response', data);
-      //Here is the output from the command
-      //console.log(data);  
-      print(data);
+      print(data, PRINT_MODE.error);
   });
 
   running_process.on('close', (code) => {    
@@ -382,12 +462,6 @@ function run_command(command, args, callback = undefined) {
       switch (code) {
           case 0:
             notify("confirm");
-            /*
-              dialog.showMessageBox({
-                  title: 'Title',
-                  type: 'info',
-                  message: 'End process.\r\n'
-              });*/
               break;
             default:
               notify("error");

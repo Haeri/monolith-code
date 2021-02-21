@@ -54,7 +54,7 @@ body{
 
 #container{
 	background-color: var(--background);
-	border-radius: 6px;
+	border-radius: 8px;
 	height: 100%;
 	overflow: hidden;
 	display: flex;
@@ -94,7 +94,7 @@ header #window-buttons a{
 	background-color: transparent;
 	border: 1px solid var(--foreground);
 	transition: 0.3s;
-	margin-left: 5px;
+	margin-left: 8px;
 }
 header #window-buttons a:hover{
 	cursor: pointer;
@@ -103,13 +103,15 @@ header #window-buttons a:hover{
 header #window-buttons a#close-button:hover{
 	background-color: #f44336;
 	border: 1px solid #f44336;
+	box-shadow: 0px 0px 30px #f44336;
 }
 header #window-buttons a#close-button{
 	/*border: 1px solid #f44336;*/
 }
 header #window-buttons a#min-button:hover{
 	background-color: #4caf50;
-	border: 1px solid #4caf50;
+	border: 1px solid #4caf50;	
+	box-shadow: 0px 0px 30px #4caf50;
 }
 header #window-buttons a#min-button{
 	/*border: 1px solid #4caf50;*/
@@ -117,6 +119,7 @@ header #window-buttons a#min-button{
 header #window-buttons a#max-button:hover{
 	background-color: #ffeb3b;
 	border: 1px solid #ffeb3b;
+	box-shadow: 0px 0px 30px #ffeb3b;
 }
 header #window-buttons a#max-button{
 	/*border: 1px solid #ffeb3b;*/
@@ -141,15 +144,14 @@ footer{
 	flex: 1;
 	display: flex;
 	flex-direction: column;
-	max-height: calc(100vh - 76px);
-	/*padding: 4px 0px;*/
+	max-height: calc(100vh - 74px);
 }
 
 .CodeMirror{
 	font-family: 'Source Code Pro', monospace;
 	font-weight: 400;
 	cursor: text;
-	box-shadow: 0px 2px 20px black;
+	box-shadow: 0px 2px 20px #0000006e;
 	z-index: 1;
 }
 
@@ -198,11 +200,9 @@ footer{
 	white-space:pre-wrap;
 	box-sizing: border-box;
 	display: block;
-	width: 100%;
-	color: #dcdcdc;
+	width: 100%;	
 	border: none;
 	outline: none;
-	padding: 4px 8px;
 	margin: 0;
 	background: transparent;
 	font-size: var(--font-size);
@@ -210,11 +210,35 @@ footer{
 }
 #console #console-out{
 	background: #1b1b1b;
+	color: #a9a9a9;
+	padding: 10px 0px;
 }
 #console #console-in{
+	color: #ffffff;
 	flex: 1;
 	resize: none;
 	display: inline-table;
+	padding: 4px 8px;
+}
+
+#console #console-out > div{
+	padding: 0px 8px;
+}
+
+#console #console-out .user{
+	color: #ffffff;
+    margin: 10px 0px;
+	padding: 4px 8px;
+    background: #1d1d1d;
+}
+#console #console-out .confirm{
+	color: #4caf50;
+}
+#console #console-out .warn{
+	color: #ffeb3b;
+}
+#console #console-out .error{
+	color: #f44336;
 }
 
 
@@ -231,6 +255,10 @@ footer select{
 	-webkit-appearance: none;
 }
 
+#hidden-settings{
+	display: none;
+}
+
 
 
 /* ---------- STATUS ---------- */
@@ -238,6 +266,7 @@ footer select{
 #status-display{
 	height: 2px;
 	position: relative;
+	z-index: 4;
 }
 
 #status-display #status-bar{
