@@ -8,9 +8,16 @@
         <link rel="stylesheet" href="res/lib/codemirror-5.51.0/lib/codemirror.css">
         
         <!-- Addons -->
-        <script src="res/lib/codemirror-5.51.0/addon/mode/loadmode.js"></script>
         <script src="res/lib/codemirror-5.51.0/mode/meta.js"></script>
+        <script src="res/lib/codemirror-5.51.0/addon/mode/loadmode.js"></script>
         
+        <script src="res/lib/codemirror-5.51.0/addon/search/search.js"></script>
+        <script src="res/lib/codemirror-5.51.0/addon/search/searchcursor.js"></script>
+        <script src="res/lib/codemirror-5.51.0/addon/search/jump-to-line.js"></script>
+
+        <script src="res/lib/codemirror-5.51.0/addon/dialog/dialog.js"></script>
+        <link rel="stylesheet" href="res/lib/codemirror-5.51.0/addon/dialog/dialog.css">
+
         <link rel="stylesheet" href="res/style/style.css">
         
         <!-- https://electronjs.org/docs/tutorial/security#csp-meta-tag -->
@@ -29,7 +36,11 @@
                 </div>
             </header>
             <div id="content">
-                <textarea id="main-text-area"></textarea>
+                <div id="main-divider">
+                    <textarea id="main-text-area"></textarea>
+                    <div class="resizer" data-direction="horizontal"></div>
+                    <iframe id="embed-content" src=""></iframe>
+                </div>
                 <div class="resizer" data-direction="vertical"></div>
                 <div id="console">
                     <pre id="console-out"></pre>
@@ -53,8 +64,6 @@
             </footer>
             <div id="status-display"><spam id="status-bar"></spam></div>
         </div>
-
-        <input id="file-input" type="file" name="file" style="display: none;" />
         
         <script src="src/main.js"></script>
     </body>

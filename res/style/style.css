@@ -147,12 +147,24 @@ footer{
 	max-height: calc(100vh - 74px);
 }
 
+#main-divider{
+	display: flex;
+	height: 100%;
+	box-shadow: 0px 2px 20px #0000006e;
+    z-index: 1;
+}
+
+#main-divider iframe{
+	min-width: 0;
+	flex: 1;
+    border: none;
+	background: #191919; 
+}
+
 .CodeMirror{
 	font-family: 'Source Code Pro', monospace;
 	font-weight: 400;
 	cursor: text;
-	box-shadow: 0px 2px 20px #0000006e;
-	z-index: 1;
 }
 
 /* SCROLL BAR */
@@ -187,7 +199,6 @@ footer{
 #console{
 	flex: 1;
 	height: 0;
-	/*min-height: 3em;*/
 	overflow-y: auto;	
 	background: #191919;
 	display: flex;
@@ -323,13 +334,22 @@ footer select{
 
 
 .resizer[data-direction="horizontal"] {
-	background-color: #cbd5e0;
 	cursor: ew-resize;
 	height: 100%;
-	width: 2px;
+	padding: 0px 5px;
+	margin: 0px -5px;
+	z-index: 3;
+	user-select: none;
+}
+.resizer[data-direction="horizontal"]:after{
+	content:"";
+	height: 100%;
+	width: 1px;
+	background: transparent;
+	display: block;
+	transition: 0.3s;
 }
 .resizer[data-direction="vertical"] {
-	/*background-color: #cbd5e0;*/
 	cursor: ns-resize;	
 	width: 100%;
 	padding: 5px 0px;
@@ -345,6 +365,7 @@ footer select{
 	display: block;
 	transition: 0.3s;
 }
-.resizer[data-direction="vertical"]:hover:after{
-	background: #ffffff0d;
+.resizer[data-direction="vertical"]:hover:after,
+.resizer[data-direction="horizontal"]:hover:after{
+	background: #7272776b;
 }
