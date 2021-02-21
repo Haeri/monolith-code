@@ -1,4 +1,4 @@
-<h1><img src="./res/img/icon.png" width="30px" style="vertical-align: sub; margin-right: 6px"> monolith code</h1>
+<h1><img src="./res/img/icon.png" width="40px" style="vertical-align: -10px; margin-right: 6px"> monolith code</h1>
 
 [![Build](https://github.com/Haeri/MonolithCode2/actions/workflows/builder.yml/badge.svg)](https://github.com/Haeri/MonolithCode2/actions/workflows/builder.yml)
 ![Version](https://img.shields.io/badge/dynamic/json?url=https://raw.githubusercontent.com/Haeri/MonolithCode2/master/package.json&label=version&query=$['version']&color=blue)
@@ -7,4 +7,4 @@
 
 minimalistic coder editor.
 
-<img src="./doc/screenshot.png" width="460px">a
+<img src="./doc/screenshot2.png" width="">
