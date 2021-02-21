@@ -27,6 +27,7 @@ function createWindow () {
       nodeIntegration: true,
       contextIsolation: false,      
       enableRemoteModule: true,
+      webviewTag: true
     },
     icon: path.join(__dirname, 'res/img/icon.png')
   });

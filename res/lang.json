@@ -26,5 +26,9 @@
     "text/x-python": {
         "comp": null,
         "run": "python -u <name>.py"
+    },
+    "text/x-markdown": {
+        "comp": null,
+        "run": null
     }
 }
