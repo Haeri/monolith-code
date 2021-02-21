@@ -1,4 +1,4 @@
-name: packager
+name: build
 
 on: 
   push:
@@ -7,7 +7,7 @@ on:
 
 jobs:
   build:
-   name: Windows Build
+   name: Build
    runs-on: ${{ matrix.os }}
    
    strategy:
@@ -25,4 +25,4 @@ jobs:
       uses: actions/upload-artifact@v2
       with:
         name: ${{ matrix.os }}-64
-        path: MonolithCodeJs-*/
+        path: MonolithCode-*/
