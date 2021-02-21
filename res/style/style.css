@@ -97,7 +97,7 @@ header #window-buttons a{
 	margin-left: 8px;
 }
 header #window-buttons a:hover{
-	cursor: pointer;
+	/*cursor: pointer;*/
 }
 
 header #window-buttons a#close-button:hover{
@@ -154,44 +154,29 @@ footer{
     z-index: 1;
 }
 
-#main-divider iframe{
+#main-divider webview{
 	min-width: 0;
 	flex: 1;
     border: none;
-	background: #191919; 
+	background: #ffffff02;
 }
 
 .CodeMirror{
 	font-family: 'Source Code Pro', monospace;
 	font-weight: 400;
 	cursor: text;
-}
-
-/* SCROLL BAR */
-::-webkit-scrollbar {
-	width: 6px;
-}
-::-webkit-scrollbar {
-	height: 6px;
-}
-::-webkit-scrollbar-track,
-::-webkit-scrollbar-track {
-	background: transparent;
-}
-::-webkit-scrollbar-thumb,
-::-webkit-scrollbar-thumb {
-	background: #555;
-	border-radius: 3px;
-	transition: 0.3s;
-}
-::-webkit-scrollbar-thumb:hover,
-::-webkit-scrollbar-thumb:hover {
-	background: #888;
+    margin-right: 4px;
 }
 
 .CodeMirror-scrollbar-filler{
 	background-color: transparent !important;
 }
+
+.CodeMirror-vscrollbar,
+.CodeMirror-vscrollbar{
+	cursor: default;
+}
+
 
 
 
@@ -337,7 +322,7 @@ footer select{
 	cursor: ew-resize;
 	height: 100%;
 	padding: 0px 5px;
-	margin: 0px -5px;
+	margin: 0px -5px 0px -6px;
 	z-index: 3;
 	user-select: none;
 }
@@ -353,7 +338,7 @@ footer select{
 	cursor: ns-resize;	
 	width: 100%;
 	padding: 5px 0px;
-	margin: -6px 0px;
+	margin: -6px 0px -5 0px;
 	z-index: 3;
 	user-select: none;
 }

@@ -1,14 +1,17 @@
 const { remote, webFrame } = require('electron');
-const { app, dialog, BrowserWindow } = require('electron').remote;
+const { dialog, BrowserWindow } = require('electron').remote;
 const app_version = require('electron').remote.app.getVersion();
 const path = require("path");
 const fs = require('fs');
 const child_process = require('child_process');
+const marked = require('marked');
 
 const app_info = {
   version: app_version,
   name: "Monolith Code"
 }
+
+var MD_TEMPLATE_HTML = path.resolve(__dirname, 'res/embed/markdown/index.html');
 
 var editor;
 
@@ -21,7 +24,6 @@ var file = {
 var language_compile_info;
 var running_process = undefined;
 var themes;
-var theme_link;
 var is_saved = true;
 
 var document_name_ui;
@@ -32,6 +34,7 @@ var char_display_ui;
 var console_ui;
 var console_in_ui;
 var console_out_ui;
+var webview_ui;
 
 var command_list = {};
 var command_history = [];
@@ -75,6 +78,9 @@ document.addEventListener('DOMContentLoaded', function (event) {
       document_name_ui.textContent += "*";
       is_saved = false;
     }
+  });
+  editor.on("scroll", (event) => {
+    //console.log(event);
   });
 
 
@@ -270,6 +276,7 @@ function initialize() {
   console_ui = document.getElementById('console');
   console_in_ui = document.getElementById('console-in');
   console_out_ui = document.getElementById('console-out');
+  webview_ui = document.getElementById("embed-content");
   theme_link = document.getElementById('theme-link');
 }
 
@@ -281,7 +288,7 @@ function newWindow() {
   let win = new BrowserWindow({
     webPreferences: {
       plugins: true
-  }
+    }
   });
 
   win.loadFile('main.pdf')
@@ -421,31 +428,43 @@ function _reapply_theme() {
 
 
 function build_run_file() {
-  if(file.mime in language_compile_info){
+  if (file.mime in language_compile_info) {
     let cmd_comp = language_compile_info[file.mime].comp;
-    if(cmd_comp){
+    if (cmd_comp) {
       cmd_comp = cmd_comp.replaceAll("<name>", file.name);
       cmd_comp = cmd_comp.replaceAll("<path>", file.path);
-      
+
       run_command(cmd_comp, [], () => {
         run_file();
-      });      
-    }else{
+      });
+    } else {
       run_file();
     }
   }
 }
 
 function run_file() {
-  if(file.mime in language_compile_info){
+  if (file.mime in language_compile_info) {
     let cmd_run = language_compile_info[file.mime].run;
-    if(cmd_run){
+    if (cmd_run) {
       cmd_run = cmd_run.replaceAll("<name>", file.name);
       cmd_run = cmd_run.replaceAll("<path>", file.path);
-  
+
       run_command(cmd_run);
-    }else if(file.mime == "text/x-latex"){      
-      document.getElementById("embed-content").src = file.path + file.name + ".pdf?v=" +Date.now();
+    } else if (file.mime == "text/x-latex") {
+      document.getElementById("embed-content").src = file.path + file.name + ".pdf?v=" + Date.now();
+    } else if (file.mime == "text/x-markdown") {
+      let marked_html = marked(getContent(), { baseUrl: file.path.replaceAll("\\", "/") });
+
+      if (webview_ui.src != MD_TEMPLATE_HTML) {
+        webview_ui.addEventListener('did-finish-load', () => {
+          webview_ui.send('fillContent', marked_html);
+        });
+        webview_ui.src = MD_TEMPLATE_HTML;
+        MD_TEMPLATE_HTML = webview_ui.src;
+      } else {
+        webview_ui.send('fillContent', marked_html);
+      }
     }
   }
 }
