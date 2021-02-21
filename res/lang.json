@@ -1,10 +1,30 @@
 {
     "text/x-c++src": {
         "comp": "g++ -std=c++11 <name>.cpp -o <name>",
-        "run": "<path><name>.exe"
+        "run": "<name>.exe"
     },
     "text/x-c": {
         "comp": "gcc <name>.c -o <name>",
-        "run": "<path><name>.exe"
+        "run": "<name>.exe"
+    },
+    "text/x-csharp": {
+        "comp": "csc.exe /out:<name>.exe <name>.cs",
+        "run": "<name>.exe"
+    },
+    "text/javascript": {
+        "comp": null,
+        "run": "node <name>.js"
+    },
+    "text/x-java": {
+        "comp": "javac <name>.java",
+        "run": "java <name>"
+    },
+    "text/x-latex": {
+        "comp": "pdflatex <name>.tex",
+        "run": null
+    },
+    "text/x-python": {
+        "comp": null,
+        "run": "python -u <name>.py"
     }
 }
