@@ -39,14 +39,13 @@
 /* ---------- DOCUMENT ---------- */
 
 html{
-	padding: 1px;
+	/*padding: 1px;*/
 }
 
 body{
-	background-color: transparent;
+	/*background-color: transparent;*/
 	color: var(--foreground);
-	font-family: 'Open Sans', sans-serif;
-	/*font-weight: 300;*/
+	font-family: 'Open Sans', sans-serif;	
 	font-size: var(--font-size);
 	overflow: hidden;
 	margin: 0;
@@ -71,12 +70,6 @@ header{
 	display: flex;
 	flex-direction: row;
 	justify-content: space-between;
-}
-
-header span{
-	/*font-size: 1em;
-	font-weight: 400;
-	margin: 0;*/
 }
 
 header #window-buttons{
@@ -152,6 +145,7 @@ footer{
 	height: 100%;
 	box-shadow: 0px 2px 20px #0000006e;
     z-index: 1;
+	overflow: hidden;
 }
 
 #main-divider webview{
@@ -325,6 +319,7 @@ footer select{
 	margin: 0px -5px 0px -6px;
 	z-index: 3;
 	user-select: none;
+	transition: 0.3s;
 }
 .resizer[data-direction="horizontal"]:after{
 	content:"";
@@ -334,13 +329,23 @@ footer select{
 	display: block;
 	transition: 0.3s;
 }
+.resizer[data-direction="horizontal"]:hover{
+	padding: 0px 10px;
+	margin: 0px -10px 0px -12px;
+}
+.resizer[data-direction="horizontal"]:hover:after{
+	width: 2px;
+}
+
+
 .resizer[data-direction="vertical"] {
 	cursor: ns-resize;	
 	width: 100%;
 	padding: 5px 0px;
-	margin: -6px 0px -5 0px;
+	margin: -6px 0px -5px 0px;
 	z-index: 3;
 	user-select: none;
+	transition: 0.3s;
 }
 .resizer[data-direction="vertical"]:after{
 	content:"";
@@ -350,6 +355,14 @@ footer select{
 	display: block;
 	transition: 0.3s;
 }
+.resizer[data-direction="vertical"]:hover{
+	padding: 10px 0px;
+	margin: -12px 0px -10px 0px;
+}
+.resizer[data-direction="vertical"]:hover:after{
+	height: 2px;
+}
+
 .resizer[data-direction="vertical"]:hover:after,
 .resizer[data-direction="horizontal"]:hover:after{
 	background: #7272776b;

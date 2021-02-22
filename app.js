@@ -1,4 +1,4 @@
-const { app, BrowserWindow } = require('electron')
+const { app, BrowserWindow, ipcMain } = require('electron')
 const path = require("path");
 const Store = require('./src/store.js');
 
@@ -6,14 +6,18 @@ const store = new Store({
   configName: 'user-preferences',
   defaults: {
     windowBounds: {
-      width: 800, 
+      width: 800,
       height: 600
     }
   }
 });
 
+ipcMain.on('new-window', () => {
+  createWindow();
+})
 
-function createWindow () {
+
+function createWindow() {
   let { width, height } = store.get('windowBounds');
 
   let win = new BrowserWindow({
@@ -25,7 +29,7 @@ function createWindow () {
     titleBarStyle: 'hidden',
     webPreferences: {
       nodeIntegration: true,
-      contextIsolation: false,      
+      contextIsolation: false,
       enableRemoteModule: true,
       webviewTag: true
     },
@@ -41,8 +45,8 @@ function createWindow () {
 }
 
 app.whenReady().then(() => {
-  createWindow()
-  
+  createWindow();
+
   app.on('activate', function () {
     // On macOS it's common to re-create a window in the app when the
     // dock icon is clicked and there are no other windows open.

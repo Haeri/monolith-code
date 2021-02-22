@@ -1,10 +1,20 @@
-const { remote, webFrame } = require('electron');
-const { dialog, BrowserWindow } = require('electron').remote;
+const { remote, webFrame, ipcRenderer } = require('electron');
+const { dialog } = require('electron').remote;
 const app_version = require('electron').remote.app.getVersion();
 const path = require("path");
 const fs = require('fs');
 const child_process = require('child_process');
 const marked = require('marked');
+const Store = require('./src/store.js');
+
+
+const store = new Store({
+  configName: 'user-preferences', 
+  defaults: {
+    editor_media_div_percent: 0,
+    editor_console_div_percent: 0,
+  }
+});
 
 const app_info = {
   version: app_version,
@@ -35,10 +45,14 @@ var console_ui;
 var console_in_ui;
 var console_out_ui;
 var webview_ui;
+var editor_media_div_ui;
+var editor_console_div_ui;
 
 var command_list = {};
 var command_history = [];
 var history_index = undefined;
+
+var scroll_bars_css;
 
 const PRINT_MODE = Object.freeze({
   user: 0,
@@ -243,7 +257,7 @@ document.addEventListener('DOMContentLoaded', function (event) {
     },
     "!kill": {
       "desc": "Kills the currently running process.",
-      "func": () => { if (running_process) { running_process.kill(); } }
+      "func": () => { if (running_process) { running_process.kill('SIGINT'); } }
     },
     "!hello": {
       "desc": "Hello There :D",
@@ -262,6 +276,31 @@ document.addEventListener('DOMContentLoaded', function (event) {
     }
   }
 
+  fs.readFile(path.resolve(__dirname, 'res/style/bars.css'), 'utf-8', (err, data) => {
+    if (!err) {
+      scroll_bars_css = data;
+    }
+  });
+
+  webview_ui.addEventListener('did-finish-load', () => {
+    webview_ui.insertCSS(scroll_bars_css);
+  });
+
+
+  editor_media_div_ui.addEventListener('mouseup', () =>{
+    let val = editor_media_div_ui.previousElementSibling.style.width;
+    store.set('editor_media_div_percent', val);
+  });
+  editor_console_div_ui.addEventListener('mouseup', () =>{
+    let val = editor_console_div_ui.previousElementSibling.style.height;
+    store.set('editor_console_div_percent', val);
+  });
+  
+  let emd = store.get('editor_media_div_percent');
+  document.getElementsByClassName("CodeMirror")[0].style.width = emd;
+  let ecd = store.get('editor_console_div_percent');
+  document.getElementById("main-divider").style.height = ecd;
+
   print(app_info.name + " " + app_info.version);
 
 });
@@ -278,6 +317,8 @@ function initialize() {
   console_out_ui = document.getElementById('console-out');
   webview_ui = document.getElementById("embed-content");
   theme_link = document.getElementById('theme-link');
+  editor_media_div_ui = document.getElementById('editor-media-div');
+  editor_console_div_ui = document.getElementById('editor-console-div');
 }
 
 function getContent() {
@@ -285,13 +326,7 @@ function getContent() {
 }
 
 function newWindow() {
-  let win = new BrowserWindow({
-    webPreferences: {
-      plugins: true
-    }
-  });
-
-  win.loadFile('main.pdf')
+  ipcRenderer.send('new-window');
 }
 
 function _set_file_info(filePath, mime = undefined) {
@@ -319,6 +354,7 @@ function open_file(path) {
     if (!err) {
       editor.setValue(data);
       _set_file_info(path);
+      webview_ui.setAttribute("src", undefined)
       is_saved = true;
     } else {
       print("Error: Could not open file " + path, PRINT_MODE.error);
@@ -452,19 +488,16 @@ function run_file() {
 
       run_command(cmd_run);
     } else if (file.mime == "text/x-latex") {
-      document.getElementById("embed-content").src = file.path + file.name + ".pdf?v=" + Date.now();
+      webview_ui.src = file.path + file.name + ".pdf?v=" + Date.now();
     } else if (file.mime == "text/x-markdown") {
       let marked_html = marked(getContent(), { baseUrl: file.path.replaceAll("\\", "/") });
 
-      if (webview_ui.src != MD_TEMPLATE_HTML) {
-        webview_ui.addEventListener('did-finish-load', () => {
-          webview_ui.send('fillContent', marked_html);
-        });
-        webview_ui.src = MD_TEMPLATE_HTML;
-        MD_TEMPLATE_HTML = webview_ui.src;
-      } else {
+      webview_ui.addEventListener('did-finish-load', () => {
         webview_ui.send('fillContent', marked_html);
-      }
+      }, { once: true });
+      webview_ui.src = MD_TEMPLATE_HTML;
+    } else if (file.mime == "text/html") {
+      webview_ui.src = (file.path + file.name + ".html")
     }
   }
 }
@@ -482,8 +515,18 @@ function capitalize(word) {
 
 
 function run_command(command, args, callback = undefined) {
+  if (running_process != undefined) {
+    let ret = running_process.kill('SIGINT');
+
+    if (!ret) {
+      print("Error: Could not stop the running process.", PRINT_MODE.error);
+      return;
+    }
+  }
+
   notify_load_start();
   print("> " + command, PRINT_MODE.user);
+
 
   running_process = child_process.spawn(command, args, {
     encoding: 'utf8',
