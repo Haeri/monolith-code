@@ -19,6 +19,9 @@ body{
     margin:auto;
     max-width:42em;
 }
+img{
+  max-width: 100%;
+}
 h1, h2, h3, h4 {
     font-weight: 400;
 }

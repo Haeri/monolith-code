@@ -1,31 +1,38 @@
 {
     "text/x-c++src": {
         "comp": "g++ -std=c++11 <name>.cpp -o <name>",
-        "run": "<name>.exe"
+        "run": "<name>.exe",
+        "templ": "#include <iostream>\r\n\r\nint main(int argc, char *argv[]){\r\n\tstd::cout << \"hello human\" << std::endl;\r\n\treturn 0;\r\n}"
     },
-    "text/x-c": {
+    "text/x-csrc": {
         "comp": "gcc <name>.c -o <name>",
-        "run": "<name>.exe"
+        "run": "<name>.exe",
+        "templ": "#include <stdio.h>\r\n\r\nint main(int argc, char *argv[]){\r\n\tprintf(\"hello human\");\r\n\tfflush(stdout);\r\n\treturn 0;\r\n}"
     },
     "text/x-csharp": {
         "comp": "csc.exe /out:<name>.exe <name>.cs",
-        "run": "<name>.exe"
+        "run": "<name>.exe",
+        "templ": "public class CLASS_NAME{\r\n\tpublic static void Main(){\r\n\t\tSystem.Console.WriteLine(\"hello human\");\r\n\t}\r\n}"
     },
     "text/javascript": {
         "comp": null,
-        "run": "node <name>.js"
+        "run": "node <name>.js",
+        "templ": "console.log(\"hello human\");"
     },
     "text/x-java": {
         "comp": "javac <name>.java",
-        "run": "java <name>"
+        "run": "java <name>",
+        "templ": "public class CLASS_NAME {\r\n\tpublic static void main(String[] args){ \r\n\t\tSystem.out.println(\"hello human\");\r\n\t}\r\n}"
     },
     "text/x-latex": {
         "comp": "pdflatex <name>.tex",
-        "run": null
+        "run": null,
+        "templ": "\\documentclass{article}\r\n\\usepackage[margin=0.7in]{geometry}\r\n\\usepackage[parfill]{parskip}\r\n\\usepackage[utf8]{inputenc}\r\n\r\n\\begin{document}\r\n\r\nhello human\r\n\r\n\\end{document}"
     },
     "text/x-python": {
         "comp": null,
-        "run": "python -u <name>.py"
+        "run": "python -u <name>.py",
+        "templ": "print(\"hello human\")"
     },
     "text/x-markdown": {
         "comp": null,
@@ -33,6 +40,7 @@
     },
     "text/html": {
         "comp": null,
-        "run": null
+        "run": null,
+        "templ": "<!DOCTYPE html>\r\n<html>\r\n\t<head>\r\n\t\t<meta charset=\"UTF-8\">\r\n\t\t<title>hello human<\/title>\r\n\t<\/head>\r\n\t<body>\r\n\t\t<h1>hello human<\/h1>\r\n\t<\/body>\r\n<\/html>"
     }
 }
