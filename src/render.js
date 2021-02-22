@@ -125,8 +125,10 @@ document.addEventListener('DOMContentLoaded', function (event) {
     var window = remote.getCurrentWindow();
     if (!window.isMaximized()) {
       window.maximize();
+      toggle_fullscreen_style(true);
     } else {
       window.unmaximize();
+      toggle_fullscreen_style(false);
     }
   });
 
@@ -345,6 +347,13 @@ function _set_file_info(filePath, mime = undefined) {
   set_language(file.mime);
 }
 
+function toggle_fullscreen_style(is_fullscreen){
+  if(is_fullscreen){
+    document.getElementsByTagName("body")[0].classList.add("fullscreen");
+  }else{
+    document.getElementsByTagName("body")[0].classList.remove("fullscreen");
+  }
+}
 
 function open_file(path) {
   fs.readFile(path, 'utf-8', (err, data) => {
