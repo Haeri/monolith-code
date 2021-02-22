@@ -39,10 +39,10 @@
             <div id="content">
                 <div id="main-divider">
                     <textarea id="main-text-area"></textarea>
-                    <div class="resizer" data-direction="horizontal"></div>
-                    <webview id="embed-content" webpreferences="contextIsolation=false" preload="res/embed/markdown/preload.js"></webview>
+                    <div id="editor-media-div" class="resizer" data-direction="horizontal"></div>
+                    <webview id="embed-content" webpreferences="contextIsolation=false" preload="res/embed/preload.js"></webview>
                 </div>
-                <div class="resizer" data-direction="vertical"></div>
+                <div id="editor-console-div" class="resizer" data-direction="vertical"></div>
                 <div id="console">
                     <pre id="console-out"></pre>
                     <textarea id="console-in" spellcheck="false"></textarea>

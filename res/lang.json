@@ -30,5 +30,9 @@
     "text/x-markdown": {
         "comp": null,
         "run": null
+    },
+    "text/html": {
+        "comp": null,
+        "run": null
     }
 }
