@@ -9,7 +9,7 @@ const Store = require('./src/store.js');
 
 
 const store = new Store({
-  configName: 'user-preferences', 
+  configName: 'user-preferences',
   defaults: {
     editor_media_div_percent: 0,
     editor_console_div_percent: 0,
@@ -135,7 +135,6 @@ document.addEventListener('DOMContentLoaded', function (event) {
     window.close();
   });
 
-  // Open Dialog  (ctrl + o)
   window.addEventListener('keydown', function (event) {
     if (event.ctrlKey && event.key == "o") {
       event.preventDefault();
@@ -164,22 +163,20 @@ document.addEventListener('DOMContentLoaded', function (event) {
         build_run_file();
       }
     }
-  }, false);
-
-
-  // Save file  (ctrl + s)
-  window.addEventListener('keydown', function (event) {
-    if (event.ctrlKey && event.key == "s") {
+    else if (event.ctrlKey && event.key == "s") {
       event.preventDefault();
       _save_file(getContent());
     }
-  }, false);
-
-  // Save file  (ctrl + n)
-  window.addEventListener('keydown', function (event) {
-    if (event.ctrlKey && event.key == "n") {
+    else if (event.ctrlKey && event.key == "n") {
       event.preventDefault();
       newWindow();
+    } else if (event.ctrlKey && event.key == "p") {
+      event.preventDefault();
+      if((language_display_ui.value in language_compile_info) && language_compile_info[language_display_ui.value].templ){
+        editor.setValue(language_compile_info[language_display_ui.value].templ);
+      }else{
+        console.log("no defual");
+      }
     }
   }, false);
 
@@ -287,15 +284,15 @@ document.addEventListener('DOMContentLoaded', function (event) {
   });
 
 
-  editor_media_div_ui.addEventListener('mouseup', () =>{
+  document.addEventListener('mouseup', () => {
     let val = editor_media_div_ui.previousElementSibling.style.width;
     store.set('editor_media_div_percent', val);
   });
-  editor_console_div_ui.addEventListener('mouseup', () =>{
+  document.addEventListener('mouseup', () => {
     let val = editor_console_div_ui.previousElementSibling.style.height;
     store.set('editor_console_div_percent', val);
   });
-  
+
   let emd = store.get('editor_media_div_percent');
   document.getElementsByClassName("CodeMirror")[0].style.width = emd;
   let ecd = store.get('editor_console_div_percent');
@@ -470,8 +467,10 @@ function build_run_file() {
       cmd_comp = cmd_comp.replaceAll("<name>", file.name);
       cmd_comp = cmd_comp.replaceAll("<path>", file.path);
 
-      run_command(cmd_comp, [], () => {
-        run_file();
+      run_command(cmd_comp, [], (code) => {
+        if(code == 0){
+          run_file();
+        }
       });
     } else {
       run_file();
@@ -490,7 +489,12 @@ function run_file() {
     } else if (file.mime == "text/x-latex") {
       webview_ui.src = file.path + file.name + ".pdf?v=" + Date.now();
     } else if (file.mime == "text/x-markdown") {
-      let marked_html = marked(getContent(), { baseUrl: file.path.replaceAll("\\", "/") });
+      let basepath = file.path.replaceAll("\\", "/");
+      
+      // Pre process relative html src
+      let pre = getContent();
+      pre = pre.replaceAll(/src="(\..*?)"/ig, "src=\""+basepath+"$1\"");
+      let marked_html = marked(pre, { baseUrl: basepath });
 
       webview_ui.addEventListener('did-finish-load', () => {
         webview_ui.send('fillContent', marked_html);
@@ -617,12 +621,6 @@ document.addEventListener('DOMContentLoaded', function () {
           prevSibling.style.width = `${w}%`;
           break;
       }
-
-      /*
-      const cursor = direction === 'horizontal' ? 'col-resize' : 'row-resize';
-      resizer.style.cursor = cursor;
-      document.body.style.cursor = cursor;
-      */
 
       prevSibling.style.userSelect = 'none';
       prevSibling.style.pointerEvents = 'none';

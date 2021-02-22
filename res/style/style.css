@@ -43,20 +43,21 @@ html{
 }
 
 body{
-	/*background-color: transparent;*/
 	color: var(--foreground);
 	font-family: 'Open Sans', sans-serif;	
 	font-size: var(--font-size);
 	overflow: hidden;
-	margin: 0;
+	margin: 6px 8px 8px 6px;
+	box-shadow: 1px 1px 8px rgba(0, 0, 0, 0.2);
+	border-radius: 8px;
 }
 
 #container{
-	background-color: var(--background);
-	border-radius: 8px;
+    background-color: var(--background);
+    border-radius: 8px;
 	height: 100%;
-	overflow: hidden;
-	display: flex;
+    overflow: hidden;
+    display: flex;
     flex-direction: column;
 }
 
