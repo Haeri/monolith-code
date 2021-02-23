@@ -5,16 +5,6 @@ const path = require("path");
 const fs = require('fs');
 const child_process = require('child_process');
 const marked = require('marked');
-const Store = require('./src/store.js');
-
-
-const store = new Store({
-  configName: 'user-preferences',
-  defaults: {
-    editor_media_div_percent: 0,
-    editor_console_div_percent: 0,
-  }
-});
 
 const app_info = {
   version: app_version,
@@ -177,7 +167,8 @@ document.addEventListener('DOMContentLoaded', function (event) {
       if((language_display_ui.value in language_compile_info) && language_compile_info[language_display_ui.value].templ){
         editor.setValue(language_compile_info[language_display_ui.value].templ);
       }else{
-        console.log("no defual");
+        notify("warn");
+        print("No default template exists for " + language_display_ui.value);
       }
     }
   }, false);
@@ -288,19 +279,30 @@ document.addEventListener('DOMContentLoaded', function (event) {
 
   document.addEventListener('mouseup', () => {
     let val = editor_media_div_ui.previousElementSibling.style.width;
-    store.set('editor_media_div_percent', val);
+    ipcRenderer.send('store-setting', 'editor_media_div_percent', val);
   });
   document.addEventListener('mouseup', () => {
     let val = editor_console_div_ui.previousElementSibling.style.height;
-    store.set('editor_console_div_percent', val);
+    ipcRenderer.send('store-setting', 'editor_console_div_percent', val);
   });
 
-  let emd = store.get('editor_media_div_percent');
+  
+  let emd = ipcRenderer.sendSync('get-setting', 'editor_media_div_percent');
   document.getElementsByClassName("CodeMirror")[0].style.width = emd;
-  let ecd = store.get('editor_console_div_percent');
+  let ecd = ipcRenderer.sendSync('get-setting', 'editor_console_div_percent');
   document.getElementById("main-divider").style.height = ecd;
 
+
+  ipcRenderer.on('can-close', (event) => {
+    event.sender.send('can-close-response', is_saved);
+  })
+
   print(app_info.name + " " + app_info.version);
+
+  let should_open = window.process.argv.filter(s => s.includes('--open-file='));
+  if(should_open.length > 0){
+    open_file(should_open[0].replace(/--open-file="(.*)"/, "$1"));
+  }
 
 });
 
@@ -324,8 +326,8 @@ function getContent() {
   return editor.getValue();
 }
 
-function newWindow() {
-  ipcRenderer.send('new-window');
+function newWindow(file_path = undefined) {
+  ipcRenderer.send('new-window', file_path);
 }
 
 function _set_file_info(filePath, mime = undefined) {
@@ -356,17 +358,21 @@ function toggle_fullscreen_style(is_fullscreen){
 }
 
 function open_file(path) {
-  fs.readFile(path, 'utf-8', (err, data) => {
-    if (!err) {
-      editor.setValue(data);
-      _set_file_info(path);
-      webview_ui.setAttribute("src", undefined)
-      is_saved = true;
-    } else {
-      print("Error: Could not open file " + path, PRINT_MODE.error);
-      notify("error");
-    }
-  });
+  if(!file.path){
+    fs.readFile(path, 'utf-8', (err, data) => {
+      if (!err) {
+        editor.setValue(data);
+        _set_file_info(path);
+        webview_ui.setAttribute("src", undefined)
+        is_saved = true;
+      } else {
+        print("Error: Could not open file " + path, PRINT_MODE.error);
+        notify("error");
+      }
+    });
+  }else{
+    newWindow(path);
+  }
 }
 
 function _save_file(content, callback = undefined) {
@@ -484,6 +490,9 @@ function build_run_file() {
     } else {
       run_file();
     }
+  }else{
+    notify("warn");
+    print("No action defined for " + language_display_ui.value);
   }
 }
 
