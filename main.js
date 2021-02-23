@@ -5,25 +5,36 @@ const Store = require('./src/store.js');
 const store = new Store({
   configName: 'user-preferences',
   defaults: {
-    windowBounds: {
+    window_bounds: {
       width: 800,
       height: 600
     },
-    editor_media_div_percent: 0,
-    editor_console_div_percent: 0,
+    editor_config: {
+      theme: "material-darker.css",
+      editor_media_div_percent: "100%",
+      editor_console_div_percent: "100%",
+      line_wrapping: true,
+      line_numbers: true
+    }
   }
 });
 
 ipcMain.on('new-window', (event, file_path) => {
   let win = BrowserWindow.fromWebContents(event.sender);
   createWindow(win, file_path);
+});
+ipcMain.on('initial-settings', (event) => {
+  let conf = store.get("editor_config");
+  event.returnValue = conf;
 })
-
 ipcMain.on('store-setting', (event, key, value) => {
-  store.set(key, value);
+  let conf = store.get("editor_config");
+  conf[key] = value;
+  store.set("editor_config", conf);
 });
 ipcMain.on('get-setting', (event, key) => {
-  event.returnValue = store.get(key);
+  let conf = store.get("editor_config");
+  event.returnValue = conf[key];
 });
 
 ipcMain.on('can-close-response', (event, can_close) => {
@@ -50,11 +61,11 @@ ipcMain.on('can-close-response', (event, can_close) => {
 
 
 function createWindow(caller = undefined, file_path = undefined) {
-  let { width, height } = store.get('windowBounds');
+  let { width, height } = store.get('window_bounds');
 
   let win = new BrowserWindow({
-    ...caller && {x: caller.getPosition()[0]+20}, 
-    ...caller && {y: caller.getPosition()[1]+20},
+    ...caller && { x: caller.getPosition()[0] + 20 },
+    ...caller && { y: caller.getPosition()[1] + 20 },
     width,
     height,
     frame: false,
@@ -67,7 +78,7 @@ function createWindow(caller = undefined, file_path = undefined) {
       contextIsolation: false,
       enableRemoteModule: true,
       webviewTag: true,
-      ...file_path && {additionalArguments: [`--open-file="${file_path}"`]}
+      ...file_path && { additionalArguments: [`--open-file="${file_path}"`] }
     },
     icon: path.join(__dirname, 'res/img/icon.png')
   });
@@ -81,14 +92,14 @@ function createWindow(caller = undefined, file_path = undefined) {
 
   win.on('resize', () => {
     let { width, height } = win.getBounds();
-    store.set('windowBounds', { width, height });
+    store.set('window_bounds', { width, height });
   });
 
   win.once('ready-to-show', () => {
     win.show()
   })
 
-  win.loadFile('index.html')
+  win.loadFile('index.html');
 }
 
 app.whenReady().then(() => {

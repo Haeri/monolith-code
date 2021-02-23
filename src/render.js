@@ -59,17 +59,21 @@ document.addEventListener('DOMContentLoaded', function (event) {
   // Initialize all ui elements
   initialize();
 
+  // get config
+  let config = ipcRenderer.sendSync('initial-settings');
+
   webFrame.setVisualZoomLevelLimits(1, 3);
 
   editor = CodeMirror.fromTextArea(text_area_ui, {
-    lineNumbers: true,
-    lineWrapping: true,
+    lineNumbers: config.line_numbers,
+    lineWrapping: config.line_wrapping,
     dragDrop: true,
-    theme: "material-darker"
+    //theme: "material-darker"
   });
   editor.setSize("100%", "100%");
   CodeMirror.modeURL = path.resolve(__dirname, 'res/lib/codemirror-5.51.0/mode/%N/%N.js');
   themes = fs.readdirSync(path.resolve(__dirname, 'res/lib/codemirror-5.51.0/theme/'));
+  set_theme(config.theme.replace(".css", ""));
 
   editor.on("drop", (data, e) => {
     e.preventDefault();
@@ -164,9 +168,9 @@ document.addEventListener('DOMContentLoaded', function (event) {
       newWindow();
     } else if (event.ctrlKey && event.key == "p") {
       event.preventDefault();
-      if((language_display_ui.value in language_compile_info) && language_compile_info[language_display_ui.value].templ){
+      if ((language_display_ui.value in language_compile_info) && language_compile_info[language_display_ui.value].templ) {
         editor.setValue(language_compile_info[language_display_ui.value].templ);
-      }else{
+      } else {
         notify("warn");
         print("No default template exists for " + language_display_ui.value);
       }
@@ -286,12 +290,8 @@ document.addEventListener('DOMContentLoaded', function (event) {
     ipcRenderer.send('store-setting', 'editor_console_div_percent', val);
   });
 
-  
-  let emd = ipcRenderer.sendSync('get-setting', 'editor_media_div_percent');
-  document.getElementsByClassName("CodeMirror")[0].style.width = emd;
-  let ecd = ipcRenderer.sendSync('get-setting', 'editor_console_div_percent');
-  document.getElementById("main-divider").style.height = ecd;
-
+  document.getElementsByClassName("CodeMirror")[0].style.width = config.editor_media_div_percent;
+  document.getElementById("main-divider").style.height = config.editor_console_div_percent;
 
   ipcRenderer.on('can-close', (event) => {
     event.sender.send('can-close-response', is_saved);
@@ -300,7 +300,7 @@ document.addEventListener('DOMContentLoaded', function (event) {
   print(app_info.name + " " + app_info.version);
 
   let should_open = window.process.argv.filter(s => s.includes('--open-file='));
-  if(should_open.length > 0){
+  if (should_open.length > 0) {
     open_file(should_open[0].replace(/--open-file="(.*)"/, "$1"));
   }
 
@@ -349,16 +349,16 @@ function _set_file_info(filePath, mime = undefined) {
   set_language(file.mime);
 }
 
-function toggle_fullscreen_style(is_fullscreen){
-  if(is_fullscreen){
+function toggle_fullscreen_style(is_fullscreen) {
+  if (is_fullscreen) {
     document.getElementsByTagName("body")[0].classList.add("fullscreen");
-  }else{
+  } else {
     document.getElementsByTagName("body")[0].classList.remove("fullscreen");
   }
 }
 
 function open_file(path) {
-  if(!file.path){
+  if (!file.path) {
     fs.readFile(path, 'utf-8', (err, data) => {
       if (!err) {
         editor.setValue(data);
@@ -370,7 +370,7 @@ function open_file(path) {
         notify("error");
       }
     });
-  }else{
+  } else {
     newWindow(path);
   }
 }
@@ -483,14 +483,14 @@ function build_run_file() {
       cmd_comp = cmd_comp.replaceAll("<path>", file.path);
 
       run_command(cmd_comp, [], (code) => {
-        if(code == 0){
+        if (code == 0) {
           run_file();
         }
       });
     } else {
       run_file();
     }
-  }else{
+  } else {
     notify("warn");
     print("No action defined for " + language_display_ui.value);
   }
@@ -508,10 +508,10 @@ function run_file() {
       webview_ui.src = file.path + file.name + ".pdf?v=" + Date.now();
     } else if (file.mime == "text/x-markdown") {
       let basepath = file.path.replaceAll("\\", "/");
-      
+
       // Pre process relative html src
       let pre = getContent();
-      pre = pre.replaceAll(/src="(\..*?)"/ig, "src=\""+basepath+"$1\"");
+      pre = pre.replaceAll(/src="(\..*?)"/ig, "src=\"" + basepath + "$1\"");
       let marked_html = marked(pre, { baseUrl: basepath });
 
       webview_ui.addEventListener('did-finish-load', () => {
