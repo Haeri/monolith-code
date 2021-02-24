@@ -152,16 +152,20 @@ document.addEventListener('DOMContentLoaded', function (event) {
       event.preventDefault();
 
       if (file.path === undefined || !is_saved) {
-        _save_file(getContent(), () => {
+        _save_file(getContent(), false, () => {
           build_run_file();
         });
       } else {
         build_run_file();
       }
     }
-    else if (event.ctrlKey && event.key == "s") {
+    else if (event.ctrlKey && !event.shiftKey && event.key == "s") {// ctrl + s
       event.preventDefault();
       _save_file(getContent());
+    }
+    else if (event.ctrlKey && event.shiftKey && event.key == "S") { // ctrl + shift + s
+      event.preventDefault();
+      _save_file(getContent(), true);
     }
     else if (event.ctrlKey && event.key == "n") {
       event.preventDefault();
@@ -281,13 +285,46 @@ document.addEventListener('DOMContentLoaded', function (event) {
   });
 
 
-  document.addEventListener('mouseup', () => {
+  editor_media_div_ui.addEventListener('divider-move', () => {
     let val = editor_media_div_ui.previousElementSibling.style.width;
     ipcRenderer.send('store-setting', 'editor_media_div_percent', val);
   });
-  document.addEventListener('mouseup', () => {
+  editor_console_div_ui.addEventListener('divider-move', () => {
     let val = editor_console_div_ui.previousElementSibling.style.height;
     ipcRenderer.send('store-setting', 'editor_console_div_percent', val);
+  });
+
+  editor_media_div_ui.addEventListener('dblclick', () => {
+    let num = parseFloat(editor_media_div_ui.previousElementSibling.style.width.replace("%", ""));
+    let target_percent = Math.abs(num - 50) < 1 ? '100%' :  "50%";
+
+    let anim = editor_media_div_ui.previousElementSibling.animate([
+      { width: editor_media_div_ui.previousElementSibling.style.width },
+      { width: target_percent }
+    ], {
+      duration: 450,
+      easing: "cubic-bezier(0.860, 0.000, 0.070, 1.000)"
+    });
+    anim.finished.then((e) =>{    
+      editor_media_div_ui.previousElementSibling.style.width = target_percent;
+      ipcRenderer.send('store-setting', 'editor_media_div_percent', target_percent);
+    });
+  });
+  editor_console_div_ui.addEventListener('dblclick', () => {
+    let num = parseFloat(editor_console_div_ui.previousElementSibling.style.height.replace("%", ""));
+    let target_percent = Math.abs(num - 60) < 1 ? '100%' :  "60%";
+
+    let anim = editor_console_div_ui.previousElementSibling.animate([
+      { height: editor_console_div_ui.previousElementSibling.style.height },
+      { height: target_percent }
+    ], {
+      duration: 450,
+      easing: "cubic-bezier(0.860, 0.000, 0.070, 1.000)"
+    });
+    anim.finished.then((e) =>{    
+      editor_console_div_ui.previousElementSibling.style.height = target_percent;
+    ipcRenderer.send('store-setting', 'editor_console_div_percent', target_percent);
+    });    
   });
 
   document.getElementsByClassName("CodeMirror")[0].style.width = config.editor_media_div_percent;
@@ -358,7 +395,9 @@ function toggle_fullscreen_style(is_fullscreen) {
 }
 
 function open_file(path) {
-  if (!file.path) {
+  if (file.path || !is_saved) {
+    newWindow(path);
+  } else {
     fs.readFile(path, 'utf-8', (err, data) => {
       if (!err) {
         editor.setValue(data);
@@ -370,13 +409,11 @@ function open_file(path) {
         notify("error");
       }
     });
-  } else {
-    newWindow(path);
   }
 }
 
-function _save_file(content, callback = undefined) {
-  if (file.path === undefined) {
+function _save_file(content, save_as = false, callback = undefined) {
+  if (file.path === undefined || save_as) {
     let lang = CodeMirror.findModeByMIME(language_display_ui.value);
     var options = {
       filters: [
@@ -647,7 +684,7 @@ document.addEventListener('DOMContentLoaded', function () {
       nextSibling.style.pointerEvents = 'none';
     };
 
-    const mouseUpHandler = function () {
+    const mouseUpHandler = function (e) {
       resizer.style.removeProperty('cursor');
       document.body.style.removeProperty('cursor');
 
@@ -660,6 +697,10 @@ document.addEventListener('DOMContentLoaded', function () {
       // Remove the handlers of `mousemove` and `mouseup`
       document.removeEventListener('mousemove', mouseMoveHandler);
       document.removeEventListener('mouseup', mouseUpHandler);
+
+      // Dispatch the event
+      var event = new CustomEvent('divider-move');
+      resizer.dispatchEvent(event);
     };
 
     // Attach the handler

@@ -1,0 +1,71 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <meta charset="UTF-8">
+    <title>monolith code logo</title>
+    <style>
+      html{
+        background: transparent;
+      }
+      body{
+        margin: 0;
+        padding: 0;
+        display: inline-block;
+        font-family: monospace;
+        font-size: 14px;
+        background: transparent;
+      }
+      .frame{
+        background: rgb(30, 30, 30);
+        border-radius: 10px;
+        margin: 3px 5px 5px 3px;
+        box-shadow: 1px 1px 5px #000000;
+        width: 60px;
+        height: 60px;
+        overflow: hidden;
+      }
+
+      header{  
+        display: flex;
+        flex-direction: row;
+        justify-content: flex-end;
+        padding: 10px 6px;
+      }
+
+      .btn{
+        width: 9px;
+        height: 9px;
+        border-radius: 100%;
+        border: 1px solid #747474;
+        margin-left: 4px;
+        display: block;
+      }
+
+      .btn.red{
+        background-color: #f44336;
+        border: 1px solid #f44336;
+        box-shadow: 0px 0px 28px 2px #f44336;
+      }
+
+      main{
+        padding: 0px 8px;   
+        color: white;
+      }
+      .blinker{
+        color: #ffcc00;
+        display: inline-block;
+      }
+    </style>
+  </head>
+  <body>
+
+    <div class="frame">
+      <header>
+        <div class="btn"></div>
+        <div class="btn"></div>
+        <div class="btn red"></div>
+      </header>
+      <main><span class="blinker">|</span></main>
+    </div>
+  </body>
+</html>
