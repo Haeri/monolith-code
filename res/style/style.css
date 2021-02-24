@@ -182,7 +182,34 @@ footer{
 	cursor: default;
 }
 
+.CodeMirror-hints {
+	backdrop-filter: blur(5px);
+	background: rgba(40, 40, 40, 0.86);
+	box-shadow: 1px 1px 8px rgba(0, 0, 0, 0.2);
+	border-radius: 8px;
+	border: none;
+	padding: 0;
+	font-family: inherit;
+}
+.CodeMirror-hint {	
+	padding: 2px 6px;
+	border-radius: 0px;
+	color:var(--foreground);
+}
 
+.CodeMirror-selected{
+	background:  #7c737344!important;
+}
+.cm-searching{
+	background: transparent !important;
+	border-radius: 1px;
+    box-shadow: 0px 0px 0px 1px #ffeb3b91 inset;
+}
+
+.CodeMirror-matchingtag{
+	background: transparent;
+	box-shadow: 0px -1px 0px 0px #8f8f8f44 inset;
+}
 
 
 /* ---------- CONSOLE ---------- */
