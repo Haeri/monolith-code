@@ -12,7 +12,7 @@ const app_info = {
 }
 
 var MD_TEMPLATE_HTML = path.resolve(__dirname, 'res/embed/markdown/index.html');
-
+var HINT_DIR = path.resolve(__dirname, 'res/lib/codemirror-5.51.0/addon/hint');
 var editor;
 
 var file = {
@@ -24,6 +24,7 @@ var file = {
 var language_compile_info;
 var running_process = undefined;
 var themes;
+var hinters;
 var is_saved = true;
 
 var document_name_ui;
@@ -68,12 +69,30 @@ document.addEventListener('DOMContentLoaded', function (event) {
     lineNumbers: config.line_numbers,
     lineWrapping: config.line_wrapping,
     dragDrop: true,
-    //theme: "material-darker"
+    extraKeys: {"Ctrl-Space": "autocomplete"},
+    autoCloseBrackets: true,
+    autoCloseTags: true,
+    matchTags: {bothTags: true},
+    matchBrackets: true
   });
   editor.setSize("100%", "100%");
   CodeMirror.modeURL = path.resolve(__dirname, 'res/lib/codemirror-5.51.0/mode/%N/%N.js');
-  themes = fs.readdirSync(path.resolve(__dirname, 'res/lib/codemirror-5.51.0/theme/'));
-  set_theme(config.theme.replace(".css", ""));
+  CodeMirror.commands.find =  CodeMirror.commands.findPersistent;
+
+  fs.readdir(path.resolve(__dirname, 'res/lib/codemirror-5.51.0/theme/'), (err, files) =>{
+    themes = files;
+    for (var theme of themes) {
+      var option = document.createElement("option");
+      option.text = toCapitalizedWords(theme.replace(".css", ""));
+      option.value = theme;
+      theme_choice_ui.add(option);
+    }
+    set_theme(config.theme.replace(".css", ""));
+  });
+  fs.readdir(HINT_DIR, (err, files) =>{
+    hinters = files;
+  });
+
 
   editor.on("drop", (data, e) => {
     e.preventDefault();
@@ -83,8 +102,11 @@ document.addEventListener('DOMContentLoaded', function (event) {
 
   editor.on("change", () => {
     if (is_saved) {
-      document_name_ui.textContent += "*";
-      is_saved = false;
+      set_saved(false);
+    }else{
+      if(getContent() == "") {
+        set_saved(true);
+      }
     }
   });
   editor.on("scroll", (event) => {
@@ -99,14 +121,6 @@ document.addEventListener('DOMContentLoaded', function (event) {
     language_display_ui.add(option);
   }
   language_display_ui.value = "text/plain";
-
-  for (var theme of themes) {
-    var option = document.createElement("option");
-    option.text = toCapitalizedWords(theme.replace(".css", ""));
-    option.value = theme;
-    theme_choice_ui.add(option);
-  }
-  theme_choice_ui.value = "material-darker.css";
 
 
 
@@ -139,8 +153,8 @@ document.addEventListener('DOMContentLoaded', function (event) {
       const options = {
         title: 'Open a file'
       };
-
-      dialog.showOpenDialog(null, options).then((ret) => {
+      var window = remote.getCurrentWindow();
+      dialog.showOpenDialog(window, options).then((ret) => {
         if (!ret.canceled) {
           open_file(ret.filePaths[0]);
         }
@@ -232,6 +246,7 @@ document.addEventListener('DOMContentLoaded', function (event) {
   });
 
   theme_choice_ui.addEventListener("change", function (event) {
+    console.log("event");
     set_theme(theme_choice_ui.value.replace(".css", ""));
   });
 
@@ -367,6 +382,18 @@ function newWindow(file_path = undefined) {
   ipcRenderer.send('new-window', file_path);
 }
 
+function set_saved(saved){
+  if(is_saved != saved){
+    let title = file.extension ? file.name + file.extension : "new document";
+    if(saved){
+      document_name_ui.textContent = title;
+    }else{
+      document_name_ui.textContent = title + "*";
+    }
+    is_saved = saved;
+  }
+}
+
 function _set_file_info(filePath, mime = undefined) {
   file.extension = path.extname(filePath);
   file.path = path.dirname(filePath) + path.sep;
@@ -382,7 +409,7 @@ function _set_file_info(filePath, mime = undefined) {
     file.mime = mime;
   }
 
-  document_name_ui.innerHTML = file.name + file.extension;
+  set_saved(true);
   set_language(file.mime);
 }
 
@@ -403,7 +430,6 @@ function open_file(path) {
         editor.setValue(data);
         _set_file_info(path);
         webview_ui.setAttribute("src", undefined)
-        is_saved = true;
       } else {
         print("Error: Could not open file " + path, PRINT_MODE.error);
         notify("error");
@@ -421,12 +447,12 @@ function _save_file(content, save_as = false, callback = undefined) {
         { name: lang.name, extensions: lang.ext }
       ]
     }
-    dialog.showSaveDialog(null, options).then((ret) => {
+    var window = remote.getCurrentWindow();
+    dialog.showSaveDialog(window, options).then((ret) => {
       if (!ret.canceled) {
         write_file(ret.filePath, content, (err) => {
           if (!err) {
             _set_file_info(ret.filePath);
-            is_saved = true;
 
             if (callback != undefined) callback();
           }
@@ -436,8 +462,7 @@ function _save_file(content, save_as = false, callback = undefined) {
   } else {
     write_file(file.path + file.name + file.extension, getContent(), (err) => {
       if (!err) {
-        document_name_ui.innerHTML = file.name + file.extension;
-        is_saved = true;
+        set_saved(true);
       }
       if (callback != undefined) callback(err);
     });
@@ -461,6 +486,7 @@ function set_language(mime) {
   editor.setOption("mode", info.mime);
   CodeMirror.autoLoadMode(editor, info.mode);
   language_display_ui.value = info.mime;
+  load_hint(info.mode);
 }
 
 function notify(type) {
@@ -478,7 +504,7 @@ function notify_load_end() {
 }
 
 function print(text, mode = PRINT_MODE.info) {
-  var block = document.createElement('div');
+  let block = document.createElement('div');
   block.classList.add(Object.keys(PRINT_MODE).find(key => PRINT_MODE[key] === mode));
   block.innerText = text;
   console_out_ui.appendChild(block);
@@ -491,7 +517,7 @@ function set_theme(name) {
   let style_file = path.resolve(__dirname, 'res/lib/codemirror-5.51.0/theme/' + name + ".css");
 
   if (!document.getElementById("mc-style-" + name)) {
-    var styles = document.createElement('link');
+    let styles = document.createElement('link');
     styles.onload = _reapply_theme;
     styles.rel = 'stylesheet';
     styles.type = 'text/css';
@@ -504,11 +530,27 @@ function set_theme(name) {
     editor.setOption("theme", name);
     _reapply_theme();
   }
+  theme_choice_ui.value = name+".css";
 }
 
 function _reapply_theme() {
   let cm = document.querySelector(".CodeMirror");
   document.documentElement.style.setProperty('--background', getComputedStyle(cm).backgroundColor);
+}
+
+function load_hint(mode){
+  let ret = hinters.filter(s => s.startsWith(mode));
+  
+  if(ret.length > 0){
+    let id = "hint-"+mode;
+
+    if(!document.getElementById(id)){
+      let hinter = document.createElement('script');
+      hinter.id = id;
+      hinter.src = HINT_DIR + path.sep + ret[0];
+      document.getElementsByTagName('head')[0].appendChild(hinter);
+    }    
+  }
 }
 
 
