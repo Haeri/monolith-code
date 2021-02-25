@@ -64,8 +64,8 @@ function createWindow(caller = undefined, file_path = undefined) {
   let { width, height } = store.get('window_bounds');
 
   let win = new BrowserWindow({
-    ...caller && { x: caller.getPosition()[0] + 20 },
-    ...caller && { y: caller.getPosition()[1] + 20 },
+    ...caller && { x: caller.getPosition()[0] + 30 },
+    ...caller && { y: caller.getPosition()[1] + 30 },
     width,
     height,
     frame: false,

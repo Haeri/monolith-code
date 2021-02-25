@@ -21,6 +21,7 @@ body{
 }
 img{
   max-width: 100%;
+  border-radius: 4px;
 }
 h1, h2, h3, h4 {
     font-weight: 400;
@@ -61,22 +62,35 @@ a:visited {
 ul, ol {
     padding: 0;
     margin: 0;
+    margin-left: 1em;
 }
 li {
     line-height: 24px;
+    position: relative;
 }
 li ul, li ul {
     margin-left: 24px;
 }
+
+li > input[type=checkbox], 
+li > input[type=radio] {
+  /*position: absolute;
+  left: -1.2em;
+  z-index: 10;
+  bottom: 6px;*/
+}
+
 p, ul, ol {
     font-size: 1em;
     line-height: 24px;
     max-width: 540px;
 }
 pre {
-    padding: 0px 24px;
+    padding: 12px 14px;
     max-width: 800px;
     white-space: pre-wrap;
+    border-radius: 4px;
+    background:#212121;
 }
 code {
     font-family: Consolas, Monaco, Andale Mono, monospace;
