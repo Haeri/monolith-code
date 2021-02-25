@@ -5,6 +5,8 @@ const path = require("path");
 const fs = require('fs');
 const child_process = require('child_process');
 const marked = require('marked');
+const hljs = require('highlight.js');
+
 
 const app_info = {
   version: app_version,
@@ -216,6 +218,10 @@ document.addEventListener('DOMContentLoaded', function (event) {
       if (pre in command_list) {
         print(pre, PRINT_MODE.user);
         command_list[pre].func();
+      } else if(cmd.startsWith("!")){
+        print(pre, PRINT_MODE.user);
+        print("Command not recognized. Try !help.", PRINT_MODE.warn);
+        notify("warn");
       } else if (running_process != undefined) {
         running_process.stdin.write(cmd + "\n");
       } else {
@@ -299,6 +305,13 @@ document.addEventListener('DOMContentLoaded', function (event) {
     webview_ui.insertCSS(scroll_bars_css);
   });
 
+  marked.setOptions({
+    highlight: (code, lang) => {
+      const validLanguage = hljs.getLanguage(lang) ? lang : 'plaintext';
+      return hljs.highlight(validLanguage, code).value;
+    }
+  });
+
 
   editor_media_div_ui.addEventListener('divider-move', () => {
     let val = editor_media_div_ui.previousElementSibling.style.width;
@@ -351,10 +364,14 @@ document.addEventListener('DOMContentLoaded', function (event) {
 
   print(app_info.name + " " + app_info.version);
 
+
+
+  
   let should_open = window.process.argv.filter(s => s.includes('--open-file='));
   if (should_open.length > 0) {
     open_file(should_open[0].replace(/--open-file="(.*)"/, "$1"));
   }
+  
 
 });
 
