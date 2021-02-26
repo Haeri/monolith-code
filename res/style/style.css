@@ -191,6 +191,11 @@ footer{
 	background-color: transparent !important;
 }
 
+.ace_gutter-active-line {
+	color: white;
+	background-color: transparent !important;
+}
+
 .ace_dark.ace_editor.ace_autocomplete{
     backdrop-filter: blur(5px);
     background: rgb(30 30 30 / 55%);
