@@ -36,7 +36,8 @@
     },
     "text/x-markdown": {
         "comp": null,
-        "run": null
+        "run": null,
+        "templ": "# hello human"
     },
     "text/html": {
         "comp": null,
