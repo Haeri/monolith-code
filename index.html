@@ -2,38 +2,16 @@
     <head>
         <meta charset="UTF-8">
         <title>Monolith Code</title>
-
-        <!-- Codemirror -->
-        <script src="res/lib/codemirror-5.51.0/lib/codemirror.js"></script>
-        <link rel="stylesheet" href="res/lib/codemirror-5.51.0/lib/codemirror.css">
-        
-        <!-- Addons -->
-        <script src="res/lib/codemirror-5.51.0/mode/meta.js"></script>
-        <script src="res/lib/codemirror-5.51.0/addon/mode/loadmode.js"></script>
-        
-        <script src="res/lib/codemirror-5.51.0/addon/search/search.js"></script>
-        <script src="res/lib/codemirror-5.51.0/addon/search/searchcursor.js"></script>
-        <script src="res/lib/codemirror-5.51.0/addon/search/jump-to-line.js"></script>
-
-        <script src="res/lib/codemirror-5.51.0/addon/dialog/dialog.js"></script>
-        <link rel="stylesheet" href="res/lib/codemirror-5.51.0/addon/dialog/dialog.css">
-
-        <script src="res/lib/codemirror-5.51.0/addon/hint/show-hint.js"></script>
-        <link rel="stylesheet" href="res/lib/codemirror-5.51.0/addon/hint/show-hint.css">
-
-        <script src="res/lib/codemirror-5.51.0/addon/edit/closebrackets.js"></script>
-        <script src="res/lib/codemirror-5.51.0/addon/edit/closetag.js"></script>
-        <script src="res/lib/codemirror-5.51.0/addon/edit/matchbrackets.js"></script>
-        <script src="res/lib/codemirror-5.51.0/addon/fold/xml-fold.js"></script>
-        <script src="res/lib/codemirror-5.51.0/addon/edit/matchtags.js"></script>
+    
+        <script src="res/lib/ace-builds-1.4.12/src-min/ace.js" type="text/javascript" charset="utf-8"></script>
+        <script src="res/lib/ace-builds-1.4.12/src-min/ext-modelist.js" type="text/javascript" charset="utf-8"></script>
+        <script src="res/lib/ace-builds-1.4.12/src-min/ext-language_tools.js" type="text/javascript" charset="utf-8"></script>
 
         <link rel="stylesheet" href="res/style/style.css">
         <link rel="stylesheet" href="res/style/bars.css">
         
         <!-- https://electronjs.org/docs/tutorial/security#csp-meta-tag -->
-        <meta http-equiv="Content-Security-Policy" content="script-src 'self' 'unsafe-inline';" />
-
-        <link id="mc-style-material-darker" rel="stylesheet" href="res/lib/codemirror-5.51.0/theme/material-darker.css">
+        <!--<meta http-equiv="Content-Security-Policy" content="script-src 'self' 'unsafe-inline';" />-->
     </head>
     <body>
         <div id="container">
@@ -47,7 +25,9 @@
             </header>
             <div id="content">
                 <div id="main-divider">
-                    <textarea id="main-text-area"></textarea>
+                    <div id="editor-wrapper">
+                        <pre id="main-text-area"></pre>
+                    </div>
                     <div id="editor-media-div" class="resizer" data-direction="horizontal"></div>
                     <webview id="embed-content" webpreferences="contextIsolation=false" preload="res/embed/preload.js"></webview>
                 </div>

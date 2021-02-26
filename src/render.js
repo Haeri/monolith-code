@@ -6,7 +6,11 @@ const fs = require('fs');
 const child_process = require('child_process');
 const marked = require('marked');
 const hljs = require('highlight.js');
-
+//var ace = require('ace-builds/src-noconflict/ace');
+//var mod = require('ace-builds/');
+//var resolve = require('ace-builds/webpack-resolver');
+//var ace = require(path.resolve(__dirname, './res/lib/ace-builds-1.4.12/src-min/ace.js'));
+const modelist = ace.require("ace/ext/modelist");
 
 const app_info = {
   version: app_version,
@@ -66,7 +70,7 @@ document.addEventListener('DOMContentLoaded', function (event) {
   let config = ipcRenderer.sendSync('initial-settings');
 
   webFrame.setVisualZoomLevelLimits(1, 3);
-
+/*
   editor = CodeMirror.fromTextArea(text_area_ui, {
     lineNumbers: config.line_numbers,
     lineWrapping: config.line_wrapping,
@@ -80,6 +84,22 @@ document.addEventListener('DOMContentLoaded', function (event) {
   editor.setSize("100%", "100%");
   CodeMirror.modeURL = path.resolve(__dirname, 'res/lib/codemirror-5.51.0/mode/%N/%N.js');
   CodeMirror.commands.find =  CodeMirror.commands.findPersistent;
+*/
+  editor = ace.edit("main-text-area", {
+    enableBasicAutocompletion: true,
+    showPrintMargin: false,
+    showLineNumbers: config.line_numbers,
+    wrap: config.line_wrapping,
+    scrollPastEnd: 1,
+    fixedWidthGutter: true,
+    highlightGutterLine: false,
+    fadeFoldWidgets: true,
+    highlightActiveLine: false,
+    useWorker: false,
+    theme: "ace/theme/tomorrow_night"
+  });
+  //editor.setTheme("ace/theme/material_dark");
+  editor.session.setMode("ace/mode/javascript");
 
   fs.readdir(path.resolve(__dirname, 'res/lib/codemirror-5.51.0/theme/'), (err, files) =>{
     themes = files;
@@ -115,7 +135,7 @@ document.addEventListener('DOMContentLoaded', function (event) {
     //console.log(event);
   });
 
-
+/*
   for (var lang of CodeMirror.modeInfo) {
     var option = document.createElement("option");
     option.text = lang.name;
@@ -123,7 +143,7 @@ document.addEventListener('DOMContentLoaded', function (event) {
     language_display_ui.add(option);
   }
   language_display_ui.value = "text/plain";
-
+*/
 
 
   document.getElementById("min-button").addEventListener("click", function (e) {
@@ -252,7 +272,6 @@ document.addEventListener('DOMContentLoaded', function (event) {
   });
 
   theme_choice_ui.addEventListener("change", function (event) {
-    console.log("event");
     set_theme(theme_choice_ui.value.replace(".css", ""));
   });
 
@@ -320,10 +339,12 @@ document.addEventListener('DOMContentLoaded', function (event) {
   editor_media_div_ui.addEventListener('divider-move', () => {
     let val = editor_media_div_ui.previousElementSibling.style.width;
     ipcRenderer.send('store-setting', 'editor_media_div_percent', val);
+    editor.resize();
   });
   editor_console_div_ui.addEventListener('divider-move', () => {
     let val = editor_console_div_ui.previousElementSibling.style.height;
     ipcRenderer.send('store-setting', 'editor_console_div_percent', val);
+    editor.resize();
   });
 
   editor_media_div_ui.addEventListener('dblclick', () => {
@@ -340,6 +361,7 @@ document.addEventListener('DOMContentLoaded', function (event) {
     anim.finished.then((e) =>{    
       editor_media_div_ui.previousElementSibling.style.width = target_percent;
       ipcRenderer.send('store-setting', 'editor_media_div_percent', target_percent);
+      editor.resize();
     });
   });
   editor_console_div_ui.addEventListener('dblclick', () => {
@@ -356,10 +378,11 @@ document.addEventListener('DOMContentLoaded', function (event) {
     anim.finished.then((e) =>{    
       editor_console_div_ui.previousElementSibling.style.height = target_percent;
     ipcRenderer.send('store-setting', 'editor_console_div_percent', target_percent);
+    editor.resize();
     });    
   });
 
-  document.getElementsByClassName("CodeMirror")[0].style.width = config.editor_media_div_percent;
+  document.getElementById("editor-wrapper").style.width = config.editor_media_div_percent;
   document.getElementById("main-divider").style.height = config.editor_console_div_percent;
 
   ipcRenderer.on('can-close', (event) => {
@@ -504,7 +527,7 @@ function write_file(path, content, callback = undefined) {
 
 function set_language(mime) {
   let info = CodeMirror.findModeByMIME(mime);
-  editor.setOption("mode", info.mime);
+  //editor.setOption("mode", info.mime);
   CodeMirror.autoLoadMode(editor, info.mode);
   language_display_ui.value = info.mime;
   load_hint(info.mode);
@@ -546,17 +569,17 @@ function set_theme(name) {
     styles.href = style_file;
     styles.id = "mc-style-" + name;
     document.getElementsByTagName('head')[0].appendChild(styles);
-    editor.setOption("theme", name);
+    //editor.setOption("theme", name);
   } else {
-    editor.setOption("theme", name);
+    //editor.setOption("theme", name);
     _reapply_theme();
   }
   theme_choice_ui.value = name+".css";
 }
 
 function _reapply_theme() {
-  let cm = document.querySelector(".CodeMirror");
-  document.documentElement.style.setProperty('--background', getComputedStyle(cm).backgroundColor);
+  //let cm = document.querySelector(".CodeMirror");
+  //document.documentElement.style.setProperty('--background', getComputedStyle(cm).backgroundColor);
 }
 
 function load_hint(mode){
