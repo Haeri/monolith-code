@@ -301,8 +301,12 @@ document.addEventListener('DOMContentLoaded', function (event) {
     }
   });
 
-  webview_ui.addEventListener('did-finish-load', () => {
+  webview_ui.addEventListener('load-commit', () => {
     webview_ui.insertCSS(scroll_bars_css);
+    webview_ui.insertCSS("body{background: transparent !important;}");
+  });
+  webview_ui.addEventListener('did-finish-load', () => {    
+    webview_ui.send('onLoad');
   });
 
   marked.setOptions({
@@ -587,8 +591,12 @@ function build_run_file() {
       run_file();
     }
   } else {
-    notify("warn");
-    print("No action defined for " + language_display_ui.value);
+    //if(file.mime != "text/plain"){
+      webview_ui.src = file.path + file.name + file.extension;
+    //}else{
+      //notify("warn");
+      //print("No action defined for " + language_display_ui.value);
+    //}
   }
 }
 
