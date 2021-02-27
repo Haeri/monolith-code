@@ -5,7 +5,6 @@ const path = require("path");
 const fs = require('fs');
 const child_process = require('child_process');
 const marked = require('marked');
-const mime_types = require('mime-types');
 const hljs = require('highlight.js');
 const modelist = ace.require("ace/ext/modelist");
 const themelist = ace.require("ace/ext/themelist");
@@ -22,7 +21,7 @@ var file = {
   name: undefined,
   extension: undefined,
   path: undefined,
-  mime: undefined
+  lang: undefined
 }
 var language_compile_info;
 var running_process = undefined;
@@ -52,6 +51,15 @@ const PRINT_MODE = Object.freeze({
   warn: 3,
   error: 4
 });
+
+var markdown_updater = debounce(function () {
+  let basepath = file.path.replaceAll("\\", "/");
+  let pre = getContent();
+  pre = pre.replaceAll(/src="(\..*?)"/ig, "src=\"" + basepath + "$1\"");
+  let marked_html = marked(pre, { baseUrl: basepath });
+
+  webview_ui.send('fillContent', marked_html);
+}, 200);
 
 /* ---- DOCUMENT READY ---- */
 
@@ -119,8 +127,6 @@ document.addEventListener('DOMContentLoaded', function (event) {
   editor.on("scroll", (event) => {
     //console.log(event);
   });
-
-
 
   document.getElementById("min-button").addEventListener("click", function (e) {
     var window = remote.getCurrentWindow();
@@ -258,16 +264,13 @@ document.addEventListener('DOMContentLoaded', function (event) {
     }
     language_compile_info = JSON.parse(data);
 
-
-
     for (let item of Object.entries(language_compile_info)) {
       var option = document.createElement("option");
-      //option.text = modelist.modesByName[item[1].mode].caption
-      option.text = item[0];
+      option.text = item[1].name;
       option.value = item[0];
       language_display_ui.add(option);
     }
-    language_display_ui.value = "text/plain";
+    language_display_ui.value = "plaintext";
 
   });
 
@@ -426,14 +429,17 @@ function _set_file_info(filePath) {
   file.extension = path.extname(filePath);
   file.path = path.dirname(filePath) + path.sep;
   file.name = path.basename(filePath, file.extension);
-  file.mime = mime_types.lookup(filePath);
 
-  if (!file.mime) {
-    file.mime = "text/plain";
+  let mode = modelist.getModeForPath(filePath).name;
+  let ret = Object.entries(language_compile_info).filter(e => { return e[1].mode == mode });
+  if (ret.length <= 0) {
+    file.lang = "plaintext";
+  } else {
+    file.lang = ret[0][0];
   }
 
   set_saved(true);
-  set_language(file.mime);
+  set_language(file.lang);
 }
 
 function toggle_fullscreen_style(is_fullscreen) {
@@ -463,13 +469,13 @@ function open_file(path) {
 
 function _save_file(content, save_as = false, callback = undefined) {
   if (file.path === undefined || save_as) {
-
-    let mode_name = language_compile_info[language_display_ui.value].mode;
+    let lang = language_compile_info[language_display_ui.value];
+    let mode_name = lang.mode;
     let mode = modelist.modesByName[mode_name];
     var options = {
       filters: [
         { name: 'All Files', extensions: ['*'] },
-        { name: mode.caption, extensions: mode.extensions.split("|") }
+        { name: lang.name, extensions: mode.extensions.split("|") }
       ]
     }
     var window = remote.getCurrentWindow();
@@ -506,11 +512,17 @@ function write_file(path, content, callback = undefined) {
   });
 }
 
-function set_language(mime) {
-  let lang = language_compile_info[mime];
+function set_language(lang_key) {
+  if (lang_key == "markdown") {
+    editor.on('input', markdown_updater);
+  } else {
+    editor.off('input', markdown_updater);
+  }
+
+  let lang = language_compile_info[lang_key];
   let mode = modelist.modesByName[lang.mode].mode;
   editor.session.setMode(mode);
-  language_display_ui.value = mime;
+  language_display_ui.value = lang_key;
 }
 
 function notify(type) {
@@ -547,8 +559,8 @@ function set_theme(name) {
 
 
 function build_run_file() {
-  if (file.mime in language_compile_info) {
-    let cmd_comp = language_compile_info[file.mime].comp;
+  if (file.lang in language_compile_info) {
+    let cmd_comp = language_compile_info[file.lang].comp;
     if (cmd_comp) {
       cmd_comp = cmd_comp.replaceAll("<name>", file.name);
       cmd_comp = cmd_comp.replaceAll("<path>", file.path);
@@ -572,16 +584,16 @@ function build_run_file() {
 }
 
 function run_file() {
-  if (file.mime in language_compile_info) {
-    let cmd_run = language_compile_info[file.mime].run;
+  if (file.lang in language_compile_info) {
+    let cmd_run = language_compile_info[file.lang].run;
     if (cmd_run) {
       cmd_run = cmd_run.replaceAll("<name>", file.name);
       cmd_run = cmd_run.replaceAll("<path>", file.path);
 
       run_command(cmd_run);
-    } else if (file.mime == "text/x-latex") {
+    } else if (file.lang == "latex") {
       webview_ui.src = file.path + file.name + ".pdf?v=" + Date.now();
-    } else if (file.mime == "text/x-markdown") {
+    } else if (file.lang == "markdown") {
       let basepath = file.path.replaceAll("\\", "/");
 
       // Pre process relative html src
@@ -593,22 +605,11 @@ function run_file() {
         webview_ui.send('fillContent', marked_html);
       }, { once: true });
       webview_ui.src = MD_TEMPLATE_HTML;
-    } else if (file.mime == "text/html") {
+    } else if (file.lang == "html") {
       webview_ui.src = (file.path + file.name + ".html")
     }
   }
 }
-
-function toCapitalizedWords(name) {
-  var words = name.match(/[0-9A-Za-z][0-9a-z]*/g) || [];
-
-  return words.map(capitalize).join(" ");
-}
-
-function capitalize(word) {
-  return word.charAt(0).toUpperCase() + word.substring(1);
-}
-
 
 
 function run_command(command, args, callback = undefined) {
@@ -666,7 +667,20 @@ function run_command(command, args, callback = undefined) {
 
 
 
-
+function debounce(func, wait, immediate) {
+  var timeout;
+  return function () {
+    var context = this, args = arguments;
+    var later = function () {
+      timeout = null;
+      if (!immediate) func.apply(context, args);
+    };
+    var callNow = immediate && !timeout;
+    clearTimeout(timeout);
+    timeout = setTimeout(later, wait);
+    if (callNow) func.apply(context, args);
+  };
+};
 
 
 
