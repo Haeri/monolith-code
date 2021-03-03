@@ -23,7 +23,7 @@ var file = {
   path: undefined,
   lang: undefined
 }
-var language_compile_info;
+var lang_info;
 var running_process = undefined;
 var is_saved = true;
 
@@ -190,8 +190,8 @@ document.addEventListener('DOMContentLoaded', function (event) {
       newWindow();
     } else if (event.ctrlKey && event.key == ".") {
       event.preventDefault();
-      if ((language_display_ui.value in language_compile_info) && language_compile_info[language_display_ui.value].templ) {
-        editor.setValue(language_compile_info[language_display_ui.value].templ, -1);
+      if ((language_display_ui.value in lang_info) && lang_info[language_display_ui.value].templ) {
+        editor.setValue(lang_info[language_display_ui.value].templ, -1);
       } else {
         notify("warn");
         print("No default template exists for " + language_display_ui.value);
@@ -199,11 +199,21 @@ document.addEventListener('DOMContentLoaded', function (event) {
     }
   }, false);
 
+  document.addEventListener('click',function(e){
+    
+    
+    if(e.target && e.target.classList.contains('jump-to-line')){
+      let line = parseInt(e.target.getAttribute("href").replace("#", ""));
+      editor.selection.clearSelection();
+      editor.selection.moveCursorToPosition({row: line-1, column: 0});
+      editor.selection.selectLineEnd();
+      editor.scrollToLine(line-1,true, true);
+     }
+     
+ });
 
 
-
-
-  console_in_ui.addEventListener('keyup', function (event) {
+  console_in_ui.addEventListener('keypress', function (event) {
     if (!event.ctrlKey && event.key == "Enter") {
       event.preventDefault();
       let cmd = console_in_ui.value.replace(/\n$/, "");
@@ -262,9 +272,9 @@ document.addEventListener('DOMContentLoaded', function (event) {
       alert("An error ocurred reading the file :" + err.message);
       return;
     }
-    language_compile_info = JSON.parse(data);
+    lang_info = JSON.parse(data);
 
-    for (let item of Object.entries(language_compile_info)) {
+    for (let item of Object.entries(lang_info)) {
       var option = document.createElement("option");
       option.text = item[1].name;
       option.value = item[0];
@@ -431,7 +441,7 @@ function _set_file_info(filePath) {
   file.name = path.basename(filePath, file.extension);
 
   let mode = modelist.getModeForPath(filePath).name;
-  let ret = Object.entries(language_compile_info).filter(e => { return e[1].mode == mode });
+  let ret = Object.entries(lang_info).filter(e => { return e[1].mode == mode });
   if (ret.length <= 0) {
     file.lang = "plaintext";
   } else {
@@ -469,7 +479,7 @@ function open_file(path) {
 
 function _save_file(content, save_as = false, callback = undefined) {
   if (file.path === undefined || save_as) {
-    let lang = language_compile_info[language_display_ui.value];
+    let lang = lang_info[language_display_ui.value];
     let mode_name = lang.mode;
     let mode = modelist.modesByName[mode_name];
     var options = {
@@ -519,7 +529,7 @@ function set_language(lang_key) {
     editor.off('input', markdown_updater);
   }
 
-  let lang = language_compile_info[lang_key];
+  let lang = lang_info[lang_key];
   let mode = modelist.modesByName[lang.mode].mode;
   editor.session.setMode(mode);
   language_display_ui.value = lang_key;
@@ -542,7 +552,7 @@ function notify_load_end() {
 function print(text, mode = PRINT_MODE.info) {
   let block = document.createElement('div');
   block.classList.add(Object.keys(PRINT_MODE).find(key => PRINT_MODE[key] === mode));
-  block.innerText = text;
+  block.innerHTML = text;
   console_out_ui.appendChild(block);
 
   console_ui.scrollTo({ top: console_ui.scrollHeight, behavior: 'smooth' });
@@ -559,8 +569,8 @@ function set_theme(name) {
 
 
 function build_run_file() {
-  if (file.lang in language_compile_info) {
-    let cmd_comp = language_compile_info[file.lang].comp;
+  if (file.lang in lang_info) {
+    let cmd_comp = lang_info[file.lang].comp;
     if (cmd_comp) {
       cmd_comp = cmd_comp.replaceAll("<name>", file.name);
       cmd_comp = cmd_comp.replaceAll("<path>", file.path);
@@ -584,8 +594,8 @@ function build_run_file() {
 }
 
 function run_file() {
-  if (file.lang in language_compile_info) {
-    let cmd_run = language_compile_info[file.lang].run;
+  if (file.lang in lang_info) {
+    let cmd_run = lang_info[file.lang].run;
     if (cmd_run) {
       cmd_run = cmd_run.replaceAll("<name>", file.name);
       cmd_run = cmd_run.replaceAll("<path>", file.path);
@@ -637,11 +647,19 @@ function run_command(command, args, callback = undefined) {
   running_process.stdout.setEncoding('utf8');
   running_process.stdout.on('data', (data) => {
     data = data.toString();
+
     print(data);
   });
 
   running_process.stderr.setEncoding('utf8');
   running_process.stderr.on('data', (data) => {
+    data = data.toString();
+    if(file.lang != undefined && lang_info[file.lang].linere != undefined){
+      let line = lang_info[file.lang].linere.replaceAll("<name>", file.name);
+      let re = new RegExp(line, "gi");
+      data = data.replaceAll(re, '<a class="jump-to-line" href="#$2">$1</a>');
+      console.log(data);
+    }
     print(data, PRINT_MODE.error);
   });
 

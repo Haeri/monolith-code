@@ -4,154 +4,164 @@
 		"mode": "batchfile",
 		"comp": null,
 		"run": "<name>.bat",
-		"templ": "echo hello human"
+		"templ": "echo hello human",
+		"ext": [".bat", ".cmd"]
 	},
 	"c": {
 		"name": "C",
 		"mode": "c_cpp",
 		"comp": "gcc <name>.c -o <name>",
 		"run": "<name>.exe",
-		"templ": "#include <stdio.h>\r\n\r\nint main(int argc, char *argv[]){\r\n\tprintf(\"hello human\");\r\n\tfflush(stdout);\r\n\treturn 0;\r\n}"
+		"templ": "#include <stdio.h>\r\n\r\nint main(int argc, char *argv[]){\r\n\tprintf(\"hello human\");\r\n\tfflush(stdout);\r\n\treturn 0;\r\n}",
+		"linere": "(<name>\\.c:(\\d*):\\d*:)",
+		"ext": [".c", ".h"]
 	},
 	"cpp": {
 		"name": "C++",
 		"mode": "c_cpp",
 		"comp": "g++ -std=c++11 <name>.cpp -o <name>",
 		"run": "<name>.exe",
-		"templ": "#include <iostream>\r\n\r\nint main(int argc, char *argv[]){\r\n\tstd::cout << \"hello human\" << std::endl;\r\n\treturn 0;\r\n}"
+		"templ": "#include <iostream>\r\n\r\nint main(int argc, char *argv[]){\r\n\tstd::cout << \"hello human\" << std::endl;\r\n\treturn 0;\r\n}",
+		"linere": "(<name>\\.cpp:(\\d*):\\d*:)",
+		"ext": [".cpp", ".hpp"]
 	},
 	"csharp": {
 		"name": "C#",
 		"mode": "csharp",
 		"comp": "csc.exe /out:<name>.exe <name>.cs",
 		"run": "<name>.exe",
-		"templ": "public class CLASS_NAME{\r\n\tpublic static void Main(){\r\n\t\tSystem.Console.WriteLine(\"hello human\");\r\n\t}\r\n}"
+		"templ": "public class CLASS_NAME{\r\n\tpublic static void Main(){\r\n\t\tSystem.Console.WriteLine(\"hello human\");\r\n\t}\r\n}",
+		"ext": [".cs"]
 	},
 	"css": {
 		"name": "CSS",
 		"mode": "css",
 		"comp": null,
 		"run": null,
-		"templ": null
+		"templ": null,
+		"ext": [".css"]
 	},
 	"dart": {
 		"name": "DART",
 		"mode": "dart",
 		"comp": null,
 		"run": null,
-		"templ": null
+		"templ": null,
+		"ext": [".dart"]
 	},
 	"dockerfile": {
 		"name": "Dockerfile",
 		"mode": "dockerfile",
 		"comp": null,
 		"run": null,
-		"templ": null
-	},
-	"fsharp": {
-		"name": "F#",
-		"mode": "fsharp",
-		"comp": null,
-		"run": null,
-		"templ": null
+		"templ": null,
+		"ext": ["Dockerfile"]
 	},
 	"go": {
 		"name": "Go",
 		"mode": "golang",
 		"comp": null,
 		"run": null,
-		"templ": null
+		"templ": null,
+		"ext": [".go"]
 	},
 	"html": {
 		"name": "HTML",
 		"mode": "html",
 		"comp": null,
 		"run": null,
-		"templ": "<!DOCTYPE html>\r\n<html>\r\n\t<head>\r\n\t\t<meta charset=\"UTF-8\">\r\n\t\t<title>hello human</title>\r\n\t</head>\r\n\t<body>\r\n\t\t<h1>hello human</h1>\r\n\t</body>\r\n</html>"
+		"templ": "<!DOCTYPE html>\r\n<html>\r\n\t<head>\r\n\t\t<meta charset=\"UTF-8\">\r\n\t\t<title>hello human</title>\r\n\t</head>\r\n\t<body>\r\n\t\t<h1>hello human</h1>\r\n\t</body>\r\n</html>",
+		"ext": [".html"]
 	},
 	"java": {
 		"name": "Java",
 		"mode": "java",
 		"comp": "javac <name>.java",
 		"run": "java <name>",
-		"templ": "public class CLASS_NAME {\r\n\tpublic static void main(String[] args){ \r\n\t\tSystem.out.println(\"hello human\");\r\n\t}\r\n}"
+		"templ": "public class CLASS_NAME {\r\n\tpublic static void main(String[] args){ \r\n\t\tSystem.out.println(\"hello human\");\r\n\t}\r\n}",
+		"linere": "(<name>\\.java:(\\d*):)",
+		"ext": [".java"]
 	},
 	"javascript": {
 		"name": "JavaScript",
 		"mode": "javascript",
 		"comp": null,
 		"run": "node <name>.js",
-		"templ": "console.log(\"hello human\");"
+		"templ": "console.log(\"hello human\");",
+		"ext": [".js"]
 	},
 	"json": {
 		"name": "JSON",
 		"mode": "json",
 		"comp": null,
 		"run": null,
-		"templ": null
+		"templ": null,
+		"ext": [".json"]
 	},
 	"latex": {
 		"name": "LaTeX",
 		"mode": "latex",
 		"comp": "pdflatex <name>.tex",
 		"run": null,
-		"templ": "\\documentclass{article}\r\n\\usepackage[margin=0.7in]{geometry}\r\n\\usepackage[parfill]{parskip}\r\n\\usepackage[utf8]{inputenc}\r\n\r\n\\begin{document}\r\n\r\nhello human\r\n\r\n\\end{document}"
-	},
-	"less": {
-		"name": "Less",
-		"mode": "less",
-		"comp": null,
-		"run": null,
-		"templ": null
+		"templ": "\\documentclass{article}\r\n\\usepackage[margin=0.7in]{geometry}\r\n\\usepackage[parfill]{parskip}\r\n\\usepackage[utf8]{inputenc}\r\n\r\n\\begin{document}\r\n\r\nhello human\r\n\r\n\\end{document}",
+		"ext": [".tex", ".latex", ".bib"]
 	},
 	"makefile": {
 		"name": "Make",
 		"mode": "makefile",
 		"comp": null,
 		"run": null,
-		"templ": null
+		"templ": null,
+		"ext": [".make", "Make", "make"]
 	},
 	"markdown": {
 		"name": "Markdown",
 		"mode": "markdown",
 		"comp": null,
 		"run": null,
-		"templ": "# hello human"
+		"templ": "# hello human",
+		"ext": [".md", ".markdown"]
 	},
 	"php": {
 		"name": "PHP",
 		"mode": "php",
 		"comp": null,
 		"run": null,
-		"templ": null
+		"templ": null,
+		"ext": [".php"]
 	},
 	"plaintext": {
 		"name": "Plain Text",
 		"mode": "text",
 		"comp": null,
 		"run": null,
-		"templ": "hello world"
+		"templ": "hello world",
+		"ext": [".txt"]
 	},
 	"powershell": {
 		"name": "PowerShell",
 		"mode": "powershell",
 		"comp": null,
 		"run": null,
-		"templ": null
+		"templ": null,
+		"ext": [".ps1"]
 	},
 	"python": {
 		"name": "Python",
 		"mode": "python",
 		"comp": null,
 		"run": "python -u <name>.py",
-		"templ": "print(\"hello human\")"
+		"templ": "print(\"hello human\")",
+		"linere": "(File \"<name>\\.py\", line (\\d*))",
+		"ext": [".py"]
 	},
 	"sql": {
 		"name": "SQL",
 		"mode": "sql",
 		"comp": null,
 		"run": null,
-		"templ": null
+		"templ": null,
+		"ext": [".sql"]
 	},
 	"typescript": {
 		"name": "TypeScript",
@@ -165,13 +175,15 @@
 		"mode": "xml",
 		"comp": null,
 		"run": null,
-		"templ": null
+		"templ": null,
+		"ext": [".xml"]
 	},
 	"yaml": {
 		"name": "YAML",
 		"mode": "yaml",
 		"comp": null,
 		"run": null,
-		"templ": null
+		"templ": null,
+		"ext": [".yml", ".yaml"]
 	}
 }
