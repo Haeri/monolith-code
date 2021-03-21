@@ -6,7 +6,8 @@ const fs = require('fs');
 const child_process = require('child_process');
 const marked = require('marked');
 const hljs = require('highlight.js');
-
+const modelist = ace.require("ace/ext/modelist");
+const themelist = ace.require("ace/ext/themelist");
 
 const app_info = {
   version: app_version,
@@ -14,23 +15,19 @@ const app_info = {
 }
 
 var MD_TEMPLATE_HTML = path.resolve(__dirname, 'res/embed/markdown/index.html');
-var HINT_DIR = path.resolve(__dirname, 'res/lib/codemirror-5.51.0/addon/hint');
 var editor;
 
 var file = {
   name: undefined,
   extension: undefined,
   path: undefined,
-  mime: undefined
+  lang: undefined
 }
-var language_compile_info;
+var lang_info;
 var running_process = undefined;
-var themes;
-var hinters;
 var is_saved = true;
 
 var document_name_ui;
-var text_area_ui;
 var language_display_ui;
 var theme_choice_ui;
 var char_display_ui;
@@ -55,6 +52,15 @@ const PRINT_MODE = Object.freeze({
   error: 4
 });
 
+var markdown_updater = debounce(function () {
+  let basepath = file.path.replaceAll("\\", "/");
+  let pre = getContent();
+  pre = pre.replaceAll(/src="(\..*?)"/ig, "src=\"" + basepath + "$1\"");
+  let marked_html = marked(pre, { baseUrl: basepath });
+
+  webview_ui.send('fillContent', marked_html);
+}, 200);
+
 /* ---- DOCUMENT READY ---- */
 
 document.addEventListener('DOMContentLoaded', function (event) {
@@ -67,46 +73,53 @@ document.addEventListener('DOMContentLoaded', function (event) {
 
   webFrame.setVisualZoomLevelLimits(1, 3);
 
-  editor = CodeMirror.fromTextArea(text_area_ui, {
-    lineNumbers: config.line_numbers,
-    lineWrapping: config.line_wrapping,
-    dragDrop: true,
-    extraKeys: {"Ctrl-Space": "autocomplete"},
-    autoCloseBrackets: true,
-    autoCloseTags: true,
-    matchTags: {bothTags: true},
-    matchBrackets: true
+  editor = ace.edit("main-text-area", {
+    enableBasicAutocompletion: true,
+    showPrintMargin: false,
+    showLineNumbers: config.line_numbers,
+    wrap: config.line_wrapping,
+    scrollPastEnd: 1,
+    fixedWidthGutter: true,
+    fadeFoldWidgets: true,
+    highlightActiveLine: false,
+    useWorker: false,
+    theme: config.theme
   });
-  editor.setSize("100%", "100%");
-  CodeMirror.modeURL = path.resolve(__dirname, 'res/lib/codemirror-5.51.0/mode/%N/%N.js');
-  CodeMirror.commands.find =  CodeMirror.commands.findPersistent;
 
-  fs.readdir(path.resolve(__dirname, 'res/lib/codemirror-5.51.0/theme/'), (err, files) =>{
-    themes = files;
-    for (var theme of themes) {
-      var option = document.createElement("option");
-      option.text = toCapitalizedWords(theme.replace(".css", ""));
-      option.value = theme;
-      theme_choice_ui.add(option);
+
+  for (var theme of themelist.themes) {
+    var option = document.createElement("option");
+    option.text = theme.caption;
+    option.value = theme.theme;
+    theme_choice_ui.add(option);
+  }
+  theme_choice_ui.value = config.theme;
+
+  document.addEventListener('drop', (event) => {
+    event.preventDefault();
+    event.stopPropagation();
+
+    for (const f of event.dataTransfer.files) {
+      open_file(f.path);
     }
-    set_theme(config.theme.replace(".css", ""));
-  });
-  fs.readdir(HINT_DIR, (err, files) =>{
-    hinters = files;
   });
 
 
-  editor.on("drop", (data, e) => {
+  const ro = new ResizeObserver(entries => {
+    editor.resize();
+  });
+  ro.observe(document.getElementById("editor-wrapper"));
+
+  document.addEventListener('dragover', (e) => {
     e.preventDefault();
-    open_file(e.dataTransfer.files[0].path);
-    return true;
+    e.stopPropagation();
   });
 
   editor.on("change", () => {
     if (is_saved) {
       set_saved(false);
-    }else{
-      if(getContent() == "") {
+    } else {
+      if (getContent() == "") {
         set_saved(true);
       }
     }
@@ -114,17 +127,6 @@ document.addEventListener('DOMContentLoaded', function (event) {
   editor.on("scroll", (event) => {
     //console.log(event);
   });
-
-
-  for (var lang of CodeMirror.modeInfo) {
-    var option = document.createElement("option");
-    option.text = lang.name;
-    option.value = lang.mime;
-    language_display_ui.add(option);
-  }
-  language_display_ui.value = "text/plain";
-
-
 
   document.getElementById("min-button").addEventListener("click", function (e) {
     var window = remote.getCurrentWindow();
@@ -186,10 +188,10 @@ document.addEventListener('DOMContentLoaded', function (event) {
     else if (event.ctrlKey && event.key == "n") {
       event.preventDefault();
       newWindow();
-    } else if (event.ctrlKey && event.key == "p") {
+    } else if (event.ctrlKey && event.key == ".") {
       event.preventDefault();
-      if ((language_display_ui.value in language_compile_info) && language_compile_info[language_display_ui.value].templ) {
-        editor.setValue(language_compile_info[language_display_ui.value].templ);
+      if ((language_display_ui.value in lang_info) && lang_info[language_display_ui.value].templ) {
+        editor.setValue(lang_info[language_display_ui.value].templ, -1);
       } else {
         notify("warn");
         print("No default template exists for " + language_display_ui.value);
@@ -197,11 +199,21 @@ document.addEventListener('DOMContentLoaded', function (event) {
     }
   }, false);
 
+  document.addEventListener('click',function(e){
+    
+    
+    if(e.target && e.target.classList.contains('jump-to-line')){
+      let line = parseInt(e.target.getAttribute("href").replace("#", ""));
+      editor.selection.clearSelection();
+      editor.selection.moveCursorToPosition({row: line-1, column: 0});
+      editor.selection.selectLineEnd();
+      editor.scrollToLine(line-1,true, true);
+     }
+     
+ });
 
 
-
-
-  console_in_ui.addEventListener('keyup', function (event) {
+  console_in_ui.addEventListener('keypress', function (event) {
     if (!event.ctrlKey && event.key == "Enter") {
       event.preventDefault();
       let cmd = console_in_ui.value.replace(/\n$/, "");
@@ -218,7 +230,7 @@ document.addEventListener('DOMContentLoaded', function (event) {
       if (pre in command_list) {
         print(pre, PRINT_MODE.user);
         command_list[pre].func();
-      } else if(cmd.startsWith("!")){
+      } else if (cmd.startsWith("!")) {
         print(pre, PRINT_MODE.user);
         print("Command not recognized. Try !help.", PRINT_MODE.warn);
         notify("warn");
@@ -252,8 +264,7 @@ document.addEventListener('DOMContentLoaded', function (event) {
   });
 
   theme_choice_ui.addEventListener("change", function (event) {
-    console.log("event");
-    set_theme(theme_choice_ui.value.replace(".css", ""));
+    set_theme(theme_choice_ui.value);
   });
 
   fs.readFile(path.resolve(__dirname, 'res/lang.json'), 'utf-8', (err, data) => {
@@ -261,7 +272,16 @@ document.addEventListener('DOMContentLoaded', function (event) {
       alert("An error ocurred reading the file :" + err.message);
       return;
     }
-    language_compile_info = JSON.parse(data);
+    lang_info = JSON.parse(data);
+
+    for (let item of Object.entries(lang_info)) {
+      var option = document.createElement("option");
+      option.text = item[1].name;
+      option.value = item[0];
+      language_display_ui.add(option);
+    }
+    language_display_ui.value = "plaintext";
+
   });
 
 
@@ -305,7 +325,7 @@ document.addEventListener('DOMContentLoaded', function (event) {
     webview_ui.insertCSS(scroll_bars_css);
     webview_ui.insertCSS("body{background: transparent !important;}");
   });
-  webview_ui.addEventListener('did-finish-load', () => {    
+  webview_ui.addEventListener('did-finish-load', () => {
     webview_ui.send('onLoad');
   });
 
@@ -328,7 +348,7 @@ document.addEventListener('DOMContentLoaded', function (event) {
 
   editor_media_div_ui.addEventListener('dblclick', () => {
     let num = parseFloat(editor_media_div_ui.previousElementSibling.style.width.replace("%", ""));
-    let target_percent = Math.abs(num - 50) < 1 ? '100%' :  "50%";
+    let target_percent = Math.abs(num - 50) < 1 ? '100%' : "50%";
 
     let anim = editor_media_div_ui.previousElementSibling.animate([
       { width: editor_media_div_ui.previousElementSibling.style.width },
@@ -337,14 +357,14 @@ document.addEventListener('DOMContentLoaded', function (event) {
       duration: 450,
       easing: "cubic-bezier(0.860, 0.000, 0.070, 1.000)"
     });
-    anim.finished.then((e) =>{    
+    anim.finished.then((e) => {
       editor_media_div_ui.previousElementSibling.style.width = target_percent;
       ipcRenderer.send('store-setting', 'editor_media_div_percent', target_percent);
     });
   });
   editor_console_div_ui.addEventListener('dblclick', () => {
     let num = parseFloat(editor_console_div_ui.previousElementSibling.style.height.replace("%", ""));
-    let target_percent = Math.abs(num - 60) < 1 ? '100%' :  "60%";
+    let target_percent = Math.abs(num - 60) < 1 ? '100%' : "60%";
 
     let anim = editor_console_div_ui.previousElementSibling.animate([
       { height: editor_console_div_ui.previousElementSibling.style.height },
@@ -353,13 +373,13 @@ document.addEventListener('DOMContentLoaded', function (event) {
       duration: 450,
       easing: "cubic-bezier(0.860, 0.000, 0.070, 1.000)"
     });
-    anim.finished.then((e) =>{    
+    anim.finished.then((e) => {
       editor_console_div_ui.previousElementSibling.style.height = target_percent;
-    ipcRenderer.send('store-setting', 'editor_console_div_percent', target_percent);
-    });    
+      ipcRenderer.send('store-setting', 'editor_console_div_percent', target_percent);
+    });
   });
 
-  document.getElementsByClassName("CodeMirror")[0].style.width = config.editor_media_div_percent;
+  document.getElementById("editor-wrapper").style.width = config.editor_media_div_percent;
   document.getElementById("main-divider").style.height = config.editor_console_div_percent;
 
   ipcRenderer.on('can-close', (event) => {
@@ -370,12 +390,12 @@ document.addEventListener('DOMContentLoaded', function (event) {
 
 
 
-  
+
   let should_open = window.process.argv.filter(s => s.includes('--open-file='));
   if (should_open.length > 0) {
     open_file(should_open[0].replace(/--open-file="(.*)"/, "$1"));
   }
-  
+
 
 });
 
@@ -403,35 +423,33 @@ function newWindow(file_path = undefined) {
   ipcRenderer.send('new-window', file_path);
 }
 
-function set_saved(saved){
-  if(is_saved != saved){
+function set_saved(saved) {
+  if (is_saved != saved) {
     let title = file.extension ? file.name + file.extension : "new document";
-    if(saved){
+    if (saved) {
       document_name_ui.textContent = title;
-    }else{
+    } else {
       document_name_ui.textContent = title + "*";
     }
     is_saved = saved;
   }
 }
 
-function _set_file_info(filePath, mime = undefined) {
+function _set_file_info(filePath) {
   file.extension = path.extname(filePath);
   file.path = path.dirname(filePath) + path.sep;
   file.name = path.basename(filePath, file.extension);
-  if (mime === undefined) {
-    let mode = CodeMirror.findModeByExtension(file.extension.substr(1));
-    if (mode) {
-      file.mime = mode.mime;
-    } else {
-      file.mime = "text/plain";
-    }
+
+  let mode = modelist.getModeForPath(filePath).name;
+  let ret = Object.entries(lang_info).filter(e => { return e[1].mode == mode });
+  if (ret.length <= 0) {
+    file.lang = "plaintext";
   } else {
-    file.mime = mime;
+    file.lang = ret[0][0];
   }
 
   set_saved(true);
-  set_language(file.mime);
+  set_language(file.lang);
 }
 
 function toggle_fullscreen_style(is_fullscreen) {
@@ -448,7 +466,7 @@ function open_file(path) {
   } else {
     fs.readFile(path, 'utf-8', (err, data) => {
       if (!err) {
-        editor.setValue(data);
+        editor.setValue(data, -1);
         _set_file_info(path);
         webview_ui.setAttribute("src", undefined)
       } else {
@@ -461,11 +479,13 @@ function open_file(path) {
 
 function _save_file(content, save_as = false, callback = undefined) {
   if (file.path === undefined || save_as) {
-    let lang = CodeMirror.findModeByMIME(language_display_ui.value);
+    let lang = lang_info[language_display_ui.value];
+    let mode_name = lang.mode;
+    let mode = modelist.modesByName[mode_name];
     var options = {
       filters: [
         { name: 'All Files', extensions: ['*'] },
-        { name: lang.name, extensions: lang.ext }
+        { name: lang.name, extensions: mode.extensions.split("|") }
       ]
     }
     var window = remote.getCurrentWindow();
@@ -502,12 +522,17 @@ function write_file(path, content, callback = undefined) {
   });
 }
 
-function set_language(mime) {
-  let info = CodeMirror.findModeByMIME(mime);
-  editor.setOption("mode", info.mime);
-  CodeMirror.autoLoadMode(editor, info.mode);
-  language_display_ui.value = info.mime;
-  load_hint(info.mode);
+function set_language(lang_key) {
+  if (lang_key == "markdown") {
+    editor.on('input', markdown_updater);
+  } else {
+    editor.off('input', markdown_updater);
+  }
+
+  let lang = lang_info[lang_key];
+  let mode = modelist.modesByName[lang.mode].mode;
+  editor.session.setMode(mode);
+  language_display_ui.value = lang_key;
 }
 
 function notify(type) {
@@ -527,7 +552,7 @@ function notify_load_end() {
 function print(text, mode = PRINT_MODE.info) {
   let block = document.createElement('div');
   block.classList.add(Object.keys(PRINT_MODE).find(key => PRINT_MODE[key] === mode));
-  block.innerText = text;
+  block.innerHTML = text;
   console_out_ui.appendChild(block);
 
   console_ui.scrollTo({ top: console_ui.scrollHeight, behavior: 'smooth' });
@@ -535,49 +560,17 @@ function print(text, mode = PRINT_MODE.info) {
 
 
 function set_theme(name) {
-  let style_file = path.resolve(__dirname, 'res/lib/codemirror-5.51.0/theme/' + name + ".css");
-
-  if (!document.getElementById("mc-style-" + name)) {
-    let styles = document.createElement('link');
-    styles.onload = _reapply_theme;
-    styles.rel = 'stylesheet';
-    styles.type = 'text/css';
-    styles.media = 'screen';
-    styles.href = style_file;
-    styles.id = "mc-style-" + name;
-    document.getElementsByTagName('head')[0].appendChild(styles);
-    editor.setOption("theme", name);
-  } else {
-    editor.setOption("theme", name);
-    _reapply_theme();
-  }
-  theme_choice_ui.value = name+".css";
+  editor.setTheme(name);
+  theme_choice_ui.value = name;
+  ipcRenderer.send('store-setting', 'theme', name);
 }
 
-function _reapply_theme() {
-  let cm = document.querySelector(".CodeMirror");
-  document.documentElement.style.setProperty('--background', getComputedStyle(cm).backgroundColor);
-}
 
-function load_hint(mode){
-  let ret = hinters.filter(s => s.startsWith(mode));
-  
-  if(ret.length > 0){
-    let id = "hint-"+mode;
-
-    if(!document.getElementById(id)){
-      let hinter = document.createElement('script');
-      hinter.id = id;
-      hinter.src = HINT_DIR + path.sep + ret[0];
-      document.getElementsByTagName('head')[0].appendChild(hinter);
-    }    
-  }
-}
 
 
 function build_run_file() {
-  if (file.mime in language_compile_info) {
-    let cmd_comp = language_compile_info[file.mime].comp;
+  if (file.lang in lang_info) {
+    let cmd_comp = lang_info[file.lang].comp;
     if (cmd_comp) {
       cmd_comp = cmd_comp.replaceAll("<name>", file.name);
       cmd_comp = cmd_comp.replaceAll("<path>", file.path);
@@ -592,25 +585,25 @@ function build_run_file() {
     }
   } else {
     //if(file.mime != "text/plain"){
-      webview_ui.src = file.path + file.name + file.extension;
+    webview_ui.src = file.path + file.name + file.extension;
     //}else{
-      //notify("warn");
-      //print("No action defined for " + language_display_ui.value);
+    //notify("warn");
+    //print("No action defined for " + language_display_ui.value);
     //}
   }
 }
 
 function run_file() {
-  if (file.mime in language_compile_info) {
-    let cmd_run = language_compile_info[file.mime].run;
+  if (file.lang in lang_info) {
+    let cmd_run = lang_info[file.lang].run;
     if (cmd_run) {
       cmd_run = cmd_run.replaceAll("<name>", file.name);
       cmd_run = cmd_run.replaceAll("<path>", file.path);
 
       run_command(cmd_run);
-    } else if (file.mime == "text/x-latex") {
+    } else if (file.lang == "latex") {
       webview_ui.src = file.path + file.name + ".pdf?v=" + Date.now();
-    } else if (file.mime == "text/x-markdown") {
+    } else if (file.lang == "markdown") {
       let basepath = file.path.replaceAll("\\", "/");
 
       // Pre process relative html src
@@ -622,22 +615,11 @@ function run_file() {
         webview_ui.send('fillContent', marked_html);
       }, { once: true });
       webview_ui.src = MD_TEMPLATE_HTML;
-    } else if (file.mime == "text/html") {
+    } else if (file.lang == "html") {
       webview_ui.src = (file.path + file.name + ".html")
     }
   }
 }
-
-function toCapitalizedWords(name) {
-  var words = name.match(/[0-9A-Za-z][0-9a-z]*/g) || [];
-
-  return words.map(capitalize).join(" ");
-}
-
-function capitalize(word) {
-  return word.charAt(0).toUpperCase() + word.substring(1);
-}
-
 
 
 function run_command(command, args, callback = undefined) {
@@ -665,11 +647,19 @@ function run_command(command, args, callback = undefined) {
   running_process.stdout.setEncoding('utf8');
   running_process.stdout.on('data', (data) => {
     data = data.toString();
+
     print(data);
   });
 
   running_process.stderr.setEncoding('utf8');
   running_process.stderr.on('data', (data) => {
+    data = data.toString();
+    if(file.lang != undefined && lang_info[file.lang].linere != undefined){
+      let line = lang_info[file.lang].linere.replaceAll("<name>", file.name);
+      let re = new RegExp(line, "gi");
+      data = data.replaceAll(re, '<a class="jump-to-line" href="#$2">$1</a>');
+      console.log(data);
+    }
     print(data, PRINT_MODE.error);
   });
 
@@ -695,7 +685,20 @@ function run_command(command, args, callback = undefined) {
 
 
 
-
+function debounce(func, wait, immediate) {
+  var timeout;
+  return function () {
+    var context = this, args = arguments;
+    var later = function () {
+      timeout = null;
+      if (!immediate) func.apply(context, args);
+    };
+    var callNow = immediate && !timeout;
+    clearTimeout(timeout);
+    timeout = setTimeout(later, wait);
+    if (callNow) func.apply(context, args);
+  };
+};
 
 
 
