@@ -1,6 +1,6 @@
 {
   "name": "monolithcode2",
-  "version": "2.0.4",
+  "version": "2.0.5",
   "description": "A simple code editor",
   "main": "main.js",
   "scripts": {
@@ -19,6 +19,7 @@
   },
   "dependencies": {
     "highlight.js": "^10.6.0",
-    "marked": "^2.0.0"
+    "marked": "^2.0.0",
+    "mime-types": "^2.1.29"
   }
 }

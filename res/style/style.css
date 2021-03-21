@@ -33,6 +33,8 @@
 :root {
 	--foreground: #747474;
 	--background: #212121;
+	--foreground-light: #191919;
+	--background-light: #fafafa;
 	--font-size: 12px;
 }
 
@@ -59,6 +61,10 @@ body.fullscreen{
 	border-radius: 0px;	
 	background: black;
 }
+body.light{
+	color: var(--foreground-light);
+}
+
 #container{
 	background-color: var(--background);
     border-radius: 8px;
@@ -68,6 +74,11 @@ body.fullscreen{
     flex-direction: column;
 	transition: 0.2s max-height;
 	border: 1px solid #2d2d2d;
+	position: relative;
+}
+body.light #container{
+	background-color: var(--background-light);
+    border: 1px solid #bdbdbd;
 }
 body.fullscreen #content{
 	max-height: calc(100vh - 72px);
@@ -137,10 +148,32 @@ footer{
 	flex-direction: row;
 	justify-content: space-between;
 	z-index: 2;
-	background-color: var(--background);
+	background-color: inherit;
 }  
 
-
+.overlay{
+	display: none;
+    position: absolute;
+    width: 100%;
+    height: 100%;
+    background: #cccccc66;
+    z-index: 2;
+    backdrop-filter: blur(2px);
+}
+.panel{
+	position: absolute;
+    padding: 16px 12px;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    width: 70%;
+    min-height: 20%;
+    border-radius: 8px;
+    background: #ebebeb;
+    box-shadow: 20px 20px 60px #c8c8c8, -20px -20px 60px #ffffff;
+    z-index: 1;
+	border: 1px solid #bdbdbd;
+}
 
 
 /* ---------- BODY ---------- */
@@ -167,49 +200,46 @@ footer{
 	background: #ffffff04;
 }
 
-.CodeMirror{
+#editor-wrapper{
+	width: 100%;
+	height: 100%;
+	position: relative;
+	overflow: hidden;
+}
+#main-text-area{
+	margin: 0;
+	position: absolute;
+	top: 0;
+	bottom: 0;
+	left: 0;
+	right: 0;
 	font-family: 'Source Code Pro', monospace;
 	font-weight: 400;
 	cursor: text;
     margin-right: 4px;
+	padding-right: 4px;
+	background-color: transparent;
 }
-
-.CodeMirror-scrollbar-filler{
+.ace_gutter{
 	background-color: transparent !important;
 }
 
-.CodeMirror-vscrollbar,
-.CodeMirror-vscrollbar{
-	cursor: default;
+.ace_gutter-active-line {
+	color: white;
+	background-color: transparent !important;
 }
 
-.CodeMirror-hints {
-	backdrop-filter: blur(5px);
-	background: rgba(40, 40, 40, 0.86);
-	box-shadow: 1px 1px 8px rgba(0, 0, 0, 0.2);
-	border-radius: 8px;
-	border: none;
-	padding: 0;
-	font-family: inherit;
+.ace_dark.ace_editor.ace_autocomplete{
+    backdrop-filter: blur(5px);
+    background: rgb(30 30 30 / 55%);
+    box-shadow: 1px 1px 8px rgba(0, 0, 0, 0.2);
+    border-radius: 4px;
+    padding: 0;
+    font-family: inherit;
+	border: 1px solid #2d2d2d;
 }
-.CodeMirror-hint {	
-	padding: 2px 6px;
-	border-radius: 0px;
-	color:var(--foreground);
-}
-
-.CodeMirror-selected{
-	background:  #7c737344!important;
-}
-.cm-searching{
-	background: transparent !important;
-	border-radius: 1px;
-    box-shadow: 0px 0px 0px 1px #ffeb3b91 inset;
-}
-
-.CodeMirror-matchingtag{
-	background: transparent;
-	box-shadow: 0px -1px 0px 0px #8f8f8f44 inset;
+.ace_dark.ace_editor.ace_autocomplete .ace_marker-layer .ace_active-line {
+    background-color: #101010b5;
 }
 
 
@@ -269,7 +299,9 @@ footer{
 #console #console-out .error{
 	color: #f44336;
 }
-
+.jump-to-line {
+    color: inherit;
+}
 
 
 /* ---------- FOOTER ---------- */
@@ -277,7 +309,7 @@ footer{
 footer select{
 	background: transparent;
     border: none;
-    color: var(--foreground);
+    color: inherit;
     outline: none;
     font-size: inherit;
     text-align-last: right;
