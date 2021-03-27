@@ -6,4 +6,4 @@
 ![Size](https://img.shields.io/github/languages/code-size/Haeri/MonolithCode2)
 
 
-![screenshot](./doc/screenshot.png)
+![screenshot](./docs/screenshot.png)

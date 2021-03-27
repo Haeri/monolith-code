@@ -10,7 +10,7 @@ const store = new Store({
       height: 600
     },
     editor_config: {
-      theme: "material-darker.css",
+      theme: "ace/theme/monokai",
       editor_media_div_percent: "100%",
       editor_console_div_percent: "100%",
       line_wrapping: true,
