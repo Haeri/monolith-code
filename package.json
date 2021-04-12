@@ -1,11 +1,11 @@
 {
   "name": "monolithcode2",
-  "version": "2.0.7",
+  "version": "2.0.8",
   "description": "A simple code editor",
   "main": "main.js",
   "scripts": {
     "start": "electron .",
-    "package": "npx electron-packager . MonolithCode --icon=\"./res/img/icon\""
+    "package": "npx electron-packager . MonolithCode --icon=\"./res/img/icon\" --ignore=docs"
   },
   "keywords": [
     "code",
