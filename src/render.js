@@ -213,8 +213,8 @@ document.addEventListener('DOMContentLoaded', function (event) {
  });
 
 
-  console_in_ui.addEventListener('keypress', function (event) {
-    if (!event.ctrlKey && event.key == "Enter") {
+  console_in_ui.addEventListener('keydown', function (event) {
+    if (!event.shiftKey && event.key == "Enter") {
       event.preventDefault();
       let cmd = console_in_ui.value.replace(/\n$/, "");
       console_in_ui.value = "";
@@ -243,6 +243,7 @@ document.addEventListener('DOMContentLoaded', function (event) {
 
       return false;
     } else if (!event.ctrlKey && event.key == "ArrowUp") {
+      event.preventDefault();
       let curr_cmd = console_in_ui.value;
 
       if (history_index === undefined) {
@@ -256,6 +257,7 @@ document.addEventListener('DOMContentLoaded', function (event) {
       }
 
       console_in_ui.value = command_history[history_index];
+      return false;
     }
   }, false);
 
@@ -440,12 +442,11 @@ function _set_file_info(filePath) {
   file.path = path.dirname(filePath) + path.sep;
   file.name = path.basename(filePath, file.extension);
 
-  let mode = modelist.getModeForPath(filePath).name;
-  let ret = Object.entries(lang_info).filter(e => { return e[1].mode == mode });
-  if (ret.length <= 0) {
+  let lang = get_mode_from_name(file.name + file.extension);  
+  if (lang == null) {
     file.lang = "plaintext";
   } else {
-    file.lang = ret[0][0];
+    file.lang = lang[0];
   }
 
   set_saved(true);
@@ -458,6 +459,16 @@ function toggle_fullscreen_style(is_fullscreen) {
   } else {
     document.getElementsByTagName("body")[0].classList.remove("fullscreen");
   }
+}
+
+function get_mode_from_name(filename){
+  for (let item of Object.entries(lang_info)) {
+    let re = item[1].detector;
+    if(filename.toLowerCase().match(re)){
+      return item;
+    }
+  }
+  return null;
 }
 
 function open_file(path) {
@@ -479,13 +490,12 @@ function open_file(path) {
 
 function _save_file(content, save_as = false, callback = undefined) {
   if (file.path === undefined || save_as) {
-    let lang = lang_info[language_display_ui.value];
-    let mode_name = lang.mode;
-    let mode = modelist.modesByName[mode_name];
+    let lang = lang_info[language_display_ui.value];    
     var options = {
+      defaultPath: '~/' + lang.tempname,
       filters: [
-        { name: 'All Files', extensions: ['*'] },
-        { name: lang.name, extensions: mode.extensions.split("|") }
+        { name: lang.name, extensions: lang.ext },
+        { name: 'All Files', extensions: ['*'] }
       ]
     }
     var window = remote.getCurrentWindow();
@@ -658,7 +668,6 @@ function run_command(command, args, callback = undefined) {
       let line = lang_info[file.lang].linere.replaceAll("<name>", file.name);
       let re = new RegExp(line, "gi");
       data = data.replaceAll(re, '<a class="jump-to-line" href="#$2">$1</a>');
-      console.log(data);
     }
     print(data, PRINT_MODE.error);
   });

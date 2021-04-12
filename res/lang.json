@@ -5,7 +5,10 @@
 		"comp": null,
 		"run": "<name>.bat",
 		"templ": "echo hello human",
-		"ext": [".bat", ".cmd"]
+		"linere": null,
+		"tempname": "MyBatchscript",
+		"ext": ["bat", "cmd"],
+		"detector": "(\\.bat$|\\.cmd$)"
 	},
 	"c": {
 		"name": "C",
@@ -14,7 +17,9 @@
 		"run": "<name>.exe",
 		"templ": "#include <stdio.h>\r\n\r\nint main(int argc, char *argv[]){\r\n\tprintf(\"hello human\");\r\n\tfflush(stdout);\r\n\treturn 0;\r\n}",
 		"linere": "(<name>\\.c:(\\d*):\\d*:)",
-		"ext": [".c", ".h"]
+		"tempname": "MyCCode",
+		"ext": ["c", "h"],
+		"detector": "(\\.c$|\\.h$)"
 	},
 	"cpp": {
 		"name": "C++",
@@ -23,7 +28,9 @@
 		"run": "<name>.exe",
 		"templ": "#include <iostream>\r\n\r\nint main(int argc, char *argv[]){\r\n\tstd::cout << \"hello human\" << std::endl;\r\n\treturn 0;\r\n}",
 		"linere": "(<name>\\.cpp:(\\d*):\\d*:)",
-		"ext": [".cpp", ".hpp"]
+		"tempname": "MyCppCode",
+		"ext": ["cpp", "hpp", "h"],
+		"detector": "(\\.cpp$|\\.hpp$)"
 	},
 	"csharp": {
 		"name": "C#",
@@ -31,7 +38,10 @@
 		"comp": "csc.exe /out:<name>.exe <name>.cs",
 		"run": "<name>.exe",
 		"templ": "public class CLASS_NAME{\r\n\tpublic static void Main(){\r\n\t\tSystem.Console.WriteLine(\"hello human\");\r\n\t}\r\n}",
-		"ext": [".cs"]
+		"linere": null,
+		"tempname": "MyCSharpCode",
+		"ext": ["cs"],
+		"detector": "\\.cs$"
 	},
 	"css": {
 		"name": "CSS",
@@ -39,7 +49,10 @@
 		"comp": null,
 		"run": null,
 		"templ": null,
-		"ext": [".css"]
+		"linere": null,
+		"tempname": "style",
+		"ext": ["css"],
+		"detector": "\\.css$"
 	},
 	"dart": {
 		"name": "DART",
@@ -47,7 +60,10 @@
 		"comp": null,
 		"run": null,
 		"templ": null,
-		"ext": [".dart"]
+		"linere": null,
+		"tempname": "MyDartScript",
+		"ext": ["dart"],
+		"detector": "\\.dart$"
 	},
 	"dockerfile": {
 		"name": "Dockerfile",
@@ -55,7 +71,10 @@
 		"comp": null,
 		"run": null,
 		"templ": null,
-		"ext": ["Dockerfile"]
+		"linere": null,
+		"tempname": "Dockerfile",
+		"ext": ["*"],
+		"detector": "^Dockerfile$"
 	},
 	"go": {
 		"name": "Go",
@@ -63,7 +82,10 @@
 		"comp": null,
 		"run": null,
 		"templ": null,
-		"ext": [".go"]
+		"linere": null,
+		"tempname": "MyGoScript",
+		"ext": ["go"],
+		"detector": "\\.go$"
 	},
 	"html": {
 		"name": "HTML",
@@ -71,7 +93,10 @@
 		"comp": null,
 		"run": null,
 		"templ": "<!DOCTYPE html>\r\n<html>\r\n\t<head>\r\n\t\t<meta charset=\"UTF-8\">\r\n\t\t<title>hello human</title>\r\n\t</head>\r\n\t<body>\r\n\t\t<h1>hello human</h1>\r\n\t</body>\r\n</html>",
-		"ext": [".html"]
+		"linere": null,
+		"tempname": "index",
+		"ext": ["html"],
+		"detector": "\\.html$"		
 	},
 	"java": {
 		"name": "Java",
@@ -80,7 +105,9 @@
 		"run": "java <name>",
 		"templ": "public class CLASS_NAME {\r\n\tpublic static void main(String[] args){ \r\n\t\tSystem.out.println(\"hello human\");\r\n\t}\r\n}",
 		"linere": "(<name>\\.java:(\\d*):)",
-		"ext": [".java"]
+		"tempname": "<nama>",
+		"ext": ["java"],
+		"detector": "\\.java$"
 	},
 	"javascript": {
 		"name": "JavaScript",
@@ -88,7 +115,10 @@
 		"comp": null,
 		"run": "node <name>.js",
 		"templ": "console.log(\"hello human\");",
-		"ext": [".js"]
+		"linere": null,
+		"tempname": "MyJSScript",
+		"ext": ["js"],
+		"detector": "\\.js$"
 	},
 	"json": {
 		"name": "JSON",
@@ -96,7 +126,10 @@
 		"comp": null,
 		"run": null,
 		"templ": null,
-		"ext": [".json"]
+		"linere": null,
+		"tempname": "MyData",
+		"ext": ["json"],
+		"detector": "\\.json$"
 	},
 	"latex": {
 		"name": "LaTeX",
@@ -104,7 +137,10 @@
 		"comp": "pdflatex <name>.tex",
 		"run": null,
 		"templ": "\\documentclass{article}\r\n\\usepackage[margin=0.7in]{geometry}\r\n\\usepackage[parfill]{parskip}\r\n\\usepackage[utf8]{inputenc}\r\n\r\n\\begin{document}\r\n\r\nhello human\r\n\r\n\\end{document}",
-		"ext": [".tex", ".latex", ".bib"]
+		"linere": null,
+		"tempname": "MyDocument",
+		"ext": ["tex", "latex", "bib"],
+		"detector": "(\\.tex$|\\.latex$|\\.bib$)"
 	},
 	"makefile": {
 		"name": "Make",
@@ -112,7 +148,10 @@
 		"comp": null,
 		"run": null,
 		"templ": null,
-		"ext": [".make", "Make", "make"]
+		"linere": null,
+		"tempname": "Makefile",
+		"ext": ["*"],
+		"detector": "^Makefile$"
 	},
 	"markdown": {
 		"name": "Markdown",
@@ -120,7 +159,10 @@
 		"comp": null,
 		"run": null,
 		"templ": "# hello human",
-		"ext": [".md", ".markdown"]
+		"linere": null,
+		"tempname": "MyDocument",
+		"ext": ["md", "markdown"],
+		"detector": "(\\.md$|\\.markdown$)"
 	},
 	"php": {
 		"name": "PHP",
@@ -128,7 +170,10 @@
 		"comp": null,
 		"run": null,
 		"templ": null,
-		"ext": [".php"]
+		"linere": null,
+		"tempname": "MyPHPScript",
+		"ext": ["php"],
+		"detector": "\\.php$"
 	},
 	"plaintext": {
 		"name": "Plain Text",
@@ -136,7 +181,10 @@
 		"comp": null,
 		"run": null,
 		"templ": "hello world",
-		"ext": [".txt"]
+		"linere": null,
+		"tempname": "MyDocument",
+		"ext": ["txt"],
+		"detector": "\\.txt$"
 	},
 	"powershell": {
 		"name": "PowerShell",
@@ -144,7 +192,10 @@
 		"comp": null,
 		"run": null,
 		"templ": null,
-		"ext": [".ps1"]
+		"linere": null,
+		"tempname": "MyPSScript",
+		"ext": ["ps1"],
+		"detector": "\\.ps1$"
 	},
 	"python": {
 		"name": "Python",
@@ -153,7 +204,9 @@
 		"run": "python -u <name>.py",
 		"templ": "print(\"hello human\")",
 		"linere": "(File \"<name>\\.py\", line (\\d*))",
-		"ext": [".py"]
+		"tempname": "MyPythonScript",
+		"ext": ["py"],
+		"detector": "\\.py$"
 	},
 	"sql": {
 		"name": "SQL",
@@ -161,14 +214,21 @@
 		"comp": null,
 		"run": null,
 		"templ": null,
-		"ext": [".sql"]
+		"linere": null,
+		"tempname": "MySQLScript",
+		"ext": ["sql"],
+		"detector": "\\.sql$"
 	},
 	"typescript": {
 		"name": "TypeScript",
 		"mode": "typescript",
 		"comp": null,
 		"run": null,
-		"templ": null
+		"templ": null,
+		"linere": null,
+		"tempname": "MyTSScript",
+		"ext": ["ts"],
+		"detector": "\\.ts$"
 	},
 	"xml": {
 		"name": "XML",
@@ -176,7 +236,10 @@
 		"comp": null,
 		"run": null,
 		"templ": null,
-		"ext": [".xml"]
+		"linere": null,
+		"tempname": "MyData",
+		"ext": ["xml"],
+		"detector": "\\.xml$"
 	},
 	"yaml": {
 		"name": "YAML",
@@ -184,6 +247,9 @@
 		"comp": null,
 		"run": null,
 		"templ": null,
-		"ext": [".yml", ".yaml"]
+		"linere": null,
+		"tempname": "MyData",
+		"ext": ["yml", "yaml"],
+		"detector": "(\\.yml$|\\.yaml$)"
 	}
 }
