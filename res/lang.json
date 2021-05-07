@@ -74,7 +74,7 @@
 		"linere": null,
 		"tempname": "Dockerfile",
 		"ext": ["*"],
-		"detector": "^Dockerfile$"
+		"detector": "^dockerfile$"
 	},
 	"go": {
 		"name": "Go",
@@ -151,7 +151,7 @@
 		"linere": null,
 		"tempname": "Makefile",
 		"ext": ["*"],
-		"detector": "^Makefile$"
+		"detector": "^makefile$"
 	},
 	"markdown": {
 		"name": "Markdown",
