@@ -17,40 +17,173 @@
 		        padding: 0;
 		        font-family: 'Open Sans';
 		    }
-		    .banner{
-		        background-image: url("./res/daniel-leone-v7daTKlZzaw-unsplash.jpg");
+		    .banner-wrapper{
 		        height: 90vh;
+		        position: relative;
+                overflow: hidden;
+		    }
+		    .banner{
+		        background-image: url("./res/bg.jpg");
+		        height: 100%;
+                width: 100%;
+                position: absolute;
 		        background-size: cover;
 		        background-position: center center;
+	            background-color: #ffffff40;
+                background-blend-mode: color;
+                will-change: transform;
 		    }
 		    .center{
-		        width: 50vw;
+		        width: 36vw;
 		        margin: 0px auto;
 		        text-align: center;
-		        margin-top: 20vh;
+		        padding-top: 20vh;
+		        z-index: 1;
+		        position: relative;
 		    }
 		    .center h1{
-		        font-size: 3rem;
+                font-weight: bold;
+                font-size: 4rem;
+                line-height: 1.1em;
+                margin-bottom: 1rem;
+		    }
+		    .center h1 img{
+                vertical-align: bottom;
+                height: 4rem;
+		    }
+		    .center h3{
+                font-weight: 100;
+                font-size: 2em;
+                line-height: 1.1em;
+                margin-bottom: 4rem;
+		    }
+		    .dl-panel{
+		        display: flex;
+                justify-content: space-between;
 		    }
 		    .download-btn{
-		        background: #4caf50;
-		        border-radius: 5px;
-		        padding: 8px 14px;
-		        color: white;
-		        text-decoration: none;
+                background: #315ab7;
+                border: 1px solid #b9b9b9;
+                border-radius: 8px;
+                padding: 15px 35px;
+                color: #dcdcdc;
+                text-decoration: none;
+                display: inline-block;
+                font-size: 0.9rem;
+                transition: 0.3s;
 		    }
+		    .download-btn:hover{
+                background: #4f7adc;
+                transform: translateY(-2px);
+                box-shadow: 2px 5px 40px 0px #2e64de57;
+		    }
+		    .download-btn strong{
+		        color: white;
+		        font-size: 1rem;
+		    }
+		    .download-btn svg{
+		        height: 26px;
+                vertical-align: bottom;
+		    }
+		    .demo{
+		        width: 100%;
+                display: block;
+		    }
+		    
 		</style>
 	</head>
 	<body>
-		<div class="banner">
-		    <div class="center">
-    		    <h1>monolith code</h1>
-    		    <h4>minimalistic, but powerful code editor</h4>
+	    <section class="banner-wrapper">
+		    <div class="banner" data-type="parallax" data-speed="50"></div>
+	        <div class="center">
+    		    <h1><img src="../res/img/icon.ico"> monolith code</h1>
+    		    <h3>a minimalistic, but powerful code editor</h3>
     		    
-    		    <a href="" class="download-btn">Windows</a>
-    		    <a href="" class="download-btn">Linux</a>
-    		    <a href="" class="download-btn">macOS</a>
-		    </div>
-		</div>
+    		    <p>Latest version <span id="version_insert"></span></p>
+    		    <div class="dl-panel">
+        		    <a href="https://github.com/Haeri/MonolithCode2/releases/latest/download/monolithcode_windows-64.zip" class="download-btn">
+        		        <i data-feather="download"></i>
+        		        <span><strong>Download</strong><br>for Windows</span>
+    	            </a>
+        		    <a href="https://github.com/Haeri/MonolithCode2/releases/latest/download/monolithcode_linux-64.zip" class="download-btn"><i data-feather="download"></i>
+        		        <span><strong>Download</strong><br>for Linux</span>
+    		        </a>
+        		    <a href="https://github.com/Haeri/MonolithCode2/releases/latest/download/monolithcode_macos-64.zip" class="download-btn"><i data-feather="download"></i>
+        		        <span><strong>Download</strong><br>for macOS</span>
+    		        </a>
+		        </div>
+	        </div>
+	    </section>
+	    <section>
+	        <img class="demo" src="screenshot.png">
+	    </section>
+	    
+		
+		<script src="res/feather.min.js"></script>
+		<script>
+            /* ============================= PARALLAX ============================= */
+            var parallaxElements;
+            
+            function initParallax(){
+              updateParalaxElements();
+              window.addEventListener('scroll', updateParallax);
+              updateParallax();
+            }
+            
+            function updateParalaxElements(){
+              parallaxElements = document.querySelectorAll('div[data-type="parallax"]');
+            }
+            
+            function updateParallax(){
+                console.log("Scroll");
+              window.requestAnimationFrame(function() {
+                parallaxElements.forEach(function(item){
+                  parallaxUpdate(item);
+                });      
+              });
+            }
+            
+            function parallaxUpdate(element){
+              var speed = 100 / (("speed" in element.dataset)? parseFloat(element.dataset.speed) : 50.0);
+              console.log("Tick");
+              if(checkBounds(element.parentElement)){
+                  console.log("Update");
+                var yPos = ((window.pageYOffset - element.parentElement.offsetTop) / speed);
+                element.style.transform = 'translate3d(0, ' + yPos + 'px, 0)';
+              }
+            }
+            
+            function checkBounds(el){
+              var bounding = el.getBoundingClientRect();
+              return (
+                bounding.top + bounding.height >= 0 &&
+                bounding.left + bounding.width >= 0 &&
+                bounding.right - bounding.width <= (window.innerWidth || document.documentElement.clientWidth) &&
+                bounding.bottom - bounding.height <= (window.innerHeight || document.documentElement.clientHeight)
+              );
+            }
+            
+            
+            
+            function initLatestVersion(){
+                let xhttp = new XMLHttpRequest();
+                xhttp.responseType = 'json';
+                xhttp.onload = function() {
+                    let info = xhttp.response;
+                    document.getElementById("version_insert").innerHTML = info.tag_name;
+                }
+                xhttp.open("GET", "https://api.github.com/repos/Haeri/MonolithCode2/releases/latest");
+                xhttp.send();
+            }
+            
+            
+		     window.onload = function () {
+		        feather.replace();
+                initParallax(); 
+                
+                initLatestVersion();
+                
+		     }
+	    </script>
 	</body>
 </html>
