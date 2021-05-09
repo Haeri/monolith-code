@@ -135,7 +135,6 @@
             }
             
             function updateParallax(){
-                console.log("Scroll");
               window.requestAnimationFrame(function() {
                 parallaxElements.forEach(function(item){
                   parallaxUpdate(item);
@@ -145,9 +144,7 @@
             
             function parallaxUpdate(element){
               var speed = 100 / (("speed" in element.dataset)? parseFloat(element.dataset.speed) : 50.0);
-              console.log("Tick");
-              if(checkBounds(element.parentElement)){
-                  console.log("Update");
+              if(checkBounds(element.parentElement)){s
                 var yPos = ((window.pageYOffset - element.parentElement.offsetTop) / speed);
                 element.style.transform = 'translate3d(0, ' + yPos + 'px, 0)';
               }
@@ -179,10 +176,8 @@
             
 		     window.onload = function () {
 		        feather.replace();
-                initParallax(); 
-                
+                initParallax();
                 initLatestVersion();
-                
 		     }
 	    </script>
 	</body>
