@@ -3,14 +3,14 @@
 	<head>
 		<meta charset="UTF-8">
 		<title>monolith code 2</title>
-		<link rel="shortcut icon" href="../res/img/icon.ico">
+		<link rel="shortcut icon" href="res/img/icon.ico">
 		<style>
     		@font-face {
             	font-family: 'Open Sans';
             	font-style: normal;
             	font-weight: 400;
             	font-display: swap;
-            	src: url("../res/font/OpenSans-Regular.ttf") format('truetype');
+            	src: url("res/font/OpenSans-Regular.ttf") format('truetype');
             }
 		    body{
 		        margin: 0;
@@ -23,7 +23,7 @@
                 overflow: hidden;
 		    }
 		    .banner{
-		        background-image: url("./res/bg.jpg");
+		        background-image: url("res/img/bg.jpg");
 		        height: 100%;
                 width: 100%;
                 position: absolute;
@@ -96,7 +96,7 @@
 	    <section class="banner-wrapper">
 		    <div class="banner" data-type="parallax" data-speed="50"></div>
 	        <div class="center">
-    		    <h1><img src="../res/img/icon.ico"> monolith code</h1>
+    		    <h1><img src="res/img/icon.ico"> monolith code</h1>
     		    <h3>a minimalistic, but powerful code editor</h3>
     		    
     		    <p>Latest version <span id="version_insert"></span></p>
@@ -115,11 +115,11 @@
 	        </div>
 	    </section>
 	    <section>
-	        <img class="demo" src="screenshot.png">
+	        <img class="demo" src="res/img/screenshot.png">
 	    </section>
 	    
 		
-		<script src="res/feather.min.js"></script>
+		<script src="res/js/feather.min.js"></script>
 		<script>
             /* ============================= PARALLAX ============================= */
             var parallaxElements;
@@ -144,7 +144,7 @@
             
             function parallaxUpdate(element){
               var speed = 100 / (("speed" in element.dataset)? parseFloat(element.dataset.speed) : 50.0);
-              if(checkBounds(element.parentElement)){s
+              if(checkBounds(element.parentElement)){
                 var yPos = ((window.pageYOffset - element.parentElement.offsetTop) / speed);
                 element.style.transform = 'translate3d(0, ' + yPos + 'px, 0)';
               }
