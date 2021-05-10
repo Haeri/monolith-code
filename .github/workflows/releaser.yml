@@ -1,0 +1,75 @@
+name: Publish Release
+
+on: 
+  push:
+    branches:
+    - master
+
+jobs:
+  build:
+   name: Build Release
+   runs-on: ${{ matrix.os }}   
+   strategy:
+      matrix:
+        os: [macos-latest, ubuntu-latest, windows-latest]
+   steps:
+    - name: Download Repository
+      uses: actions/checkout@v2
+    - name: Detect Version
+      run: node -p -e '`PACKAGE_VERSION=${require("./package.json").version}`' >> $GITHUB_ENV
+    - name: Install Modules
+      run: npm install    
+    - name: Package
+      run: npm run package
+    - name: Upload
+      uses: actions/upload-artifact@v2
+      with:
+        name: monolithcode_${{ matrix.os }}
+        path: MonolithCode-*/
+
+  release:    
+   name: Publish Release
+   runs-on: ubuntu-latest
+   needs: build   
+   steps:
+    - name: Download Artifacts
+      uses: actions/download-artifact@v2
+    - name: Create Release
+      id: create_release
+      uses: actions/create-release@v1
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      with:
+        tag_name: ${{ env.PACKAGE_VERSION }}
+        release_name: Release ${{ env.PACKAGE_VERSION }}
+        draft: false
+        prerelease: false
+        
+    # Upload Artifacts to release
+    - name: Release Windows Artifact
+      uses: actions/upload-release-asset@v1
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      with:
+        upload_url: ${{ steps.create_release.outputs.upload_url }}
+        asset_path: ./monolithcode_windows-latest.zip
+        asset_name: monolithcode_win_${{ env.PACKAGE_VERSION}}.zip
+        asset_content_type: application/zip    
+    - name: Release Linux Artifact
+      uses: actions/upload-release-asset@v1
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      with:
+        upload_url: ${{ steps.create_release.outputs.upload_url }}
+        asset_path: ./monolithcode_ubuntu-latest.zip
+        asset_name: monolithcode_linux_${{ env.PACKAGE_VERSION}}.zip
+        asset_content_type: application/zip      
+    - name: Release MacOS Artifact
+      uses: actions/upload-release-asset@v1
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      with:
+        upload_url: ${{ steps.create_release.outputs.upload_url }}
+        asset_path: ./monolithcode_macos-latest.zip
+        asset_name: monolithcode_mac_${{ env.PACKAGE_VERSION}}.zip
+        asset_content_type: application/zip
