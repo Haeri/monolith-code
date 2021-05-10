@@ -19,11 +19,16 @@ jobs:
       run: npm install    
     - name: Package
       run: npm run package
+    - name: Zip 
+      uses: papeloto/action-zip@v1
+        with:
+          files: MonolithCode-*/*
+          dest: monolithcode_${{ matrix.os }}.zip
     - name: Upload
       uses: actions/upload-artifact@v2
       with:
-        name: monolithcode_${{ matrix.os }}
-        path: MonolithCode-*/
+        #name: monolithcode_${{ matrix.os }}
+        path: monolithcode_${{ matrix.os }}.zip
 
   release:    
    name: Publish Release
@@ -37,7 +42,7 @@ jobs:
     - name: Download Artifacts
       uses: actions/download-artifact@v2
     - name: List Download
-      run: ls -R  
+      run: ls -R
     - name: Create Release
       id: create_release
       uses: actions/create-release@v1
