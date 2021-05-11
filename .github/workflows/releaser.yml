@@ -62,7 +62,7 @@ jobs:
       with:
         upload_url: ${{ steps.create_release.outputs.upload_url }}
         asset_path: ./monolithcode_win.zip
-        asset_name: monolithcode_win_${{ env.PACKAGE_VERSION}}.zip
+        asset_name: monolithcode_win.zip
         asset_content_type: application/zip    
     - name: Release Linux Artifact
       uses: actions/upload-release-asset@v1
@@ -71,7 +71,7 @@ jobs:
       with:
         upload_url: ${{ steps.create_release.outputs.upload_url }}
         asset_path: ./monolithcode_linux.zip
-        asset_name: monolithcode_linux_${{ env.PACKAGE_VERSION}}.zip
+        asset_name: monolithcode_linux.zip
         asset_content_type: application/zip      
     - name: Release MacOS Artifact
       uses: actions/upload-release-asset@v1
@@ -80,5 +80,5 @@ jobs:
       with:
         upload_url: ${{ steps.create_release.outputs.upload_url }}
         asset_path: ./monolithcode_mac.zip
-        asset_name: monolithcode_mac_${{ env.PACKAGE_VERSION}}.zip
+        asset_name: monolithcode_mac.zip
         asset_content_type: application/zip
