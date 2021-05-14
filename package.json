@@ -1,6 +1,6 @@
 {
   "name": "monolithcode2",
-  "version": "2.0.9",
+  "version": "2.0.10",
   "description": "minimalistic coder editor",
   "homepage": "https://haeri.github.io/MonolithCode2/",
   "main": "main.js",

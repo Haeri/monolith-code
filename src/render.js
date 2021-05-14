@@ -62,7 +62,6 @@ var markdown_updater = debounce(function () {
 }, 200);
 
 /* ---- DOCUMENT READY ---- */
-
 document.addEventListener('DOMContentLoaded', function (event) {
 
   // Initialize all ui elements
@@ -196,6 +195,23 @@ document.addEventListener('DOMContentLoaded', function (event) {
         notify("warn");
         print("No default template exists for " + language_display_ui.value);
       }
+    } else if(event.ctrlKey && event.key == "m"){
+      event.preventDefault();
+      let range = editor.selection.getRange();
+      let func = editor.getSelectedText();
+      if(range.start.row == range.end.row && range.start.column == range.end.column){
+        func = editor.session.getLine(range.start.row);
+      }
+
+      try {
+        let result = calculate(func);
+        editor.session.insert(editor.selection.getRange().end, " = " + result);
+        notify("confirm");
+      } catch (error) {
+        notify("error");
+        print("Unable to calculate '"+func+"'", PRINT_MODE.error);
+      }
+      
     }
   }, false);
 
@@ -573,6 +589,11 @@ function set_theme(name) {
   editor.setTheme(name);
   theme_choice_ui.value = name;
   ipcRenderer.send('store-setting', 'theme', name);
+}
+
+
+function calculate(string){
+  return Function("return ("+string+")")();
 }
 
 
