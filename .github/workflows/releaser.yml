@@ -35,9 +35,7 @@ jobs:
     - name: Detect Version
       run: node -p -e '`PACKAGE_VERSION=${require("./package.json").version}`' >> $GITHUB_ENV  
     - name: Download Artifacts
-      uses: actions/download-artifact@v2    
-    - name: List Download
-      run: ls -R
+      uses: actions/download-artifact@v2
     - name: Zip Artifacts
       run: |
         cd monolithcode_windows-latest/MonolithCode-*/; zip -r ../../monolithcode_win.zip .; cd ../..
