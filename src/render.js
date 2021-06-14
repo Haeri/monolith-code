@@ -1,78 +1,383 @@
 const { remote, webFrame, ipcRenderer } = require('electron');
 const { dialog } = require('electron').remote;
-const app_version = require('electron').remote.app.getVersion();
-const path = require("path");
+const appVersion = require('electron').remote.app.getVersion();
+const path = require('path');
 const fs = require('fs');
-const child_process = require('child_process');
+const childProcess = require('child_process');
 const marked = require('marked');
 const hljs = require('highlight.js');
-const modelist = ace.require("ace/ext/modelist");
-const themelist = ace.require("ace/ext/themelist");
 
-const app_info = {
-  version: app_version,
-  name: "Monolith Code"
-}
+const modelist = ace.require('ace/ext/modelist');
+const themelist = ace.require('ace/ext/themelist');
 
-var MD_TEMPLATE_HTML = path.resolve(__dirname, 'res/embed/markdown/index.html');
-var editor;
+const appInfo = {
+  version: appVersion,
+  name: 'Monolith Code',
+};
 
-var file = {
+const MD_TEMPLATE_HTML = path.resolve(__dirname, 'res/embed/markdown/index.html');
+let editor;
+
+const file = {
   name: undefined,
   extension: undefined,
   path: undefined,
-  lang: undefined
-}
-var lang_info;
-var running_process = undefined;
-var is_saved = true;
+  lang: undefined,
+};
+let langInfo;
+let runningProcess;
+let isSaved = true;
 
-var document_name_ui;
-var language_display_ui;
-var theme_choice_ui;
-var char_display_ui;
-var console_ui;
-var console_in_ui;
-var console_out_ui;
-var webview_ui;
-var editor_media_div_ui;
-var editor_console_div_ui;
+let documentNameUi;
+let languageDisplayUi;
+let themeChoiceUi;
+let charDisplayUi;
+let consoleUi;
+let consoleInUi;
+let consoleOutUi;
+let webviewUi;
+let editorMediaDivUi;
+let editorConsoleDivUi;
+let textAreaUi;
+let themeLink;
 
-var command_list = {};
-var command_history = [];
-var history_index = undefined;
+let commandList = {};
+const commandHistory = [];
+let historyIndex;
 
-var scroll_bars_css;
+let scrollBarsCss;
 
 const PRINT_MODE = Object.freeze({
   user: 0,
   info: 1,
   confirm: 2,
   warn: 3,
-  error: 4
+  error: 4,
 });
 
-var markdown_updater = debounce(function () {
-  let basepath = file.path.replaceAll("\\", "/");
-  let pre = getContent();
-  pre = pre.replaceAll(/src="(\..*?)"/ig, "src=\"" + basepath + "$1\"");
-  let marked_html = marked(pre, { baseUrl: basepath });
+function debounce(func, wait, immediate) {
+  let timeout;
+  return () => {
+    const context = this; const
+      args = arguments;
+    const later = () => {
+      timeout = null;
+      if (!immediate) func.apply(context, args);
+    };
+    const callNow = immediate && !timeout;
+    clearTimeout(timeout);
+    timeout = setTimeout(later, wait);
+    if (callNow) func.apply(context, args);
+  };
+}
 
-  webview_ui.send('fillContent', marked_html);
+function getContent() {
+  return editor.getValue();
+}
+
+const markdownUpdater = debounce(() => {
+  const basepath = file.path.replaceAll('\\', '/');
+  let pre = getContent();
+  pre = pre.replaceAll(/src="(\..*?)"/ig, `src="${basepath}$1"`);
+  const markedHtml = marked(pre, { baseUrl: basepath });
+
+  webviewUi.send('fillContent', markedHtml);
 }, 200);
 
-/* ---- DOCUMENT READY ---- */
-document.addEventListener('DOMContentLoaded', function (event) {
+function newWindow(file_path = undefined) {
+  ipcRenderer.send('new-window', file_path);
+}
 
+function setSaved(saved) {
+  if (isSaved !== saved) {
+    const title = file.extension ? file.name + file.extension : 'new document';
+    if (saved) {
+      documentNameUi.textContent = title;
+    } else {
+      documentNameUi.textContent = `${title}*`;
+    }
+    isSaved = saved;
+  }
+}
+
+function setLanguage(langKey) {
+  if (langKey === 'markdown') {
+    editor.on('input', markdownUpdater);
+  } else {
+    editor.off('input', markdownUpdater);
+  }
+
+  const lang = langInfo[langKey];
+  const { mode } = modelist.modesByName[lang.mode];
+  editor.session.setMode(mode);
+  languageDisplayUi.value = langKey;
+}
+
+function getModeFromName(filename) {
+  return Object.entries(langInfo).find((item) => {
+    const re = item[1].detector;
+    if (filename.toLowerCase().match(re)) {
+      return true;
+    }
+
+    return false;
+  });
+}
+
+function setFileInfo(filePath) {
+  file.extension = path.extname(filePath);
+  file.path = path.dirname(filePath) + path.sep;
+  file.name = path.basename(filePath, file.extension);
+
+  const lang = getModeFromName(file.name + file.extension);
+  if (lang == null) {
+    file.lang = 'plaintext';
+  } else {
+    file.lang = lang[0];
+  }
+
+  setSaved(true);
+  setLanguage(file.lang);
+}
+
+function toggleFullscreenStyle(isFullscreen) {
+  if (isFullscreen) {
+    document.getElementsByTagName('body')[0].classList.add('fullscreen');
+  } else {
+    document.getElementsByTagName('body')[0].classList.remove('fullscreen');
+  }
+}
+
+function notify(type) {
+  document.getElementById('status-display').className = '';
+  // document.getElementById('status-display').offsetWidth;
+  document.getElementById('status-display').classList.add(type);
+}
+
+function notifyLoadStart() {
+  document.getElementById('status-bar').classList.add('load');
+}
+
+function notifyLoadEnd() {
+  document.getElementById('status-bar').className = '';
+}
+
+function print(text, mode = PRINT_MODE.info) {
+  const block = document.createElement('div');
+  block.classList.add(Object.keys(PRINT_MODE).find((key) => PRINT_MODE[key] === mode));
+  block.innerHTML = text;
+  consoleOutUi.appendChild(block);
+
+  consoleUi.scrollTo({ top: consoleUi.scrollHeight, behavior: 'smooth' });
+}
+
+function writeFile(filePath, content, callback = undefined) {
+  fs.writeFile(filePath, content, (err) => {
+    if (!err) {
+      notify('confirm');
+    } else {
+      print(err, PRINT_MODE.error);
+      notify('error');
+    }
+    if (callback !== undefined) callback(err);
+  });
+}
+
+function openFile(filepath) {
+  if (file.path || !isSaved) {
+    newWindow(filepath);
+  } else {
+    fs.readFile(filepath, 'utf-8', (err, data) => {
+      if (!err) {
+        editor.setValue(data, -1);
+        setFileInfo(filepath);
+        webviewUi.setAttribute('src', undefined);
+      } else {
+        print(`Error: Could not open file ${filepath}`, PRINT_MODE.error);
+        notify('error');
+      }
+    });
+  }
+}
+
+function saveFile(content, saveAs = false, callback = undefined) {
+  if (file.path === undefined || saveAs) {
+    const lang = langInfo[languageDisplayUi.value];
+    const options = {
+      defaultPath: `~/${lang.tempname}`,
+      filters: [
+        { name: lang.name, extensions: lang.ext },
+        { name: 'All Files', extensions: ['*'] },
+      ],
+    };
+    const window = remote.getCurrentWindow();
+    dialog.showSaveDialog(window, options).then((ret) => {
+      if (!ret.canceled) {
+        writeFile(ret.filePath, content, (err) => {
+          if (!err) {
+            setFileInfo(ret.filePath);
+
+            if (callback !== undefined) callback();
+          }
+        });
+      }
+    });
+  } else {
+    writeFile(file.path + file.name + file.extension, getContent(), (err) => {
+      if (!err) {
+        setSaved(true);
+      }
+      if (callback !== undefined) callback(err);
+    });
+  }
+}
+
+function setTheme(name) {
+  editor.setTheme(name);
+  themeChoiceUi.value = name;
+  ipcRenderer.send('store-setting', 'theme', name);
+}
+
+function calculate(string) {
+  // eslint-disable-next-line no-new-func
+  return Function(`return (${string})`)();
+}
+
+function runCommand(command, args, callback = undefined) {
+  if (runningProcess !== undefined) {
+    const ret = runningProcess.kill('SIGINT');
+
+    if (!ret) {
+      print('Error: Could not stop the running process.', PRINT_MODE.error);
+      return;
+    }
+  }
+
+  notifyLoadStart();
+  print(`> ${command}`, PRINT_MODE.user);
+
+  runningProcess = childProcess.spawn(command, args, {
+    encoding: 'utf8',
+    shell: true,
+    ...file.path && { cwd: file.path },
+  });
+
+  runningProcess.on('error', () => { });
+
+  runningProcess.stdout.setEncoding('utf8');
+  runningProcess.stdout.on('data', (data) => {
+    print(data.toString());
+  });
+
+  runningProcess.stderr.setEncoding('utf8');
+  runningProcess.stderr.on('data', (data) => {
+    let dataString = data.toString();
+    if (file.lang !== undefined && langInfo[file.lang].linere !== undefined) {
+      const line = langInfo[file.lang].linere.replaceAll('<name>', file.name);
+      const re = new RegExp(line, 'gi');
+      dataString = dataString.replaceAll(re, '<a class="jump-to-line" href="#$2">$1</a>');
+    }
+    print(dataString, PRINT_MODE.error);
+  });
+
+  runningProcess.on('close', (code) => {
+    // Here you can get the exit code of the script
+    switch (code) {
+      case 0:
+        notify('confirm');
+        break;
+      default:
+        notify('error');
+        break;
+    }
+
+    notifyLoadEnd();
+    runningProcess = undefined;
+
+    if (callback !== undefined) {
+      callback(code);
+    }
+  });
+}
+
+function runFile() {
+  if (file.lang in langInfo) {
+    let cmdRun = langInfo[file.lang].run;
+    if (cmdRun) {
+      cmdRun = cmdRun.replaceAll('<name>', file.name);
+      cmdRun = cmdRun.replaceAll('<path>', file.path);
+
+      runCommand(cmdRun);
+    } else if (file.lang === 'latex') {
+      webviewUi.src = `${file.path + file.name}.pdf?v=${Date.now()}`;
+    } else if (file.lang === 'markdown') {
+      const basepath = file.path.replaceAll('\\', '/');
+
+      // Pre process relative html src
+      let pre = getContent();
+      pre = pre.replaceAll(/src="(\..*?)"/ig, `src="${basepath}$1"`);
+      const markedHtml = marked(pre, { baseUrl: basepath });
+
+      webviewUi.addEventListener('did-finish-load', () => {
+        webviewUi.send('fillContent', markedHtml);
+      }, { once: true });
+      webviewUi.src = MD_TEMPLATE_HTML;
+    } else if (file.lang === 'html') {
+      webviewUi.src = (`${file.path + file.name}.html`);
+    }
+  }
+}
+
+function buildRunFile() {
+  if (file.lang in langInfo) {
+    let cmdComp = langInfo[file.lang].comp;
+    if (cmdComp) {
+      cmdComp = cmdComp.replaceAll('<name>', file.name);
+      cmdComp = cmdComp.replaceAll('<path>', file.path);
+
+      runCommand(cmdComp, [], (code) => {
+        if (code === 0) {
+          runFile();
+        }
+      });
+    } else {
+      runFile();
+    }
+  } else {
+    // if(file.mime != "text/plain"){
+    webviewUi.src = file.path + file.name + file.extension;
+    // }else{
+    // notify("warn");
+    // print("No action defined for " + language_display_ui.value);
+    // }
+  }
+}
+
+function assignVariables() {
+  documentNameUi = document.getElementById('document-name');
+  textAreaUi = document.getElementById('main-text-area');
+  languageDisplayUi = document.getElementById('language-display');
+  themeChoiceUi = document.getElementById('theme-choice');
+  charDisplayUi = document.getElementById('fchar-display');
+  consoleUi = document.getElementById('console');
+  consoleInUi = document.getElementById('console-in');
+  consoleOutUi = document.getElementById('console-out');
+  webviewUi = document.getElementById('embed-content');
+  themeLink = document.getElementById('theme-link');
+  editorMediaDivUi = document.getElementById('editor-media-div');
+  editorConsoleDivUi = document.getElementById('editor-console-div');
+}
+
+function initialize() {
   // Initialize all ui elements
-  initialize();
+  assignVariables();
 
   // get config
-  let config = ipcRenderer.sendSync('initial-settings');
+  const config = ipcRenderer.sendSync('initial-settings');
 
   webFrame.setVisualZoomLevelLimits(1, 3);
 
-  editor = ace.edit("main-text-area", {
+  editor = ace.edit('main-text-area', {
     enableBasicAutocompletion: true,
     showPrintMargin: false,
     showLineNumbers: config.line_numbers,
@@ -82,659 +387,323 @@ document.addEventListener('DOMContentLoaded', function (event) {
     fadeFoldWidgets: true,
     highlightActiveLine: false,
     useWorker: false,
-    theme: config.theme
+    theme: config.theme,
   });
 
-
-  for (var theme of themelist.themes) {
-    var option = document.createElement("option");
+  themelist.themes.forEach((theme) => {
+    const option = document.createElement('option');
     option.text = theme.caption;
     option.value = theme.theme;
-    theme_choice_ui.add(option);
-  }
-  theme_choice_ui.value = config.theme;
+    themeChoiceUi.add(option);
+  });
+
+  themeChoiceUi.value = config.theme;
 
   document.addEventListener('drop', (event) => {
     event.preventDefault();
     event.stopPropagation();
 
-    for (const f of event.dataTransfer.files) {
-      open_file(f.path);
-    }
+    Array.from(event.dataTransfer.files).forEach((f) => {
+      openFile(f.path);
+    });
   });
 
-
-  const ro = new ResizeObserver(entries => {
+  const ro = new ResizeObserver(() => {
     editor.resize();
   });
-  ro.observe(document.getElementById("editor-wrapper"));
+  ro.observe(document.getElementById('editor-wrapper'));
 
   document.addEventListener('dragover', (e) => {
     e.preventDefault();
     e.stopPropagation();
   });
 
-  editor.on("change", () => {
-    if (is_saved) {
-      set_saved(false);
-    } else {
-      if (getContent() == "") {
-        set_saved(true);
-      }
+  editor.on('change', () => {
+    if (isSaved) {
+      setSaved(false);
+    } else if (getContent() === '') {
+      setSaved(true);
     }
   });
-  editor.on("scroll", (event) => {
-    //console.log(event);
+  editor.on('scroll', () => {
+    // console.log(event);
   });
 
-  document.getElementById("min-button").addEventListener("click", function (e) {
-    var window = remote.getCurrentWindow();
+  document.getElementById('min-button').addEventListener('click', () => {
+    const window = remote.getCurrentWindow();
     window.minimize();
   });
 
-  document.getElementById("max-button").addEventListener("click", function (e) {
-    var window = remote.getCurrentWindow();
+  document.getElementById('max-button').addEventListener('click', () => {
+    const window = remote.getCurrentWindow();
     if (!window.isMaximized()) {
       window.maximize();
-      toggle_fullscreen_style(true);
+      toggleFullscreenStyle(true);
     } else {
       window.unmaximize();
-      toggle_fullscreen_style(false);
+      toggleFullscreenStyle(false);
     }
   });
 
-  document.getElementById("close-button").addEventListener("click", function (e) {
-    var window = remote.getCurrentWindow();
+  document.getElementById('close-button').addEventListener('click', () => {
+    const window = remote.getCurrentWindow();
     window.close();
   });
 
-  window.addEventListener('keydown', function (event) {
-    if (event.ctrlKey && event.key == "o") {
+  window.addEventListener('keydown', (event) => {
+    if (event.ctrlKey && event.key === 'o') {
       event.preventDefault();
-      notify_load_start();
+      notifyLoadStart();
 
       const options = {
-        title: 'Open a file'
+        title: 'Open a file',
       };
-      var window = remote.getCurrentWindow();
+      const window = remote.getCurrentWindow();
       dialog.showOpenDialog(window, options).then((ret) => {
         if (!ret.canceled) {
-          open_file(ret.filePaths[0]);
+          openFile(ret.filePaths[0]);
         }
 
-        notify_load_end();
+        notifyLoadEnd();
       });
-
-    } else if (event.ctrlKey && event.key == "b") {
+    } else if (event.ctrlKey && event.key === 'b') {
       event.preventDefault();
 
-      if (file.path === undefined || !is_saved) {
-        _save_file(getContent(), false, () => {
-          build_run_file();
+      if (file.path === undefined || !isSaved) {
+        saveFile(getContent(), false, () => {
+          buildRunFile();
         });
       } else {
-        build_run_file();
+        buildRunFile();
       }
-    }
-    else if (event.ctrlKey && !event.shiftKey && event.key == "s") {// ctrl + s
+    } else if (event.ctrlKey && !event.shiftKey && event.key === 's') { // ctrl + s
       event.preventDefault();
-      _save_file(getContent());
-    }
-    else if (event.ctrlKey && event.shiftKey && event.key == "S") { // ctrl + shift + s
+      saveFile(getContent());
+    } else if (event.ctrlKey && event.shiftKey && event.key === 'S') { // ctrl + shift + s
       event.preventDefault();
-      _save_file(getContent(), true);
-    }
-    else if (event.ctrlKey && event.key == "n") {
+      saveFile(getContent(), true);
+    } else if (event.ctrlKey && event.key === 'n') {
       event.preventDefault();
       newWindow();
-    } else if (event.ctrlKey && event.key == ".") {
+    } else if (event.ctrlKey && event.key === '.') {
       event.preventDefault();
-      if ((language_display_ui.value in lang_info) && lang_info[language_display_ui.value].templ) {
-        editor.setValue(lang_info[language_display_ui.value].templ, -1);
+      if ((languageDisplayUi.value in langInfo) && langInfo[languageDisplayUi.value].templ) {
+        editor.setValue(langInfo[languageDisplayUi.value].templ, -1);
       } else {
-        notify("warn");
-        print("No default template exists for " + language_display_ui.value);
+        notify('warn');
+        print(`No default template exists for ${languageDisplayUi.value}`);
       }
-    } else if(event.ctrlKey && event.key == "m"){
+    } else if (event.ctrlKey && event.key === 'm') {
       event.preventDefault();
-      let range = editor.selection.getRange();
+      const range = editor.selection.getRange();
       let func = editor.getSelectedText();
-      if(range.start.row == range.end.row && range.start.column == range.end.column){
+      if (range.start.row === range.end.row && range.start.column === range.end.column) {
         func = editor.session.getLine(range.start.row);
       }
 
       try {
-        let result = calculate(func);
-        editor.session.insert(editor.selection.getRange().end, " = " + result);
-        notify("confirm");
+        const result = calculate(func);
+        editor.session.insert(editor.selection.getRange().end, ` = ${result}`);
+        notify('confirm');
       } catch (error) {
-        notify("error");
-        print("Unable to calculate '"+func+"'", PRINT_MODE.error);
+        notify('error');
+        print(`Unable to calculate '${func}'`, PRINT_MODE.error);
       }
-      
     }
   }, false);
 
-  document.addEventListener('click',function(e){
-    
-    
-    if(e.target && e.target.classList.contains('jump-to-line')){
-      let line = parseInt(e.target.getAttribute("href").replace("#", ""));
+  document.addEventListener('click', (e) => {
+    if (e.target && e.target.classList.contains('jump-to-line')) {
+      const line = parseInt(e.target.getAttribute('href').replace('#', ''), 10);
       editor.selection.clearSelection();
-      editor.selection.moveCursorToPosition({row: line-1, column: 0});
+      editor.selection.moveCursorToPosition({ row: line - 1, column: 0 });
       editor.selection.selectLineEnd();
-      editor.scrollToLine(line-1,true, true);
-     }
-     
- });
-
-
-  console_in_ui.addEventListener('keydown', function (event) {
-    if (!event.shiftKey && event.key == "Enter") {
-      event.preventDefault();
-      let cmd = console_in_ui.value.replace(/\n$/, "");
-      console_in_ui.value = "";
-
-      if (history_index != undefined) {
-        command_history.pop();
-        history_index = undefined;
-      }
-      command_history.push(cmd);
-
-      let pre = cmd.split(" ")[0];
-
-      if (pre in command_list) {
-        print(pre, PRINT_MODE.user);
-        command_list[pre].func();
-      } else if (cmd.startsWith("!")) {
-        print(pre, PRINT_MODE.user);
-        print("Command not recognized. Try !help.", PRINT_MODE.warn);
-        notify("warn");
-      } else if (running_process != undefined) {
-        running_process.stdin.write(cmd + "\n");
-      } else {
-        run_command(cmd);
-      }
-
-
-      return false;
-    } else if (!event.ctrlKey && event.key == "ArrowUp") {
-      event.preventDefault();
-      let curr_cmd = console_in_ui.value;
-
-      if (history_index === undefined) {
-        command_history.push(curr_cmd);
-        history_index = command_history.length - 2;
-      } else {
-        if (history_index - 1 < 0) {
-          history_index = command_history.length;
-        }
-        history_index -= 1;
-      }
-
-      console_in_ui.value = command_history[history_index];
-      return false;
+      editor.scrollToLine(line - 1, true, true);
     }
-  }, false);
-
-  language_display_ui.addEventListener("change", function (event) {
-    set_language(language_display_ui.value);
   });
 
-  theme_choice_ui.addEventListener("change", function (event) {
-    set_theme(theme_choice_ui.value);
+  consoleInUi.addEventListener('keydown', (event) => {
+    if (!event.shiftKey && event.key === 'Enter') {
+      event.preventDefault();
+      const cmd = consoleInUi.value.replace(/\n$/, '');
+      consoleInUi.value = '';
+
+      if (historyIndex !== undefined) {
+        commandHistory.pop();
+        historyIndex = undefined;
+      }
+      commandHistory.push(cmd);
+
+      const pre = cmd.split(' ')[0];
+
+      if (pre in commandList) {
+        print(pre, PRINT_MODE.user);
+        commandList[pre].func();
+      } else if (cmd.startsWith('!')) {
+        print(pre, PRINT_MODE.user);
+        print('Command not recognized. Try !help.', PRINT_MODE.warn);
+        notify('warn');
+      } else if (runningProcess !== undefined) {
+        runningProcess.stdin.write(`${cmd}\n`);
+      } else {
+        runCommand(cmd);
+      }
+
+      return false;
+    } if (!event.ctrlKey && event.key === 'ArrowUp') {
+      event.preventDefault();
+      const currCmd = consoleInUi.value;
+
+      if (historyIndex === undefined) {
+        commandHistory.push(currCmd);
+        historyIndex = commandHistory.length - 2;
+      } else {
+        if (historyIndex - 1 < 0) {
+          historyIndex = commandHistory.length;
+        }
+        historyIndex -= 1;
+      }
+
+      consoleInUi.value = commandHistory[historyIndex];
+      return false;
+    }
+    return true;
+  }, false);
+
+  languageDisplayUi.addEventListener('change', () => {
+    setLanguage(languageDisplayUi.value);
+  });
+
+  themeChoiceUi.addEventListener('change', () => {
+    setTheme(themeChoiceUi.value);
   });
 
   fs.readFile(path.resolve(__dirname, 'res/lang.json'), 'utf-8', (err, data) => {
     if (err) {
-      alert("An error ocurred reading the file :" + err.message);
+      notify(`An error ocurred reading the file :${err.message}`);
       return;
     }
-    lang_info = JSON.parse(data);
+    langInfo = JSON.parse(data);
 
-    for (let item of Object.entries(lang_info)) {
-      var option = document.createElement("option");
-      option.text = item[1].name;
-      option.value = item[0];
-      language_display_ui.add(option);
-    }
-    language_display_ui.value = "plaintext";
+    Object.entries(langInfo).forEach((key, value) => {
+      const option = document.createElement('option');
+      option.text = value.name;
+      option.value = key;
+      languageDisplayUi.add(option);
+    });
 
+    languageDisplayUi.value = 'plaintext';
   });
 
-
-  command_list = {
-    "!ver": {
-      "desc": "Shows the current version of the application.",
-      "func": () => { print(app_info.name + " " + app_info.version); }
+  commandList = {
+    '!ver': {
+      desc: 'Shows the current version of the application.',
+      func: () => { print(`${appInfo.name} ${appInfo.version}`); },
     },
-    "!cls": {
-      "desc": "Clear console.",
-      "func": () => { console_out_ui.innerHTML = ""; }
+    '!cls': {
+      desc: 'Clear console.',
+      func: () => { consoleOutUi.innerHTML = ''; },
     },
-    "!kill": {
-      "desc": "Kills the currently running process.",
-      "func": () => { if (running_process) { running_process.kill('SIGINT'); } }
+    '!kill': {
+      desc: 'Kills the currently running process.',
+      func: () => { if (runningProcess) { runningProcess.kill('SIGINT'); } },
     },
-    "!hello": {
-      "desc": "Hello There :D",
-      "func": () => { print("Hi there :D"); }
-    }
-    ,
-    "!help": {
-      "desc": "Shows all the available commands.",
-      "func": () => {
-        let ret = "";
-        for (const [key, value] of Object.entries(command_list)) {
-          ret += key + "\t" + value.desc + "\n";
+    '!hello': {
+      desc: 'Hello There :D',
+      func: () => { print('Hi there :D'); },
+    },
+    '!help': {
+      desc: 'Shows all the available commands.',
+      func: () => {
+        let ret = '';
+        for (const [key, value] of Object.entries(commandList)) {
+          ret += `${key}\t${value.desc}\n`;
         }
         print(ret);
-      }
-    }
-  }
+      },
+    },
+  };
 
   fs.readFile(path.resolve(__dirname, 'res/style/bars.css'), 'utf-8', (err, data) => {
     if (!err) {
-      scroll_bars_css = data;
+      scrollBarsCss = data;
     }
   });
 
-  webview_ui.addEventListener('load-commit', () => {
-    webview_ui.insertCSS(scroll_bars_css);
-    webview_ui.insertCSS("body{background: transparent !important;}");
+  webviewUi.addEventListener('load-commit', () => {
+    webviewUi.insertCSS(scrollBarsCss);
+    webviewUi.insertCSS('body{background: transparent !important;}');
   });
-  webview_ui.addEventListener('did-finish-load', () => {
-    webview_ui.send('onLoad');
+  webviewUi.addEventListener('did-finish-load', () => {
+    webviewUi.send('onLoad');
   });
 
   marked.setOptions({
     highlight: (code, lang) => {
       const validLanguage = hljs.getLanguage(lang) ? lang : 'plaintext';
       return hljs.highlight(validLanguage, code).value;
-    }
+    },
   });
 
-
-  editor_media_div_ui.addEventListener('divider-move', () => {
-    let val = editor_media_div_ui.previousElementSibling.style.width;
+  editorMediaDivUi.addEventListener('divider-move', () => {
+    const val = editorMediaDivUi.previousElementSibling.style.width;
     ipcRenderer.send('store-setting', 'editor_media_div_percent', val);
   });
-  editor_console_div_ui.addEventListener('divider-move', () => {
-    let val = editor_console_div_ui.previousElementSibling.style.height;
+  editorConsoleDivUi.addEventListener('divider-move', () => {
+    const val = editorConsoleDivUi.previousElementSibling.style.height;
     ipcRenderer.send('store-setting', 'editor_console_div_percent', val);
   });
 
-  editor_media_div_ui.addEventListener('dblclick', () => {
-    let num = parseFloat(editor_media_div_ui.previousElementSibling.style.width.replace("%", ""));
-    let target_percent = Math.abs(num - 50) < 1 ? '100%' : "50%";
+  editorMediaDivUi.addEventListener('dblclick', () => {
+    const num = parseFloat(editorMediaDivUi.previousElementSibling.style.width.replace('%', ''));
+    const targetPercent = Math.abs(num - 50) < 1 ? '100%' : '50%';
 
-    let anim = editor_media_div_ui.previousElementSibling.animate([
-      { width: editor_media_div_ui.previousElementSibling.style.width },
-      { width: target_percent }
+    const anim = editorMediaDivUi.previousElementSibling.animate([
+      { width: editorMediaDivUi.previousElementSibling.style.width },
+      { width: targetPercent },
     ], {
       duration: 450,
-      easing: "cubic-bezier(0.860, 0.000, 0.070, 1.000)"
+      easing: 'cubic-bezier(0.860, 0.000, 0.070, 1.000)',
     });
-    anim.finished.then((e) => {
-      editor_media_div_ui.previousElementSibling.style.width = target_percent;
-      ipcRenderer.send('store-setting', 'editor_media_div_percent', target_percent);
+    anim.finished.then(() => {
+      editorMediaDivUi.previousElementSibling.style.width = targetPercent;
+      ipcRenderer.send('store-setting', 'editor_media_div_percent', targetPercent);
     });
   });
-  editor_console_div_ui.addEventListener('dblclick', () => {
-    let num = parseFloat(editor_console_div_ui.previousElementSibling.style.height.replace("%", ""));
-    let target_percent = Math.abs(num - 60) < 1 ? '100%' : "60%";
+  editorConsoleDivUi.addEventListener('dblclick', () => {
+    const num = parseFloat(editorConsoleDivUi.previousElementSibling.style.height.replace('%', ''));
+    const targetPercent = Math.abs(num - 60) < 1 ? '100%' : '60%';
 
-    let anim = editor_console_div_ui.previousElementSibling.animate([
-      { height: editor_console_div_ui.previousElementSibling.style.height },
-      { height: target_percent }
+    const anim = editorConsoleDivUi.previousElementSibling.animate([
+      { height: editorConsoleDivUi.previousElementSibling.style.height },
+      { height: targetPercent },
     ], {
       duration: 450,
-      easing: "cubic-bezier(0.860, 0.000, 0.070, 1.000)"
+      easing: 'cubic-bezier(0.860, 0.000, 0.070, 1.000)',
     });
-    anim.finished.then((e) => {
-      editor_console_div_ui.previousElementSibling.style.height = target_percent;
-      ipcRenderer.send('store-setting', 'editor_console_div_percent', target_percent);
+    anim.finished.then(() => {
+      editorConsoleDivUi.previousElementSibling.style.height = targetPercent;
+      ipcRenderer.send('store-setting', 'editor_console_div_percent', targetPercent);
     });
   });
 
-  document.getElementById("editor-wrapper").style.width = config.editor_media_div_percent;
-  document.getElementById("main-divider").style.height = config.editor_console_div_percent;
+  document.getElementById('editor-wrapper').style.width = config.editor_media_div_percent;
+  document.getElementById('main-divider').style.height = config.editor_console_div_percent;
 
   ipcRenderer.on('can-close', (event) => {
-    event.sender.send('can-close-response', is_saved);
-  })
-
-  print(app_info.name + " " + app_info.version);
-
-
-
-
-  let should_open = window.process.argv.filter(s => s.includes('--open-file='));
-  if (should_open.length > 0) {
-    open_file(should_open[0].replace(/--open-file="(.*)"/, "$1"));
-  }
-
-
-});
-
-
-function initialize() {
-  document_name_ui = document.getElementById('document-name');
-  text_area_ui = document.getElementById('main-text-area');
-  language_display_ui = document.getElementById('language-display');
-  theme_choice_ui = document.getElementById('theme-choice');
-  char_display_ui = document.getElementById('fchar-display');
-  console_ui = document.getElementById('console');
-  console_in_ui = document.getElementById('console-in');
-  console_out_ui = document.getElementById('console-out');
-  webview_ui = document.getElementById("embed-content");
-  theme_link = document.getElementById('theme-link');
-  editor_media_div_ui = document.getElementById('editor-media-div');
-  editor_console_div_ui = document.getElementById('editor-console-div');
-}
-
-function getContent() {
-  return editor.getValue();
-}
-
-function newWindow(file_path = undefined) {
-  ipcRenderer.send('new-window', file_path);
-}
-
-function set_saved(saved) {
-  if (is_saved != saved) {
-    let title = file.extension ? file.name + file.extension : "new document";
-    if (saved) {
-      document_name_ui.textContent = title;
-    } else {
-      document_name_ui.textContent = title + "*";
-    }
-    is_saved = saved;
-  }
-}
-
-function _set_file_info(filePath) {
-  file.extension = path.extname(filePath);
-  file.path = path.dirname(filePath) + path.sep;
-  file.name = path.basename(filePath, file.extension);
-
-  let lang = get_mode_from_name(file.name + file.extension);  
-  if (lang == null) {
-    file.lang = "plaintext";
-  } else {
-    file.lang = lang[0];
-  }
-
-  set_saved(true);
-  set_language(file.lang);
-}
-
-function toggle_fullscreen_style(is_fullscreen) {
-  if (is_fullscreen) {
-    document.getElementsByTagName("body")[0].classList.add("fullscreen");
-  } else {
-    document.getElementsByTagName("body")[0].classList.remove("fullscreen");
-  }
-}
-
-function get_mode_from_name(filename){
-  for (let item of Object.entries(lang_info)) {
-    let re = item[1].detector;
-    if(filename.toLowerCase().match(re)){
-      return item;
-    }
-  }
-  return null;
-}
-
-function open_file(path) {
-  if (file.path || !is_saved) {
-    newWindow(path);
-  } else {
-    fs.readFile(path, 'utf-8', (err, data) => {
-      if (!err) {
-        editor.setValue(data, -1);
-        _set_file_info(path);
-        webview_ui.setAttribute("src", undefined)
-      } else {
-        print("Error: Could not open file " + path, PRINT_MODE.error);
-        notify("error");
-      }
-    });
-  }
-}
-
-function _save_file(content, save_as = false, callback = undefined) {
-  if (file.path === undefined || save_as) {
-    let lang = lang_info[language_display_ui.value];    
-    var options = {
-      defaultPath: '~/' + lang.tempname,
-      filters: [
-        { name: lang.name, extensions: lang.ext },
-        { name: 'All Files', extensions: ['*'] }
-      ]
-    }
-    var window = remote.getCurrentWindow();
-    dialog.showSaveDialog(window, options).then((ret) => {
-      if (!ret.canceled) {
-        write_file(ret.filePath, content, (err) => {
-          if (!err) {
-            _set_file_info(ret.filePath);
-
-            if (callback != undefined) callback();
-          }
-        });
-      }
-    });
-  } else {
-    write_file(file.path + file.name + file.extension, getContent(), (err) => {
-      if (!err) {
-        set_saved(true);
-      }
-      if (callback != undefined) callback(err);
-    });
-  }
-}
-
-function write_file(path, content, callback = undefined) {
-  fs.writeFile(path, content, (err) => {
-    if (!err) {
-      notify("confirm");
-    } else {
-      print(err, PRINT_MODE.error);
-      notify("error");
-    }
-    if (callback != undefined) callback(err);
-  });
-}
-
-function set_language(lang_key) {
-  if (lang_key == "markdown") {
-    editor.on('input', markdown_updater);
-  } else {
-    editor.off('input', markdown_updater);
-  }
-
-  let lang = lang_info[lang_key];
-  let mode = modelist.modesByName[lang.mode].mode;
-  editor.session.setMode(mode);
-  language_display_ui.value = lang_key;
-}
-
-function notify(type) {
-  document.getElementById("status-display").className = "";
-  document.getElementById("status-display").offsetWidth;
-  document.getElementById("status-display").classList.add(type);
-}
-
-function notify_load_start() {
-  document.getElementById("status-bar").classList.add("load");
-}
-
-function notify_load_end() {
-  document.getElementById("status-bar").className = "";
-}
-
-function print(text, mode = PRINT_MODE.info) {
-  let block = document.createElement('div');
-  block.classList.add(Object.keys(PRINT_MODE).find(key => PRINT_MODE[key] === mode));
-  block.innerHTML = text;
-  console_out_ui.appendChild(block);
-
-  console_ui.scrollTo({ top: console_ui.scrollHeight, behavior: 'smooth' });
-}
-
-
-function set_theme(name) {
-  editor.setTheme(name);
-  theme_choice_ui.value = name;
-  ipcRenderer.send('store-setting', 'theme', name);
-}
-
-
-function calculate(string){
-  return Function("return ("+string+")")();
-}
-
-
-
-
-function build_run_file() {
-  if (file.lang in lang_info) {
-    let cmd_comp = lang_info[file.lang].comp;
-    if (cmd_comp) {
-      cmd_comp = cmd_comp.replaceAll("<name>", file.name);
-      cmd_comp = cmd_comp.replaceAll("<path>", file.path);
-
-      run_command(cmd_comp, [], (code) => {
-        if (code == 0) {
-          run_file();
-        }
-      });
-    } else {
-      run_file();
-    }
-  } else {
-    //if(file.mime != "text/plain"){
-    webview_ui.src = file.path + file.name + file.extension;
-    //}else{
-    //notify("warn");
-    //print("No action defined for " + language_display_ui.value);
-    //}
-  }
-}
-
-function run_file() {
-  if (file.lang in lang_info) {
-    let cmd_run = lang_info[file.lang].run;
-    if (cmd_run) {
-      cmd_run = cmd_run.replaceAll("<name>", file.name);
-      cmd_run = cmd_run.replaceAll("<path>", file.path);
-
-      run_command(cmd_run);
-    } else if (file.lang == "latex") {
-      webview_ui.src = file.path + file.name + ".pdf?v=" + Date.now();
-    } else if (file.lang == "markdown") {
-      let basepath = file.path.replaceAll("\\", "/");
-
-      // Pre process relative html src
-      let pre = getContent();
-      pre = pre.replaceAll(/src="(\..*?)"/ig, "src=\"" + basepath + "$1\"");
-      let marked_html = marked(pre, { baseUrl: basepath });
-
-      webview_ui.addEventListener('did-finish-load', () => {
-        webview_ui.send('fillContent', marked_html);
-      }, { once: true });
-      webview_ui.src = MD_TEMPLATE_HTML;
-    } else if (file.lang == "html") {
-      webview_ui.src = (file.path + file.name + ".html")
-    }
-  }
-}
-
-
-function run_command(command, args, callback = undefined) {
-  if (running_process != undefined) {
-    let ret = running_process.kill('SIGINT');
-
-    if (!ret) {
-      print("Error: Could not stop the running process.", PRINT_MODE.error);
-      return;
-    }
-  }
-
-  notify_load_start();
-  print("> " + command, PRINT_MODE.user);
-
-
-  running_process = child_process.spawn(command, args, {
-    encoding: 'utf8',
-    shell: true,
-    ...file.path && { cwd: file.path }
+    event.sender.send('can-close-response', isSaved);
   });
 
-  running_process.on('error', (error) => { });
+  print(`${appInfo.name} ${appInfo.version}`);
 
-  running_process.stdout.setEncoding('utf8');
-  running_process.stdout.on('data', (data) => {
-    data = data.toString();
-
-    print(data);
-  });
-
-  running_process.stderr.setEncoding('utf8');
-  running_process.stderr.on('data', (data) => {
-    data = data.toString();
-    if(file.lang != undefined && lang_info[file.lang].linere != undefined){
-      let line = lang_info[file.lang].linere.replaceAll("<name>", file.name);
-      let re = new RegExp(line, "gi");
-      data = data.replaceAll(re, '<a class="jump-to-line" href="#$2">$1</a>');
-    }
-    print(data, PRINT_MODE.error);
-  });
-
-  running_process.on('close', (code) => {
-    //Here you can get the exit code of the script  
-    switch (code) {
-      case 0:
-        notify("confirm");
-        break;
-      default:
-        notify("error");
-        break;
-    }
-
-    notify_load_end();
-    running_process = undefined;
-
-    if (callback !== undefined) {
-      callback(code);
-    }
-  });
+  const shouldOpen = window.process.argv.filter((s) => s.includes('--open-file='));
+  if (shouldOpen.length > 0) {
+    openFile(shouldOpen[0].replace(/--open-file="(.*)"/, '$1'));
+  }
 }
 
-
-
-function debounce(func, wait, immediate) {
-  var timeout;
-  return function () {
-    var context = this, args = arguments;
-    var later = function () {
-      timeout = null;
-      if (!immediate) func.apply(context, args);
-    };
-    var callNow = immediate && !timeout;
-    clearTimeout(timeout);
-    timeout = setTimeout(later, wait);
-    if (callNow) func.apply(context, args);
-  };
-};
-
-
-
-
-document.addEventListener('DOMContentLoaded', function () {
-  const resizable = function (resizer) {
+document.addEventListener('DOMContentLoaded', () => {
+  const resizable = (resizer) => {
     const direction = resizer.getAttribute('data-direction') || 'horizontal';
     const prevSibling = resizer.previousElementSibling;
     const nextSibling = resizer.nextElementSibling;
@@ -745,22 +714,7 @@ document.addEventListener('DOMContentLoaded', function () {
     let prevSiblingHeight = 0;
     let prevSiblingWidth = 0;
 
-    // Handle the mousedown event
-    // that's triggered when user drags the resizer
-    const mouseDownHandler = function (e) {
-      // Get the current mouse position
-      x = e.clientX;
-      y = e.clientY;
-      const rect = prevSibling.getBoundingClientRect();
-      prevSiblingHeight = rect.height;
-      prevSiblingWidth = rect.width;
-
-      // Attach the listeners to `document`
-      document.addEventListener('mousemove', mouseMoveHandler);
-      document.addEventListener('mouseup', mouseUpHandler);
-    };
-
-    const mouseMoveHandler = function (e) {
+    const mouseMoveHandler = (e) => {
       // How far the mouse has been moved
       const dx = e.clientX - x;
       const dy = e.clientY - y;
@@ -784,7 +738,7 @@ document.addEventListener('DOMContentLoaded', function () {
       nextSibling.style.pointerEvents = 'none';
     };
 
-    const mouseUpHandler = function (e) {
+    const mouseUpHandler = () => {
       resizer.style.removeProperty('cursor');
       document.body.style.removeProperty('cursor');
 
@@ -799,8 +753,23 @@ document.addEventListener('DOMContentLoaded', function () {
       document.removeEventListener('mouseup', mouseUpHandler);
 
       // Dispatch the event
-      var event = new CustomEvent('divider-move');
+      const event = new CustomEvent('divider-move');
       resizer.dispatchEvent(event);
+    };
+
+    // Handle the mousedown event
+    // that's triggered when user drags the resizer
+    const mouseDownHandler = (e) => {
+      // Get the current mouse position
+      x = e.clientX;
+      y = e.clientY;
+      const rect = prevSibling.getBoundingClientRect();
+      prevSiblingHeight = rect.height;
+      prevSiblingWidth = rect.width;
+
+      // Attach the listeners to `document`
+      document.addEventListener('mousemove', mouseMoveHandler);
+      document.addEventListener('mouseup', mouseUpHandler);
     };
 
     // Attach the handler
@@ -808,7 +777,10 @@ document.addEventListener('DOMContentLoaded', function () {
   };
 
   // Query all resizers
-  document.querySelectorAll('.resizer').forEach(function (ele) {
+  document.querySelectorAll('.resizer').forEach((ele) => {
     resizable(ele);
   });
 });
+
+/* ---- DOCUMENT READY ---- */
+document.addEventListener('DOMContentLoaded', initialize);
