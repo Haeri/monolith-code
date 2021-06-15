@@ -1,22 +1,21 @@
-const { remote, webFrame, ipcRenderer } = require('electron');
-const { dialog } = require('electron').remote;
-const appVersion = require('electron').remote.app.getVersion();
-const path = require('path');
+/* eslint-disable no-underscore-dangle */
+/* eslint-disable import/no-extraneous-dependencies */
+
+const { ipcRenderer, webFrame } = require('electron');
 const fs = require('fs');
-const childProcess = require('child_process');
-const marked = require('marked');
-const hljs = require('highlight.js');
+const path = require('path');
 
-const modelist = ace.require('ace/ext/modelist');
-const themelist = ace.require('ace/ext/themelist');
+let _remote = null;
+let _dialog = null;
+let _childProcess = null;
+let _marked = null;
+let _hljs = null;
+let _modelist = null;
+let _themelist = null;
+let _appInfo = null;
 
-const appInfo = {
-  version: appVersion,
-  name: 'Monolith Code',
-};
-
-const MD_TEMPLATE_HTML = path.resolve(__dirname, 'res/embed/markdown/index.html');
-let editor;
+let _mdTemplate = null;
+let editor = null;
 
 const file = {
   name: undefined,
@@ -31,21 +30,81 @@ let isSaved = true;
 let documentNameUi;
 let languageDisplayUi;
 let themeChoiceUi;
-let charDisplayUi;
 let consoleUi;
 let consoleInUi;
 let consoleOutUi;
 let webviewUi;
 let editorMediaDivUi;
 let editorConsoleDivUi;
-let textAreaUi;
-let themeLink;
 
 let commandList = {};
 const commandHistory = [];
 let historyIndex;
 
 let scrollBarsCss;
+
+function requireMarked() {
+  if (_marked === null) {
+    _marked = require('marked');
+    _hljs = require('highlight.js');
+
+    _marked.setOptions({
+      highlight: (code, lang) => {
+        const validLanguage = _hljs.getLanguage(lang) ? lang : 'plaintext';
+        return _hljs.highlight(validLanguage, code).value;
+      },
+    });
+  }
+
+  return _marked;
+}
+
+function requireRemote() {
+  if (_remote === null) {
+    _remote = require('electron').remote;
+  }
+  return _remote;
+}
+function requireDialog() {
+  if (_dialog === null) {
+    _dialog = requireRemote().dialog;
+  }
+  return _dialog;
+}
+function requireChildProcess() {
+  if (_childProcess === null) {
+    _childProcess = require('child_process');
+  }
+  return _childProcess;
+}
+function requireModeList() {
+  if (_modelist === null) {
+    _modelist = ace.require('ace/ext/modelist');
+  }
+  return _modelist;
+}
+function requireThemeList() {
+  if (_themelist === null) {
+    _themelist = ace.require('ace/ext/themelist');
+  }
+  return _themelist;
+}
+function getAppInfo() {
+  if (_appInfo === null) {
+    _appInfo = {
+      version: requireRemote().app.getVersion(),
+      name: 'Monolith Code',
+    };
+  }
+  return _appInfo;
+}
+
+function getMdTemplate() {
+  if (_mdTemplate === null) {
+    _mdTemplate = path.resolve(__dirname, 'res/embed/markdown/index.html');
+  }
+  return _mdTemplate;
+}
 
 const PRINT_MODE = Object.freeze({
   user: 0,
@@ -79,7 +138,7 @@ const markdownUpdater = debounce(() => {
   const basepath = file.path.replaceAll('\\', '/');
   let pre = getContent();
   pre = pre.replaceAll(/src="(\..*?)"/ig, `src="${basepath}$1"`);
-  const markedHtml = marked(pre, { baseUrl: basepath });
+  const markedHtml = requireMarked()(pre, { baseUrl: basepath });
 
   webviewUi.send('fillContent', markedHtml);
 }, 200);
@@ -108,7 +167,7 @@ function setLanguage(langKey) {
   }
 
   const lang = langInfo[langKey];
-  const { mode } = modelist.modesByName[lang.mode];
+  const { mode } = requireModeList().modesByName[lang.mode];
   editor.session.setMode(mode);
   languageDisplayUi.value = langKey;
 }
@@ -210,8 +269,8 @@ function saveFile(content, saveAs = false, callback = undefined) {
         { name: 'All Files', extensions: ['*'] },
       ],
     };
-    const window = remote.getCurrentWindow();
-    dialog.showSaveDialog(window, options).then((ret) => {
+    const window = requireRemote().getCurrentWindow();
+    requireDialog().showSaveDialog(window, options).then((ret) => {
       if (!ret.canceled) {
         writeFile(ret.filePath, content, (err) => {
           if (!err) {
@@ -256,7 +315,7 @@ function runCommand(command, args, callback = undefined) {
   notifyLoadStart();
   print(`> ${command}`, PRINT_MODE.user);
 
-  runningProcess = childProcess.spawn(command, args, {
+  runningProcess = requireChildProcess().spawn(command, args, {
     encoding: 'utf8',
     shell: true,
     ...file.path && { cwd: file.path },
@@ -316,12 +375,12 @@ function runFile() {
       // Pre process relative html src
       let pre = getContent();
       pre = pre.replaceAll(/src="(\..*?)"/ig, `src="${basepath}$1"`);
-      const markedHtml = marked(pre, { baseUrl: basepath });
+      const markedHtml = requireMarked()(pre, { baseUrl: basepath });
 
       webviewUi.addEventListener('did-finish-load', () => {
         webviewUi.send('fillContent', markedHtml);
       }, { once: true });
-      webviewUi.src = MD_TEMPLATE_HTML;
+      webviewUi.src = getMdTemplate();
     } else if (file.lang === 'html') {
       webviewUi.src = (`${file.path + file.name}.html`);
     }
@@ -368,6 +427,17 @@ function assignVariables() {
   editorConsoleDivUi = document.getElementById('editor-console-div');
 }
 
+function initializeOptions(config) {
+  requireThemeList().themes.forEach((theme) => {
+    const option = document.createElement('option');
+    option.text = theme.caption;
+    option.value = theme.theme;
+    themeChoiceUi.add(option);
+  });
+
+  themeChoiceUi.value = config.theme;
+}
+
 function initialize() {
   // Initialize all ui elements
   assignVariables();
@@ -389,15 +459,6 @@ function initialize() {
     useWorker: false,
     theme: config.theme,
   });
-
-  themelist.themes.forEach((theme) => {
-    const option = document.createElement('option');
-    option.text = theme.caption;
-    option.value = theme.theme;
-    themeChoiceUi.add(option);
-  });
-
-  themeChoiceUi.value = config.theme;
 
   document.addEventListener('drop', (event) => {
     event.preventDefault();
@@ -430,12 +491,12 @@ function initialize() {
   });
 
   document.getElementById('min-button').addEventListener('click', () => {
-    const window = remote.getCurrentWindow();
+    const window = requireRemote().getCurrentWindow();
     window.minimize();
   });
 
   document.getElementById('max-button').addEventListener('click', () => {
-    const window = remote.getCurrentWindow();
+    const window = requireRemote().getCurrentWindow();
     if (!window.isMaximized()) {
       window.maximize();
       toggleFullscreenStyle(true);
@@ -446,7 +507,7 @@ function initialize() {
   });
 
   document.getElementById('close-button').addEventListener('click', () => {
-    const window = remote.getCurrentWindow();
+    const window = requireRemote().getCurrentWindow();
     window.close();
   });
 
@@ -458,8 +519,8 @@ function initialize() {
       const options = {
         title: 'Open a file',
       };
-      const window = remote.getCurrentWindow();
-      dialog.showOpenDialog(window, options).then((ret) => {
+      const window = requireRemote().getCurrentWindow();
+      requireDialog().showOpenDialog(window, options).then((ret) => {
         if (!ret.canceled) {
           openFile(ret.filePaths[0]);
         }
@@ -585,10 +646,11 @@ function initialize() {
     }
     langInfo = JSON.parse(data);
 
-    Object.entries(langInfo).forEach((key, value) => {
+    Object.entries(langInfo).forEach((el) => {
       const option = document.createElement('option');
-      option.text = value.name;
-      option.value = key;
+      const [name, obj] = el;
+      option.text = obj.name;
+      option.value = name;
       languageDisplayUi.add(option);
     });
 
@@ -598,7 +660,7 @@ function initialize() {
   commandList = {
     '!ver': {
       desc: 'Shows the current version of the application.',
-      func: () => { print(`${appInfo.name} ${appInfo.version}`); },
+      func: () => { print(`${getAppInfo().name} ${getAppInfo().version}`); },
     },
     '!cls': {
       desc: 'Clear console.',
@@ -616,9 +678,9 @@ function initialize() {
       desc: 'Shows all the available commands.',
       func: () => {
         let ret = '';
-        for (const [key, value] of Object.entries(commandList)) {
+        Object.entries(commandList).forEach((key, value) => {
           ret += `${key}\t${value.desc}\n`;
-        }
+        });
         print(ret);
       },
     },
@@ -636,13 +698,6 @@ function initialize() {
   });
   webviewUi.addEventListener('did-finish-load', () => {
     webviewUi.send('onLoad');
-  });
-
-  marked.setOptions({
-    highlight: (code, lang) => {
-      const validLanguage = hljs.getLanguage(lang) ? lang : 'plaintext';
-      return hljs.highlight(validLanguage, code).value;
-    },
   });
 
   editorMediaDivUi.addEventListener('divider-move', () => {
@@ -694,7 +749,7 @@ function initialize() {
     event.sender.send('can-close-response', isSaved);
   });
 
-  print(`${appInfo.name} ${appInfo.version}`);
+  print(`${getAppInfo().name} ${getAppInfo().version}`);
 
   const shouldOpen = window.process.argv.filter((s) => s.includes('--open-file='));
   if (shouldOpen.length > 0) {
@@ -720,15 +775,17 @@ document.addEventListener('DOMContentLoaded', () => {
       const dy = e.clientY - y;
 
       switch (direction) {
-        case 'vertical':
+        case 'vertical': {
           const h = (prevSiblingHeight + dy) * 100 / resizer.parentNode.getBoundingClientRect().height;
           prevSibling.style.height = `${h}%`;
           break;
+        }
         case 'horizontal':
-        default:
+        default: {
           const w = (prevSiblingWidth + dx) * 100 / resizer.parentNode.getBoundingClientRect().width;
           prevSibling.style.width = `${w}%`;
           break;
+        }
       }
 
       prevSibling.style.userSelect = 'none';
