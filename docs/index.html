@@ -59,22 +59,24 @@
 		    }
 		    .dl-panel{
 		        display: flex;
-                justify-content: space-between;
+				justify-content: center;
+    			gap: 30px;
 		    }
 		    .download-btn{
-                background: #315ab7;
-                border: 1px solid #b9b9b959;
-                border-radius: 8px;
-                padding: 15px 35px;
-                color: #dcdcdc;
-                text-decoration: none;
-                display: inline-block;
-                font-size: 0.9rem;
-                transition: 0.3s;
+				background: #315ab7;
+				border: 1px solid #b9b9b959;
+				border-radius: 10px;
+				padding: 10px 30px;
+				color: #dcdcdc;
+				text-decoration: none;
+				display: inline-block;
+				font-size: 0.9rem;
+				text-align: center;
+				transition: 0.3s;
 		    }
 		    .download-btn:hover{
                 background: #4f7adc;
-                transform: translateY(-2px);
+                /*transform: translateY(-2px);*/
                 box-shadow: 2px 5px 40px 0px #2e64de57;
 		    }
 		    .download-btn strong{
@@ -94,28 +96,23 @@
 	</head>
 	<body>
 	    <section class="banner-wrapper">
-		    <div class="banner" data-type="parallax" data-speed="50"></div>
 	        <div class="center">
     		    <h1><img src="res/img/icon.ico"> monolith code</h1>
     		    <h3>a minimalistic, but powerful code editor</h3>
-    		    
-    		    <p>Latest version <span id="version_insert"></span></p>
-    		    <div class="dl-panel">
-        		    <a href="https://github.com/Haeri/MonolithCode2/releases/latest/download/monolithcode_win.zip" class="download-btn">
-        		        <i data-feather="download"></i>
-        		        <span><strong>Download</strong><br>for Windows</span>
-    	            </a>
-        		    <a href="https://github.com/Haeri/MonolithCode2/releases/latest/download/monolithcode_linux.zip" class="download-btn"><i data-feather="download"></i>
-        		        <span><strong>Download</strong><br>for Linux</span>
-    		        </a>
-        		    <a href="https://github.com/Haeri/MonolithCode2/releases/latest/download/monolithcode_mac.zip" class="download-btn"><i data-feather="download"></i>
-        		        <span><strong>Download</strong><br>for macOS</span>
-    		        </a>
-		        </div>
+				<p>Latest version <span id="version_insert"></span></p>
+			</div>
+			<div class="dl-panel">
+				<a href="https://github.com/Haeri/MonolithCode2/releases/latest/download/monolithcode_win.zip" class="download-btn">
+					<i data-feather="download"></i>
+					<span><strong>Download</strong><br>for Windows</span>
+				</a>
+				<a href="https://github.com/Haeri/MonolithCode2/releases/latest/download/monolithcode_linux.zip" class="download-btn"><i data-feather="download"></i>
+					<span><strong>Download</strong><br>for Linux</span>
+				</a>
+				<a href="https://github.com/Haeri/MonolithCode2/releases/latest/download/monolithcode_mac.zip" class="download-btn"><i data-feather="download"></i>
+					<span><strong>Download</strong><br>for macOS</span>
+				</a>		        
 	        </div>
-	    </section>
-	    <section>
-	        <img class="demo" src="res/img/screenshot.png">
 	    </section>
 	    
 		

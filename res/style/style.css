@@ -96,6 +96,7 @@ header{
 }
 
 header #window-buttons{
+	-webkit-app-region: no-drag;
 	display: flex;
 	align-items: center;
 	height: 100%;
@@ -116,6 +117,25 @@ header #window-buttons a:hover{
 	/*cursor: pointer;*/
 }
 
+header #window-buttons a#pin-button{
+    margin-right: 10px;
+	opacity: 0;
+	transition-delay: 1s;
+}
+header #window-buttons:hover a#pin-button,
+header #window-buttons a#pin-button.pinned{
+	opacity: 1;
+	transition-delay: 0s;
+}
+header #window-buttons a#pin-button:hover{
+	background-color: #c7c7c7;
+	border: 1px solid #c7c7c7;
+	box-shadow: 0px 0px 30px 1px #c7c7c7;
+}
+header #window-buttons a#pin-button.pinned{
+	background-color: #a7a7a7;
+	border: 1px solid #a7a7a7;
+}
 header #window-buttons a#close-button:hover{
 	background-color: #f44336;
 	border: 1px solid #f44336;
@@ -251,7 +271,7 @@ footer{
 	background: #191919;
 	display: flex;
 	flex-direction: column;
-	position: relative;
+	position: relative;	
 }
 
 #console #console-in,
@@ -272,7 +292,7 @@ footer{
 	color: #a9a9a9;
 	padding: 10px 0px;
 }
-#console #console-in{
+#console #console-in{	
 	color: #ffffff;
 	flex: 1;
 	resize: none;
@@ -280,15 +300,38 @@ footer{
 	padding: 4px 8px;
 }
 
+#console #process-indicator{	
+    position: fixed;
+    display: block;
+    right: 24px;
+    bottom: 54px;
+    width: 6px;
+    height: 6px;
+    border-radius: 100%;
+    background: #f44336;
+    opacity: 0;
+	transition: 0.3s;
+	box-shadow: 0 0 0 0 rgba(244, 67, 54, 0.1);
+	transform: scale(1);
+	animation: pulse 2s infinite;
+}
+#console #process-indicator.active{
+	opacity: 1;
+}
+
 #console #console-out > div{
 	padding: 0px 8px;
 }
 
-#console #console-out .user{
-	color: #ffffff;
+#console #console-out .user{	
+	color: #f1f1f1;
     margin: 10px 0px;
 	padding: 4px 8px;
     background: #1d1d1d;
+}
+
+#console #console-out .info{
+	color: #838383;
 }
 #console #console-out .confirm{
 	color: #4caf50;
@@ -298,6 +341,13 @@ footer{
 }
 #console #console-out .error{
 	color: #f44336;
+}
+#console #console-out .error svg{
+	width: 10px;
+	height: 10px;
+	fill: #f44336;
+	margin-right: 5px;
+	vertical-align: -1px;
 }
 .jump-to-line {
     color: inherit;
@@ -375,6 +425,23 @@ footer select{
 	}
 	100% {width: 0%;left: 100%;background-color: #2443f0; 
 		box-shadow: 0px 0px 20px 1px #2844e0;
+	}
+}
+
+@keyframes pulse {
+	0% {
+		transform: scale(0.95);
+		box-shadow: 0 0 0 0 rgba(244, 67, 54, 0.7);
+	}
+
+	70% {
+		transform: scale(1);
+		box-shadow: 0 0 0 10px rgba(244, 67, 54, 0);
+	}
+
+	100% {
+		transform: scale(0.95);
+		box-shadow: 0 0 0 0 rgba(244, 67, 54, 0);
 	}
 }
 
