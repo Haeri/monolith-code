@@ -5,6 +5,8 @@ const { ipcRenderer, webFrame } = require('electron');
 const fs = require('fs');
 const path = require('path');
 
+const errorSVG = '<svg version="1.1" id="Capa_1" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" x="0px" y="0px" viewBox="0 0 52 52" style="enable-background:new 0 0 52 52;" xml:space="preserve"><g>	<path d="M26,0C11.664,0,0,11.663,0,26s11.664,26,26,26s26-11.663,26-26S40.336,0,26,0z M26,50C12.767,50,2,39.233,2,26	S12.767,2,26,2s24,10.767,24,24S39.233,50,26,50z"/>	<path d="M35.707,16.293c-0.391-0.391-1.023-0.391-1.414,0L26,24.586l-8.293-8.293c-0.391-0.391-1.023-0.391-1.414,0 s-0.391,1.023,0,1.414L24.586,26l-8.293,8.293c-0.391,0.391-0.391,1.023,0,1.414C16.488,35.902,16.744,36,17,36 s0.512-0.098,0.707-0.293L26,27.414l8.293,8.293C34.488,35.902,34.744,36,35,36s0.512-0.098,0.707-0.293 c0.391-0.391,0.391-1.023,0-1.414L27.414,26l8.293-8.293C36.098,17.316,36.098,16.684,35.707,16.293z"/></g></svg>';
+
 let _remote = null;
 let _dialog = null;
 let _childProcess = null;
@@ -13,6 +15,7 @@ let _hljs = null;
 let _modelist = null;
 let _themelist = null;
 let _appInfo = null;
+let _tKill = null;
 
 let _mdTemplate = null;
 let editor = null;
@@ -36,6 +39,7 @@ let consoleOutUi;
 let webviewUi;
 let editorMediaDivUi;
 let editorConsoleDivUi;
+let processIndicatorUi;
 
 let commandList = {};
 const commandHistory = [];
@@ -89,11 +93,19 @@ function requireThemeList() {
   }
   return _themelist;
 }
+
+function requireTreeKill() {
+  if (_tKill === null) {
+    _tKill = require('tree-kill');
+  }
+  return _tKill;
+}
+
 function getAppInfo() {
   if (_appInfo === null) {
     _appInfo = {
       version: requireRemote().app.getVersion(),
-      name: 'Monolith Code',
+      name: 'monolith code',
     };
   }
   return _appInfo;
@@ -106,7 +118,7 @@ function getMdTemplate() {
   return _mdTemplate;
 }
 
-const PRINT_MODE = Object.freeze({
+const INFO_LEVEL = Object.freeze({
   user: 0,
   info: 1,
   confirm: 2,
@@ -221,11 +233,16 @@ function notifyLoadEnd() {
   document.getElementById('status-bar').className = '';
 }
 
-function print(text, mode = PRINT_MODE.info) {
+function print(text, mode = INFO_LEVEL.info) {
   const block = document.createElement('div');
-  block.classList.add(Object.keys(PRINT_MODE).find((key) => PRINT_MODE[key] === mode));
-  block.innerHTML = text;
+  block.classList.add(Object.keys(INFO_LEVEL).find((key) => INFO_LEVEL[key] === mode));
+  block.innerHTML = (mode === 4 ? errorSVG : '') + text;
   consoleOutUi.appendChild(block);
+
+  if (mode >= 2) {
+    const ret = Object.keys(INFO_LEVEL).find((key) => INFO_LEVEL[key] === mode);
+    notify(ret);
+  }
 
   consoleUi.scrollTo({ top: consoleUi.scrollHeight, behavior: 'smooth' });
 }
@@ -235,8 +252,7 @@ function writeFile(filePath, content, callback = undefined) {
     if (!err) {
       notify('confirm');
     } else {
-      print(err, PRINT_MODE.error);
-      notify('error');
+      print(err, INFO_LEVEL.error);
     }
     if (callback !== undefined) callback(err);
   });
@@ -251,9 +267,9 @@ function openFile(filepath) {
         editor.setValue(data, -1);
         setFileInfo(filepath);
         webviewUi.setAttribute('src', undefined);
+        print(`Opened file ${filepath}`);
       } else {
-        print(`Error: Could not open file ${filepath}`, PRINT_MODE.error);
-        notify('error');
+        print(`Could not open file ${filepath}`, INFO_LEVEL.error);
       }
     });
   }
@@ -275,6 +291,7 @@ function saveFile(content, saveAs = false, callback = undefined) {
         writeFile(ret.filePath, content, (err) => {
           if (!err) {
             setFileInfo(ret.filePath);
+            print(`file saved as ${ret.filePath}`);
 
             if (callback !== undefined) callback();
           }
@@ -302,18 +319,9 @@ function calculate(string) {
   return Function(`return (${string})`)();
 }
 
-function runCommand(command, args, callback = undefined) {
-  if (runningProcess !== undefined) {
-    const ret = runningProcess.kill('SIGINT');
-
-    if (!ret) {
-      print('Error: Could not stop the running process.', PRINT_MODE.error);
-      return;
-    }
-  }
-
+function commandRunner(command, args, callback) {
   notifyLoadStart();
-  print(`> ${command}`, PRINT_MODE.user);
+  print(`> ${command}`, INFO_LEVEL.user);
 
   runningProcess = requireChildProcess().spawn(command, args, {
     encoding: 'utf8',
@@ -321,7 +329,9 @@ function runCommand(command, args, callback = undefined) {
     ...file.path && { cwd: file.path },
   });
 
-  runningProcess.on('error', () => { });
+  runningProcess.on('error', (err) => {
+    print(err, INFO_LEVEL.err);
+  });
 
   runningProcess.stdout.setEncoding('utf8');
   runningProcess.stdout.on('data', (data) => {
@@ -331,13 +341,14 @@ function runCommand(command, args, callback = undefined) {
   runningProcess.stderr.setEncoding('utf8');
   runningProcess.stderr.on('data', (data) => {
     let dataString = data.toString();
-    if (file.lang !== undefined && langInfo[file.lang].linere !== undefined) {
+    if (file.lang !== undefined && langInfo[file.lang].linere != null) {
       const line = langInfo[file.lang].linere.replaceAll('<name>', file.name);
       const re = new RegExp(line, 'gi');
       dataString = dataString.replaceAll(re, '<a class="jump-to-line" href="#$2">$1</a>');
     }
-    print(dataString, PRINT_MODE.error);
+    print(dataString, INFO_LEVEL.error);
   });
+  processIndicatorUi.classList.add('active');
 
   runningProcess.on('close', (code) => {
     // Here you can get the exit code of the script
@@ -350,13 +361,28 @@ function runCommand(command, args, callback = undefined) {
         break;
     }
 
+    processIndicatorUi.classList.remove('active');
     notifyLoadEnd();
-    runningProcess = undefined;
+    runningProcess = null;
 
     if (callback !== undefined) {
       callback(code);
     }
   });
+}
+
+function runCommand(command, args, callback = undefined) {
+  if (runningProcess != null) {
+    requireTreeKill()(runningProcess.pid, 'SIGKILL', (err) => {
+      if (err) {
+        print('Could not stop the running process.', INFO_LEVEL.error);
+      } else {
+        commandRunner(command, args, callback);
+      }
+    });
+  } else {
+    commandRunner(command, args, callback);
+  }
 }
 
 function runFile() {
@@ -425,6 +451,7 @@ function assignVariables() {
   themeLink = document.getElementById('theme-link');
   editorMediaDivUi = document.getElementById('editor-media-div');
   editorConsoleDivUi = document.getElementById('editor-console-div');
+  processIndicatorUi = document.getElementById('process-indicator');
 }
 
 function initializeOptions(config) {
@@ -508,7 +535,24 @@ function initialize() {
 
   document.getElementById('close-button').addEventListener('click', () => {
     const window = requireRemote().getCurrentWindow();
+
+    if (runningProcess != null) {
+      requireTreeKill()(runningProcess.pid, 'SIGKILL');
+    }
+
     window.close();
+  });
+
+  document.getElementById('pin-button').addEventListener('click', (e) => {
+    const window = requireRemote().getCurrentWindow();
+    const pinned = window.isAlwaysOnTop();
+
+    window.setAlwaysOnTop(!pinned);
+    if (!pinned) {
+      e.currentTarget.classList.add('pinned');
+    } else {
+      e.currentTarget.classList.remove('pinned');
+    }
   });
 
   window.addEventListener('keydown', (event) => {
@@ -551,8 +595,7 @@ function initialize() {
       if ((languageDisplayUi.value in langInfo) && langInfo[languageDisplayUi.value].templ) {
         editor.setValue(langInfo[languageDisplayUi.value].templ, -1);
       } else {
-        notify('warn');
-        print(`No default template exists for ${languageDisplayUi.value}`);
+        print(`No default template exists for ${languageDisplayUi.value}`, INFO_LEVEL.warn);
       }
     } else if (event.ctrlKey && event.key === 'm') {
       event.preventDefault();
@@ -567,8 +610,7 @@ function initialize() {
         editor.session.insert(editor.selection.getRange().end, ` = ${result}`);
         notify('confirm');
       } catch (error) {
-        notify('error');
-        print(`Unable to calculate '${func}'`, PRINT_MODE.error);
+        print(`Unable to calculate '${func}'`, INFO_LEVEL.error);
       }
     }
   }, false);
@@ -598,13 +640,12 @@ function initialize() {
       const pre = cmd.split(' ')[0];
 
       if (pre in commandList) {
-        print(pre, PRINT_MODE.user);
+        print(pre, INFO_LEVEL.user);
         commandList[pre].func();
       } else if (cmd.startsWith('!')) {
-        print(pre, PRINT_MODE.user);
-        print('Command not recognized. Try !help.', PRINT_MODE.warn);
-        notify('warn');
-      } else if (runningProcess !== undefined) {
+        print(pre, INFO_LEVEL.user);
+        print('Command not recognized. Try !help.', INFO_LEVEL.warn);
+      } else if (runningProcess != null) {
         runningProcess.stdin.write(`${cmd}\n`);
       } else {
         runCommand(cmd);
@@ -641,7 +682,7 @@ function initialize() {
 
   fs.readFile(path.resolve(__dirname, 'res/lang.json'), 'utf-8', (err, data) => {
     if (err) {
-      notify(`An error ocurred reading the file :${err.message}`);
+      print(`An error ocurred reading the file :${err.message}`, INFO_LEVEL.err);
       return;
     }
     langInfo = JSON.parse(data);
@@ -668,7 +709,17 @@ function initialize() {
     },
     '!kill': {
       desc: 'Kills the currently running process.',
-      func: () => { if (runningProcess) { runningProcess.kill('SIGINT'); } },
+      func: () => {
+        if (runningProcess) {
+          requireTreeKill()(runningProcess.pid, 'SIGKILL', (err) => {
+            if (err) {
+              print('Could not stop the running process.', INFO_LEVEL.error);
+            }
+          });
+        } else {
+          print('No Process to kill.', INFO_LEVEL.warn);
+        }
+      },
     },
     '!hello': {
       desc: 'Hello There :D',
@@ -678,7 +729,7 @@ function initialize() {
       desc: 'Shows all the available commands.',
       func: () => {
         let ret = '';
-        Object.entries(commandList).forEach((key, value) => {
+        Object.entries(commandList).forEach(([key, value]) => {
           ret += `${key}\t${value.desc}\n`;
         });
         print(ret);
