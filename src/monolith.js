@@ -47,6 +47,14 @@ let historyIndex;
 
 let scrollBarsCss;
 
+const INFO_LEVEL = Object.freeze({
+  user: 0,
+  info: 1,
+  confirm: 2,
+  warn: 3,
+  error: 4,
+});
+
 function requireMarked() {
   if (_marked === null) {
     _marked = require('marked');
@@ -117,14 +125,6 @@ function getMdTemplate() {
   }
   return _mdTemplate;
 }
-
-const INFO_LEVEL = Object.freeze({
-  user: 0,
-  info: 1,
-  confirm: 2,
-  warn: 3,
-  error: 4,
-});
 
 function debounce(func, wait, immediate) {
   let timeout;
