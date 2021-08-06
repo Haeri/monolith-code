@@ -104,4 +104,5 @@ dist
 .tern-port
 
 
-MonolithCode-*/
+monolith_code-*/
+updater/updater.*
