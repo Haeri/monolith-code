@@ -1,8 +1,16 @@
 const {
   app, BrowserWindow, ipcMain, dialog,
 } = require('electron');
+const { options } = require('marked');
 const path = require('path');
+const fs = require('fs');
 const Store = require('./src/store.js');
+
+let _request = null;
+
+const RELEASE_VERSION_URL = 'https://api.github.com/repos/Haeri/MonolithCode2/releases/latest';
+const RELEASE_ZIP_URL = 'https://github.com/Haeri/MonolithCode2/releases/latest/download/monolithcode_win.zip';
+let shouldUpdate = false;
 
 const store = new Store({
   configName: 'user-preferences',
@@ -21,9 +29,60 @@ const store = new Store({
   },
 });
 
+function requireRequest() {
+  if (_request === null) {
+    _request = require('request');
+  }
+  return _request;
+}
+
+function downloadLatestVersion() {
+  requireRequest()(RELEASE_ZIP_URL)
+    .pipe(fs.createWriteStream('monolith.zip'))
+    .on('close', () => {
+      // let win = app.getCurrentWindow();
+      console.log('File written!');
+      shouldUpdate = true;
+    });
+}
+
+function checkLatestVersion() {
+  if (fs.existsSync('./src')) return;
+
+  const requestOptions = {
+    url: RELEASE_VERSION_URL,
+    headers: {
+      'User-Agent': 'request',
+    },
+  };
+  requireRequest()(requestOptions, (error, response, body) => {
+    if (!error && response.statusCode === 200) {
+      const info = JSON.parse(body);
+
+      if (app.getVersion() !== info.tag_name) {
+        const currArr = app.getVersion().split('.');
+        const latestArr = info.tag_name.split('.');
+
+        if (parseInt(currArr[0], 10) < parseInt(latestArr[0], 10)
+          || parseInt(currArr[1], 10) < parseInt(latestArr[1], 10)
+          || parseInt(currArr[2], 10) < parseInt(latestArr[2], 10)) {
+          console.log(`new version available. current ${app.getVersion()}, latest: ${info.tag_name}`);
+          downloadLatestVersion();
+        }
+      }
+    } else {
+      console.error(error, response);
+    }
+  });
+}
+
+function doUpdate() {
+  const child = require('child_process').spawn(`./${app.getVersion()}/updater.exe`, [], { detached: true, stdio: 'ignore' });
+  child.unref();
+}
+
 function createWindow(caller = undefined, filePath = undefined) {
   const { width, height } = store.get('window_bounds');
-
   const win = new BrowserWindow({
     ...caller && { x: caller.getPosition()[0] + 30 },
     ...caller && { y: caller.getPosition()[1] + 30 },
@@ -111,8 +170,16 @@ app.whenReady().then(() => {
     // dock icon is clicked and there are no other windows open.
     if (BrowserWindow.getAllWindows().length === 0) createWindow();
   });
+
+  setTimeout(() => {
+    checkLatestVersion();
+  }, 8000);
 });
 
 app.on('window-all-closed', () => {
   if (process.platform !== 'darwin') app.quit();
+
+  if (shouldUpdate) {
+    doUpdate();
+  }
 });
