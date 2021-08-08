@@ -800,6 +800,10 @@ function initialize() {
     event.sender.send('can-close-response', isSaved);
   });
 
+  ipcRenderer.on('print', (event, data) => {
+    print(data.text);
+  });
+
   print(`${getAppInfo().name} ${getAppInfo().version}`);
 
   const shouldOpen = window.process.argv.filter((s) => s.includes('--open-file='));
