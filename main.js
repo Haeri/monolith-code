@@ -1,15 +1,17 @@
 const {
-  app, BrowserWindow, ipcMain, dialog,
+  app, BrowserWindow, ipcMain, dialog, remote,
 } = require('electron');
 const { options } = require('marked');
 const path = require('path');
 const fs = require('fs');
 const Store = require('./src/store.js');
 
-let _request = null;
+let _axios = null;
 
 const RELEASE_VERSION_URL = 'https://api.github.com/repos/Haeri/MonolithCode2/releases/latest';
 const RELEASE_ZIP_URL = 'https://github.com/Haeri/MonolithCode2/releases/latest/download/monolithcode_win.zip';
+
+let newVersion = null;
 let shouldUpdate = false;
 
 const store = new Store({
@@ -26,38 +28,38 @@ const store = new Store({
       line_wrapping: true,
       line_numbers: true,
     },
+    auto_update: true,
   },
 });
 
-function requireRequest() {
-  if (_request === null) {
-    _request = require('request');
+function requireAxios() {
+  if (_axios === null) {
+    _axios = require('axios').default;
   }
-  return _request;
+  return _axios;
 }
 
 function downloadLatestVersion() {
-  requireRequest()(RELEASE_ZIP_URL)
-    .pipe(fs.createWriteStream('monolith.zip'))
-    .on('close', () => {
-      // let win = app.getCurrentWindow();
-      console.log('File written!');
-      shouldUpdate = true;
+  requireAxios()
+    .get(RELEASE_ZIP_URL, { responseType: 'stream' })
+    .then((response) => {
+      response.data.pipe(fs.createWriteStream('monolith.zip'))
+        .on('close', () => {
+          shouldUpdate = true;
+          BrowserWindow.getAllWindows().forEach((w) => {
+            w.webContents.send('print', { text: `new version ${newVersion} will be installed after restart.` });
+          });
+        });
     });
 }
 
 function checkLatestVersion() {
   if (fs.existsSync('./src')) return;
 
-  const requestOptions = {
-    url: RELEASE_VERSION_URL,
-    headers: {
-      'User-Agent': 'request',
-    },
-  };
-  requireRequest()(requestOptions, (error, response, body) => {
-    if (!error && response.statusCode === 200) {
-      const info = JSON.parse(body);
+  requireAxios()
+    .get(RELEASE_VERSION_URL)
+    .then((response) => {
+      const info = response.data;
 
       if (app.getVersion() !== info.tag_name) {
         const currArr = app.getVersion().split('.');
@@ -66,14 +68,13 @@ function checkLatestVersion() {
         if (parseInt(currArr[0], 10) < parseInt(latestArr[0], 10)
           || parseInt(currArr[1], 10) < parseInt(latestArr[1], 10)
           || parseInt(currArr[2], 10) < parseInt(latestArr[2], 10)) {
-          console.log(`new version available. current ${app.getVersion()}, latest: ${info.tag_name}`);
+          newVersion = info.tag_name;
           downloadLatestVersion();
         }
       }
-    } else {
-      console.error(error, response);
-    }
-  });
+    }).catch((error) => {
+      console.log(error);
+    });
 }
 
 function doUpdate() {
@@ -171,9 +172,11 @@ app.whenReady().then(() => {
     if (BrowserWindow.getAllWindows().length === 0) createWindow();
   });
 
-  setTimeout(() => {
-    checkLatestVersion();
-  }, 8000);
+  if (store.get('auto_update')) {
+    setTimeout(() => {
+      checkLatestVersion();
+    }, 8000);
+  }
 });
 
 app.on('window-all-closed', () => {
