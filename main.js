@@ -1,7 +1,6 @@
 const {
-  app, BrowserWindow, ipcMain, dialog, remote,
+  app, BrowserWindow, ipcMain, dialog,
 } = require('electron');
-const { options } = require('marked');
 const path = require('path');
 const fs = require('fs');
 const Store = require('./src/store.js');
