@@ -6,7 +6,7 @@
   "main": "main.js",
   "scripts": {
     "start": "electron .",
-    "package": "npx electron-packager . monolith_code --icon=./res/img/icon --ignore=\"(docs|updater|.github|.eslintrc.js|.gitignore|.gitattributes)\" && cd updater && npm install && npm run package && cd ../monolith_code-* && npx cross-var \"mkdir $npm_package_version\" && npx cross-var \"cpx ../updater/updater.* ./$npm_package_version\""
+    "package": "node package.js"
   },
   "keywords": [
     "code",
