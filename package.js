@@ -14,7 +14,7 @@ const packageOptions = {
   quiet: true,
   win32metadata: {
     CompanyName: 'Haeri Studios',
-    OriginalFilename: 'monolith code.exe',
+    OriginalFilename: 'monolith code',
     ProductName: 'monolith code',
     InternalName: pjson.name,
   },

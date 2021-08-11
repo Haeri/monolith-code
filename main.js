@@ -3,7 +3,8 @@ const {
 } = require('electron');
 const path = require('path');
 const fs = require('fs');
-const Store = require('./src/store.js');
+const common = require('./src/common');
+const Store = require('./src/store');
 
 let _axios = null;
 
@@ -77,7 +78,7 @@ function checkLatestVersion() {
 }
 
 function doUpdate() {
-  const child = require('child_process').spawn(`./${app.getVersion()}/updater.exe`, [], { detached: true, stdio: 'ignore' });
+  const child = require('child_process').spawn(`./${app.getVersion()}/updater${common.getExeExtension()}`, [], { detached: true, stdio: 'ignore' });
   child.unref();
 }
 
@@ -162,8 +163,16 @@ ipcMain.on('can-close-response', (event, canClose) => {
   win.destroy();
 });
 
+// Linux transparency hack
+// from https://github.com/electron/electron/issues/25153
+let delay = 0;
+if (process.platform === 'linux') {
+  delay = 200;
+  app.commandLine.appendSwitch('use-gl', 'desktop');
+}
+
 app.whenReady().then(() => {
-  createWindow();
+  setTimeout(createWindow, delay);
 
   app.on('activate', () => {
     // On macOS it's common to re-create a window in the app when the
