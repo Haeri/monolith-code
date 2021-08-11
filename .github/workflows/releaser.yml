@@ -41,6 +41,8 @@ jobs:
         cd monolithcode_windows-latest/monolith_code-*/; zip -r ../../monolithcode_win.zip .; cd ../..
         cd monolithcode_ubuntu-latest/monolith_code-*/; zip -r ../../monolithcode_linux.zip .; cd ../..
         cd monolithcode_macos-latest/monolith_code-*/; zip -r ../../monolithcode_mac.zip .; cd ../..
+    - name: Generate Checksum
+      run: sha512sum *.zip > sha512sums.txt
     - name: Create Release
       id: create_release
       uses: actions/create-release@v1
@@ -80,3 +82,12 @@ jobs:
         asset_path: ./monolithcode_mac.zip
         asset_name: monolithcode_mac.zip
         asset_content_type: application/zip
+    - name: Release Checksum
+      uses: actions/upload-release-asset@v1
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      with:
+        upload_url: ${{ steps.create_release.outputs.upload_url }}
+        asset_path: ./sha512sums.txt
+        asset_name: sha512sums.txt
+        asset_content_type: text/plain

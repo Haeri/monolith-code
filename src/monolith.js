@@ -391,6 +391,7 @@ function runFile() {
     if (cmdRun) {
       cmdRun = cmdRun.replaceAll('<name>', file.name);
       cmdRun = cmdRun.replaceAll('<path>', file.path);
+      cmdRun = cmdRun.replaceAll('<exe_extension>', getExeExtension());
 
       runCommand(cmdRun);
     } else if (file.lang === 'latex') {
@@ -419,6 +420,7 @@ function buildRunFile() {
     if (cmdComp) {
       cmdComp = cmdComp.replaceAll('<name>', file.name);
       cmdComp = cmdComp.replaceAll('<path>', file.path);
+      cmdComp = cmdComp.replaceAll('<exe_extension>', getExeExtension());
 
       runCommand(cmdComp, [], (code) => {
         if (code === 0) {
@@ -431,6 +433,8 @@ function buildRunFile() {
   } else {
     // if(file.mime != "text/plain"){
     webviewUi.src = file.path + file.name + file.extension;
+    console.log(file.path + file.name + file.extension);
+    console.log(webviewUi.src);
     // }else{
     // notify("warn");
     // print("No action defined for " + language_display_ui.value);

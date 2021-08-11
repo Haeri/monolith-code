@@ -53,7 +53,7 @@ body{
 	box-shadow: 1px 1px 8px rgba(0, 0, 0, 0.2);
 	border-radius: 8px;
 	transition: 0.2s;
-	background: transparent;
+	background-color: transparent;	
 }
 body.fullscreen{
 	margin: 0px;
@@ -75,6 +75,22 @@ body.light{
 	transition: 0.2s max-height;
 	border: 1px solid #2d2d2d;
 	position: relative;
+}
+#container:before {
+    content: "";
+    background-image: url(../img/texture3.jpg);
+    background-size: 91px;
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    border: 0;
+    z-index: 100;
+    height: 100%;
+    width: 100%;
+    display: block;
+    pointer-events: none;
+    opacity: .06;
 }
 body.light #container{
 	background-color: var(--background-light);
