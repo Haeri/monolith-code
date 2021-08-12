@@ -6,4 +6,6 @@ const EXE_EXTENSION = Object.freeze({
 
 const getExeExtension = () => (Object.prototype.hasOwnProperty.call(EXE_EXTENSION, process.platform) ? EXE_EXTENSION[process.platform] : '');
 
-module.exports = getExeExtension;
+if (typeof module !== 'undefined' && module.exports) {
+  module.exports.getExeExtension = getExeExtension;
+}
