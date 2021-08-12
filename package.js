@@ -9,7 +9,7 @@ const packageOptions = {
   name: 'monolith_code',
   executableName: 'monolith code',
   icon: './res/img/icon',
-  ignore: ['docs', 'updater', '.github', '.eslintrc.js', '.gitignore', '.gitattributes'],
+  ignore: ['docs', 'updater', '.github', '.eslintrc.js', '.gitignore', '.gitattributes', 'package.js$'],
   overwrite: true,
   quiet: true,
   win32metadata: {

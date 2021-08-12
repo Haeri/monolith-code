@@ -189,26 +189,32 @@ footer{
 
 .overlay{
 	display: none;
+    z-index: 2;
     position: absolute;
     width: 100%;
     height: 100%;
-    background: #cccccc66;
-    z-index: 2;
-    backdrop-filter: blur(2px);
+    background: #00000000;
+    backdrop-filter: blur(0px);
+	transition: 0.3s;
+}
+.overlay.open{
+    background: #00000066;
+    backdrop-filter: blur(4px);
 }
 .panel{
-	position: absolute;
+    position: absolute;
     padding: 16px 12px;
     top: 50%;
     left: 50%;
     transform: translate(-50%, -50%);
     width: 70%;
     min-height: 20%;
-    border-radius: 8px;
-    background: #ebebeb;
-    box-shadow: 20px 20px 60px #c8c8c8, -20px -20px 60px #ffffff;
     z-index: 1;
-	border: 1px solid #bdbdbd;
+    border: 1px solid #bdbdbd;
+    border-radius: 8px;
+    background-color: var(--background);
+    border-radius: 8px;
+    border: 1px solid #2d2d2d;
 }
 
 
