@@ -32,9 +32,9 @@ try {
 
           console.log('Verifying zip...');
           fs.readFile('./monolith.zip', (err, data) => {
-            const ret = crypto.createHash('sha512').update(data).digest('hex');
+            const calculatedHash = crypto.createHash('sha512').update(data).digest('hex');
 
-            if (ret === checklist[PLATFORM_ZIP[process.platform]]) {
+            if (calculatedHash === checklist[PLATFORM_ZIP[process.platform]]) {
               console.log('Extracting zip...');
 
               const zip = new AdmZip('./monolith.zip');
@@ -43,7 +43,7 @@ try {
               console.log('Deleting zip...');
               fs.unlinkSync('./monolith.zip');
             } else {
-              console.error('ERROR: Checksum verification faild!', ret, checklist[PLATFORM_ZIP[process.platform]]);
+              console.error('ERROR: Checksum verification faild!', calculatedHash, checklist[PLATFORM_ZIP[process.platform]]);
               return 1;
             }
           });

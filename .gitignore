@@ -105,4 +105,4 @@ dist
 
 
 monolith_code-*/
-updater/updater.*
+updater/updater*
