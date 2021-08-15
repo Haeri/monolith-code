@@ -27,7 +27,7 @@ async function main() {
   const dir = await packager(packageOptions);
   process.stdout.write('\t\tOK\n');
 
-  if(process.platform === 'linux' || process.platform === 'darwin'){
+  if (process.platform === 'linux' || process.platform === 'darwin') {
     process.stdout.write('1.2. chmod-ing executable...');
     execSync(`chmod +x '${packageOptions.executableName}'`, {
       cwd: dir[0],
@@ -52,8 +52,7 @@ async function main() {
   fs.mkdirSync(`${dir}/${pjson.version}`);
   fs.copyFileSync(`./updater/${updater[0]}`, `${dir}/${pjson.version}/${updater[0]}`);
   process.stdout.write('\t\t\tOK\n');
-  
-  
+
   console.log('------ FINISHED PACKAGING ------');
 }
 
