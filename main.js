@@ -9,7 +9,7 @@ const Store = require('./src/store');
 let _axios = null;
 
 const RELEASE_VERSION_URL = 'https://api.github.com/repos/Haeri/MonolithCode2/releases/latest';
-const RELEASE_ZIP_URL = 'https://github.com/Haeri/MonolithCode2/releases/latest/download/monolithcode_win.zip';
+const RELEASE_ZIP_URL = 'https://github.com/Haeri/MonolithCode2/releases/latest/download/';
 
 let newVersion = null;
 let shouldUpdate = false;
@@ -41,7 +41,7 @@ function requireAxios() {
 
 function downloadLatestVersion() {
   requireAxios()
-    .get(RELEASE_ZIP_URL, { responseType: 'stream' })
+    .get(RELEASE_ZIP_URL + common.PLATFORM_ZIP[process.platform], { responseType: 'stream' })
     .then((response) => {
       response.data.pipe(fs.createWriteStream('monolith.zip'))
         .on('close', () => {
