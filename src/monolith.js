@@ -729,6 +729,10 @@ function initialize() {
       desc: 'Hello There :D',
       func: () => { print('Hi there :D'); },
     },
+    '!dev': {
+      desc: 'Open Chrome Devtools for the preview window',
+      func: () => { webviewUi.openDevTools(); },
+    },
     '!help': {
       desc: 'Shows all the available commands.',
       func: () => {
@@ -753,6 +757,29 @@ function initialize() {
   });
   webviewUi.addEventListener('did-finish-load', () => {
     webviewUi.send('onLoad');
+  });
+  webviewUi.addEventListener('console-message', (e) => {
+    if (e.sourceId === 'electron/js2c/renderer_init.js') return;
+
+    let mode = 1;
+    switch (e.level) {
+      case 1:
+        mode = INFO_LEVEL.info;
+        break;
+      case 2:
+        mode = INFO_LEVEL.warn;
+        break;
+      case 3:
+        mode = INFO_LEVEL.error;
+        break;
+      default:
+        mode = INFO_LEVEL.info;
+        break;
+    }
+
+    const source = e.sourceId.split('/').pop();
+
+    print(`Message from <a class="jump-to-line" href="#${e.line}">${source}:${e.line}</a>\n${e.message}`, mode);
   });
 
   editorMediaDivUi.addEventListener('divider-move', () => {
