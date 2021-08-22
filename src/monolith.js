@@ -14,6 +14,7 @@ let _marked = null;
 let _hljs = null;
 let _modelist = null;
 let _themelist = null;
+let _beautify = null;
 let _appInfo = null;
 let _tKill = null;
 
@@ -100,6 +101,12 @@ function requireThemeList() {
     _themelist = ace.require('ace/ext/themelist');
   }
   return _themelist;
+}
+function requireBeautify() {
+  if (_beautify === null) {
+    _beautify = ace.require('ace/ext/beautify');
+  }
+  return _beautify;
 }
 
 function requireTreeKill() {
@@ -444,7 +451,6 @@ function buildRunFile() {
 
 function assignVariables() {
   documentNameUi = document.getElementById('document-name');
-  textAreaUi = document.getElementById('main-text-area');
   languageDisplayUi = document.getElementById('language-display');
   themeChoiceUi = document.getElementById('theme-choice');
   charDisplayUi = document.getElementById('fchar-display');
@@ -575,7 +581,7 @@ function initialize() {
 
         notifyLoadEnd();
       });
-    } else if (event.ctrlKey && event.key === 'b') {
+    } else if (event.ctrlKey && !event.shiftKey && event.key === 'b') {
       event.preventDefault();
 
       if (file.path === undefined || !isSaved) {
@@ -585,6 +591,9 @@ function initialize() {
       } else {
         buildRunFile();
       }
+    } else if (event.ctrlKey && event.shiftKey && event.key === 'B') { // ctrl + shift + b
+      event.preventDefault();
+      requireBeautify().beautify(editor.session);
     } else if (event.ctrlKey && !event.shiftKey && event.key === 's') { // ctrl + s
       event.preventDefault();
       saveFile(getContent());
