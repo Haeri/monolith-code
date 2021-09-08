@@ -271,18 +271,55 @@ footer{
 	background-color: transparent !important;
 }
 
-.ace_dark.ace_editor.ace_autocomplete{
-    backdrop-filter: blur(5px);
+.ace_dark.ace_editor.ace_autocomplete,
+.ace_search{
+    backdrop-filter: blur(8px);
     background: rgb(30 30 30 / 55%);
     box-shadow: 1px 1px 8px rgba(0, 0, 0, 0.2);
-    border-radius: 4px;
-    padding: 0;
     font-family: inherit;
 	border: 1px solid #2d2d2d;
+}
+.ace_search.right{
+	border-radius: 0px 0px 4px 4px;
+    border: 1px solid #2d2d2d;
+    border-top: 0 none;
+}
+.ace_dark.ace_editor.ace_autocomplete{
+	border-radius: 0px 4px 4px 0px;
+	padding: 0;
+	border-radius: 4px;
 }
 .ace_dark.ace_editor.ace_autocomplete .ace_marker-layer .ace_active-line {
     background-color: #101010b5;
 }
+
+
+.ace_search .ace_search_form > *,
+.ace_search .ace_replace_form > *{
+	background: var(--background);
+	border-color: #2d2d2d;
+	color: var(--foreground);
+}
+.ace_search input{
+	color: white !important;
+}
+.ace_button,
+.ace_searchbtn{
+	color: var(--foreground);
+	transition:0.3s;
+}
+.ace_button:hover,
+.ace_searchbtn:hover{
+	color: white;
+	background: inherit ;
+}
+.ace_searchbtn:after{
+	transition:0.3s;
+}
+.ace_searchbtn:hover:after{
+	border-color: white;
+}
+
 
 
 /* ---------- CONSOLE ---------- */
