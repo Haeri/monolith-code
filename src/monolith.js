@@ -787,8 +787,13 @@ function initialize() {
     }
 
     const source = e.sourceId.split('/').pop();
+    let fileSource = `${source}:${e.line}`;
 
-    print(`Message from <a class="jump-to-line" href="#${e.line}">${source}:${e.line}</a>\n${e.message}`, mode);
+    if (source === (file.name + file.extension)) {
+      fileSource = `<a class="jump-to-line" href="#${e.line}">${fileSource}</a>`;
+    }
+
+    print(`Message from ${fileSource}\n${e.message}`, mode);
   });
 
   editorMediaDivUi.addEventListener('divider-move', () => {
