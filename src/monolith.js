@@ -30,6 +30,8 @@ const file = {
 let langInfo;
 let runningProcess;
 let isSaved = true;
+let config;
+let configPath;
 
 let documentNameUi;
 let languageDisplayUi;
@@ -321,9 +323,18 @@ function setTheme(name) {
   ipcRenderer.send('store-setting', 'theme', name);
 }
 
+function setFontSize(size){
+  editor.setFontSize(size);
+  ipcRenderer.send('store-setting', 'editor_font_size', size);
+}
+
 function calculate(string) {
   // eslint-disable-next-line no-new-func
   return Function(`return (${string})`)();
+}
+
+function openSettings(){
+  newWindow(configPath);
 }
 
 function commandRunner(command, args, callback) {
@@ -479,8 +490,9 @@ function initialize() {
   // Initialize all ui elements
   assignVariables();
 
-  // get config
-  const config = ipcRenderer.sendSync('initial-settings');
+  const settings = ipcRenderer.sendSync('initial-settings');
+  config = settings.conf;
+  configPath = settings.path;
 
   webFrame.setVisualZoomLevelLimits(1, 3);
 
@@ -495,6 +507,7 @@ function initialize() {
     highlightActiveLine: false,
     useWorker: false,
     theme: config.theme,
+    fontSize: config.editor_font_size,
   });
 
   document.addEventListener('drop', (event) => {
@@ -516,15 +529,21 @@ function initialize() {
     e.stopPropagation();
   });
 
+  document.addEventListener('mousewheel', (e) => { 
+    if (e.ctrlKey) {
+        e.preventDefault();
+        let size = editor.getFontSize() + Math.sign(e.deltaY);
+        size = Math.min(Math.max(size, 3), 80);
+        setFontSize(size);        
+    }
+  }, { passive: false });
+
   editor.on('change', () => {
     if (isSaved) {
       setSaved(false);
     } else if (getContent() === '') {
       setSaved(true);
     }
-  });
-  editor.on('scroll', () => {
-    // console.log(event);
   });
 
   document.getElementById('min-button').addEventListener('click', () => {
@@ -603,6 +622,8 @@ function initialize() {
     } else if (event.ctrlKey && event.key === 'n') {
       event.preventDefault();
       newWindow();
+    } else if (event.ctrlKey && event.key === 't') {
+      openSettings();
     } else if (event.ctrlKey && event.key === '.') {
       event.preventDefault();
       if ((languageDisplayUi.value in langInfo) && langInfo[languageDisplayUi.value].templ) {
