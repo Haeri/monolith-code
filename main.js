@@ -25,6 +25,7 @@ const store = new Store({
       theme: 'ace/theme/monokai',
       editor_media_div_percent: '100%',
       editor_console_div_percent: '100%',
+      editor_font_size: 10,
       line_wrapping: true,
       line_numbers: true,
     },
@@ -129,7 +130,8 @@ ipcMain.on('new-window', (event, filePath) => {
 });
 ipcMain.on('initial-settings', (event) => {
   const conf = store.get('editor_config');
-  event.returnValue = conf;
+  const path = store.getFilePath();
+  event.returnValue = {conf, path};
 });
 ipcMain.on('store-setting', (event, key, value) => {
   const conf = store.get('editor_config');
