@@ -1,4 +1,4 @@
-const electron = require('electron');
+const {app} = require('electron');
 const path = require('path');
 const fs = require('fs');
 
@@ -12,10 +12,14 @@ function parseDataFile(filePath, defaults) {
 
 class Store {
   constructor(opts) {
-    const userDataPath = (electron.app || electron.remote.app).getPath('userData');
+    const userDataPath = app.getPath('userData');
     this.path = path.join(userDataPath, `${opts.configName}.json`);
 
     this.data = parseDataFile(this.path, opts.defaults);
+  }
+
+  getFilePath(){
+    return this.path;
   }
 
   get(key) {
@@ -24,7 +28,7 @@ class Store {
 
   set(key, val) {
     this.data[key] = val;
-    fs.writeFile(this.path, JSON.stringify(this.data), () => {});
+    fs.writeFile(this.path, JSON.stringify(this.data, null, 4), () => {});
   }
 }
 
