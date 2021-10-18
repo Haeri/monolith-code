@@ -31,6 +31,7 @@ let langInfo;
 let runningProcess;
 let isSaved = true;
 let config;
+let winConfig;
 let configPath;
 
 let documentNameUi;
@@ -323,9 +324,9 @@ function setTheme(name) {
   ipcRenderer.send('store-setting', 'theme', name);
 }
 
-function setFontSize(size){
+function setFontSize(size) {
   editor.setFontSize(size);
-  ipcRenderer.send('store-setting', 'editor_font_size', size);
+  ipcRenderer.send('store-setting', 'font_size', size);
 }
 
 function calculate(string) {
@@ -333,7 +334,7 @@ function calculate(string) {
   return Function(`return (${string})`)();
 }
 
-function openSettings(){
+function openSettings() {
   newWindow(configPath);
 }
 
@@ -492,6 +493,7 @@ function initialize() {
 
   const settings = ipcRenderer.sendSync('initial-settings');
   config = settings.conf;
+  winConfig = settings.winConf;
   configPath = settings.path;
 
   webFrame.setVisualZoomLevelLimits(1, 3);
@@ -507,7 +509,7 @@ function initialize() {
     highlightActiveLine: false,
     useWorker: false,
     theme: config.theme,
-    fontSize: config.editor_font_size,
+    fontSize: config.font_size,
   });
 
   document.addEventListener('drop', (event) => {
@@ -519,6 +521,10 @@ function initialize() {
     });
   });
 
+  if (winConfig.rounded_window) {
+    document.body.classList.add('rounded');
+  }
+
   const ro = new ResizeObserver(() => {
     editor.resize();
   });
@@ -529,12 +535,12 @@ function initialize() {
     e.stopPropagation();
   });
 
-  document.addEventListener('mousewheel', (e) => { 
+  document.addEventListener('mousewheel', (e) => {
     if (e.ctrlKey) {
-        e.preventDefault();
-        let size = editor.getFontSize() + Math.sign(e.deltaY);
-        size = Math.min(Math.max(size, 3), 80);
-        setFontSize(size);        
+      e.preventDefault();
+      let size = editor.getFontSize() + Math.sign(e.deltaY);
+      size = Math.min(Math.max(size, 3), 80);
+      setFontSize(size);
     }
   }, { passive: false });
 
@@ -819,11 +825,11 @@ function initialize() {
 
   editorMediaDivUi.addEventListener('divider-move', () => {
     const val = editorMediaDivUi.previousElementSibling.style.width;
-    ipcRenderer.send('store-setting', 'editor_media_div_percent', val);
+    ipcRenderer.send('store-setting', 'media_div_percent', val);
   });
   editorConsoleDivUi.addEventListener('divider-move', () => {
     const val = editorConsoleDivUi.previousElementSibling.style.height;
-    ipcRenderer.send('store-setting', 'editor_console_div_percent', val);
+    ipcRenderer.send('store-setting', 'console_div_percent', val);
   });
 
   editorMediaDivUi.addEventListener('dblclick', () => {
@@ -839,7 +845,7 @@ function initialize() {
     });
     anim.finished.then(() => {
       editorMediaDivUi.previousElementSibling.style.width = targetPercent;
-      ipcRenderer.send('store-setting', 'editor_media_div_percent', targetPercent);
+      ipcRenderer.send('store-setting', 'media_div_percent', targetPercent);
     });
   });
   editorConsoleDivUi.addEventListener('dblclick', () => {
@@ -855,12 +861,12 @@ function initialize() {
     });
     anim.finished.then(() => {
       editorConsoleDivUi.previousElementSibling.style.height = targetPercent;
-      ipcRenderer.send('store-setting', 'editor_console_div_percent', targetPercent);
+      ipcRenderer.send('store-setting', 'console_div_percent', targetPercent);
     });
   });
 
-  document.getElementById('editor-wrapper').style.width = config.editor_media_div_percent;
-  document.getElementById('main-divider').style.height = config.editor_console_div_percent;
+  document.getElementById('editor-wrapper').style.width = config.media_div_percent;
+  document.getElementById('main-divider').style.height = config.console_div_percent;
 
   ipcRenderer.on('can-close', (event) => {
     event.sender.send('can-close-response', isSaved);
