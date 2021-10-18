@@ -23,13 +23,16 @@ const store = new Store({
     },
     editor_config: {
       theme: 'ace/theme/monokai',
-      editor_media_div_percent: '100%',
-      editor_console_div_percent: '100%',
-      editor_font_size: 10,
+      media_div_percent: '100%',
+      console_div_percent: '100%',
+      font_size: 10,
       line_wrapping: true,
       line_numbers: true,
     },
-    auto_update: true,
+    window_config: {
+      rounded_window: true,
+      auto_update: true,
+    }
   },
 });
 
@@ -85,6 +88,7 @@ function doUpdate() {
 
 function createWindow(caller = undefined, filePath = undefined) {
   const { width, height } = store.get('window_bounds');
+  const { rounded_window } = store.get('window_config');
   const win = new BrowserWindow({
     ...caller && { x: caller.getPosition()[0] + 30 },
     ...caller && { y: caller.getPosition()[1] + 30 },
@@ -92,7 +96,7 @@ function createWindow(caller = undefined, filePath = undefined) {
     height,
     frame: false,
     hasShadow: true,
-    transparent: true,
+    transparent: rounded_window,
     titleBarStyle: 'hidden',
     show: false,
     webPreferences: {
@@ -130,8 +134,9 @@ ipcMain.on('new-window', (event, filePath) => {
 });
 ipcMain.on('initial-settings', (event) => {
   const conf = store.get('editor_config');
+  const winConf = store.get('window_config');
   const path = store.getFilePath();
-  event.returnValue = {conf, path};
+  event.returnValue = { conf, winConf, path };
 });
 ipcMain.on('store-setting', (event, key, value) => {
   const conf = store.get('editor_config');
@@ -182,7 +187,7 @@ app.whenReady().then(() => {
     if (BrowserWindow.getAllWindows().length === 0) createWindow();
   });
 
-  if (store.get('auto_update')) {
+  if (store.get('window_config').auto_update) {
     setTimeout(() => {
       checkLatestVersion();
     }, 8000);

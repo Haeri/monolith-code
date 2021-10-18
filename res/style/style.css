@@ -49,6 +49,9 @@ body{
 	font-family: 'Open Sans', sans-serif;	
 	font-size: var(--font-size);
 	overflow: hidden;
+	margin: 0;
+}
+body.rounded{
 	margin: 6px 8px 8px 6px;
 	box-shadow: 1px 1px 8px rgba(0, 0, 0, 0.2);
 	border-radius: 8px;
@@ -67,8 +70,7 @@ body.light{
 
 #container{
 	background-color: var(--background);
-    border-radius: 8px;
-	height: 100%;
+	height: calc(100% - 2px);
     overflow: hidden;
     display: flex;
     flex-direction: column;
@@ -76,6 +78,11 @@ body.light{
 	border: 1px solid #2d2d2d;
 	position: relative;
 }
+body.rounded #container{
+	height: 100%;
+	border-radius: 8px;
+}
+
 #container:before {
     content: "";
     background-image: url(../img/texture3.jpg);
@@ -224,7 +231,7 @@ footer{
 	flex: 1;
 	display: flex;
 	flex-direction: column;
-	max-height: calc(100vh - 86px);
+	/*max-height: calc(100vh - 86px);*/
 }
 
 #main-divider{
