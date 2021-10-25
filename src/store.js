@@ -1,11 +1,11 @@
-const {app} = require('electron');
+const { app } = require('electron');
 const path = require('path');
 const fs = require('fs');
 
 function parseDataFile(filePath, defaults) {
   try {
-    let stored = JSON.parse(fs.readFileSync(filePath));        
-    return {...stored, ...defaults};
+    let stored = JSON.parse(fs.readFileSync(filePath));
+    return { ...defaults, ...stored };
   } catch (error) {
     return defaults;
   }
@@ -19,7 +19,7 @@ class Store {
     this.data = parseDataFile(this.path, opts.defaults);
   }
 
-  getFilePath(){
+  getFilePath() {
     return this.path;
   }
 
@@ -29,7 +29,7 @@ class Store {
 
   set(key, val) {
     this.data[key] = val;
-    fs.writeFile(this.path, JSON.stringify(this.data, null, 4), () => {});
+    fs.writeFile(this.path, JSON.stringify(this.data, null, 4), () => { });
   }
 }
 
