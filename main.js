@@ -18,6 +18,8 @@ const store = new Store({
   configName: 'user-preferences',
   defaults: {
     window_bounds: {
+      x: undefined,
+      y: undefined,
       width: 800,
       height: 600,
     },
@@ -83,19 +85,25 @@ function checkLatestVersion() {
 
 function doUpdate() {
   let command = `./${app.getVersion()}/updater${common.getExeExtension()}`;
-  if(process.platform !== 'win32'){
-    command = `chmod +x ./${app.getVersion()}/updater${common.getExeExtension()} && ${command}`; 
+  if (process.platform !== 'win32') {
+    command = `chmod +x ./${app.getVersion()}/updater${common.getExeExtension()} && ${command}`;
   }
   const child = require('child_process').spawn(command, [], { detached: true, shell: true });
   child.unref();
 }
 
 function createWindow(caller = undefined, filePath = undefined) {
-  const { width, height } = store.get('window_bounds');
+  let { x, y, width, height } = store.get('window_bounds');
   const { rounded_window } = store.get('window_config');
+
+  if (caller) {
+    x = caller.getPosition()[0] + 30;
+    y = caller.getPosition()[1] + 30;
+  }
+
   const win = new BrowserWindow({
-    ...caller && { x: caller.getPosition()[0] + 30 },
-    ...caller && { y: caller.getPosition()[1] + 30 },
+    ...x && { x },
+    ...y && { y },
     width,
     height,
     frame: false,
@@ -103,6 +111,8 @@ function createWindow(caller = undefined, filePath = undefined) {
     transparent: rounded_window,
     titleBarStyle: 'hidden',
     show: false,
+    minWidth: 180,
+    minHeight: 340,
     webPreferences: {
       nodeIntegration: true,
       contextIsolation: false,
@@ -121,8 +131,8 @@ function createWindow(caller = undefined, filePath = undefined) {
   });
 
   win.on('resize', () => {
-    const { w, h } = win.getBounds();
-    store.set('window_bounds', { w, h });
+    const { x, y, width, height } = win.getBounds();
+    store.set('window_bounds', { x, y, width, height });
   });
 
   win.once('ready-to-show', () => {
