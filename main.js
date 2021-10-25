@@ -82,7 +82,11 @@ function checkLatestVersion() {
 }
 
 function doUpdate() {
-  const child = require('child_process').spawn(`./${app.getVersion()}/updater${common.getExeExtension()}`, [], { detached: true, stdio: 'ignore' });
+  let command = `./${app.getVersion()}/updater${common.getExeExtension()}`;
+  if(process.platform !== 'win32'){
+    command = `chmod +x ./${app.getVersion()}/updater${common.getExeExtension()} && ${command}`; 
+  }
+  const child = require('child_process').spawn(command, [], { detached: true, shell: true });
   child.unref();
 }
 
