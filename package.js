@@ -28,7 +28,7 @@ async function main() {
   process.stdout.write('\t\tOK\n');
 
   if (process.platform === 'linux' || process.platform === 'darwin') {
-    process.stdout.write('1.2. chmod-ing executable...');
+    process.stdout.write('1.1. chmod-ing executable...');
     execSync(`chmod +x '${packageOptions.executableName}'`, {
       cwd: dir[0],
     });
@@ -46,6 +46,14 @@ async function main() {
     cwd: './updater',
   });
   process.stdout.write('\t\t\tOK\n');
+
+  if (process.platform === 'linux' || process.platform === 'darwin') {
+    process.stdout.write('3.1. chmod-ing updater...');
+    execSync(`chmod +x updater`, {
+      cwd: './updater',
+    });
+    process.stdout.write('\t\tOK\n');
+  }
 
   process.stdout.write('4. Copying updater...');
   const updater = fs.readdirSync('./updater/').filter((fn) => fn.startsWith('updater'));

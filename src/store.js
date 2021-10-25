@@ -4,7 +4,8 @@ const fs = require('fs');
 
 function parseDataFile(filePath, defaults) {
   try {
-    return JSON.parse(fs.readFileSync(filePath));
+    let stored = JSON.parse(fs.readFileSync(filePath));        
+    return {...stored, ...defaults};
   } catch (error) {
     return defaults;
   }

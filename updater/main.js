@@ -1,5 +1,6 @@
 const AdmZip = require('adm-zip');
 const fs = require('fs');
+const { execSync } = require('child_process');
 const crypto = require('crypto');
 const axios = require('axios').default;
 
@@ -42,6 +43,11 @@ try {
 
               console.log('Deleting zip...');
               fs.unlinkSync('./monolith.zip');
+
+              if(process.platform !== 'win32'){
+                console.log('Applying chmod...');
+                execSync(`chmod +x 'monolith code'`, {});
+              }
             } else {
               console.error('ERROR: Checksum verification faild!', calculatedHash, checklist[PLATFORM_ZIP[process.platform]]);
               return 1;
