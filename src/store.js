@@ -11,6 +11,17 @@ function parseDataFile(filePath, defaults) {
   }
 }
 
+function setDescendantProp(obj, desc, value) {
+  if (typeof desc == 'string')
+    return setDescendantProp(obj, desc.split('.'), value);
+  else if (desc.length == 1 && value !== undefined)
+    return obj[desc[0]] = value;
+  else if (desc.length == 0)
+    return obj;
+  else
+    return setDescendantProp(obj[desc[0]], desc.slice(1), value);
+}
+
 class Store {
   constructor(opts) {
     const userDataPath = app.getPath('userData');
@@ -28,7 +39,7 @@ class Store {
   }
 
   set(key, val) {
-    this.data[key] = val;
+    setDescendantProp(this.data, key, val);
     fs.writeFile(this.path, JSON.stringify(this.data, null, 4), () => { });
   }
 }
