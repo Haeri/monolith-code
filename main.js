@@ -14,14 +14,23 @@ const RELEASE_ZIP_URL = 'https://github.com/Haeri/MonolithCode2/releases/latest/
 let newVersion = null;
 let shouldUpdate = false;
 
-const store = new Store({
-  configName: 'user-preferences',
+const localStore = new Store({
+  configName: 'local-settings',
   defaults: {
-    window_bounds: {
+    window_config: {
       x: undefined,
       y: undefined,
       width: 800,
       height: 600,
+      maximized: false,
+    }
+  },
+});
+const userPrefStore = new Store({
+  configName: 'user-preferences',
+  defaults: {
+    window_config: {
+      rounded_window: true,
     },
     editor_config: {
       theme: 'ace/theme/monokai',
@@ -31,8 +40,7 @@ const store = new Store({
       line_wrapping: true,
       line_numbers: true,
     },
-    window_config: {
-      rounded_window: true,
+    app_config: {
       auto_update: true,
     }
   },
@@ -93,8 +101,8 @@ function doUpdate() {
 }
 
 function createWindow(caller = undefined, filePath = undefined) {
-  let { x, y, width, height } = store.get('window_bounds');
-  const { rounded_window } = store.get('window_config');
+  let { x, y, width, height, maximized } = localStore.get('window_config');
+  let { rounded_window } = userPrefStore.get('window_config');
 
   if (caller) {
     x = caller.getPosition()[0] + 30;
@@ -111,8 +119,8 @@ function createWindow(caller = undefined, filePath = undefined) {
     transparent: rounded_window,
     titleBarStyle: 'hidden',
     show: false,
-    minWidth: 180,
-    minHeight: 340,
+    minWidth: 220,
+    minHeight: 300,
     webPreferences: {
       nodeIntegration: true,
       contextIsolation: false,
@@ -130,13 +138,25 @@ function createWindow(caller = undefined, filePath = undefined) {
     win.webContents.send('can-close');
   });
 
-  win.on('resize', () => {
+  win.on('resized', () => {
     const { x, y, width, height } = win.getBounds();
-    store.set('window_bounds', { x, y, width, height });
+    const prev = localStore.get('window_config');
+    localStore.set('window_config', { ...prev, ...{ x, y, width, height } });
   });
 
-  win.once('ready-to-show', () => {
+  win.on('maximize', () => {
+    localStore.set('window_config.maximized', true);
+  });
+
+  win.on('unmaximize', () => {
+    localStore.set('window_config.maximized', false);
+  });
+
+  win.once('ready-to-show', () => {    
     win.show();
+    if(maximized){
+      win.maximize();
+    }
   });
 
   win.loadFile('index.html');
@@ -147,18 +167,19 @@ ipcMain.on('new-window', (event, filePath) => {
   createWindow(win, filePath);
 });
 ipcMain.on('initial-settings', (event) => {
-  const conf = store.get('editor_config');
-  const winConf = store.get('window_config');
-  const path = store.getFilePath();
-  event.returnValue = { conf, winConf, path };
+  const editorConfig = userPrefStore.get('editor_config');
+  const windowConfig = userPrefStore.get('window_config');
+  const localWindowConfig = localStore.get('window_config')
+  const userPrefPath = userPrefStore.getFilePath();
+  event.returnValue = { editorConfig, windowConfig, localWindowConfig, userPrefPath };
 });
 ipcMain.on('store-setting', (event, key, value) => {
-  const conf = store.get('editor_config');
+  const conf = userPrefStore.get('editor_config');
   conf[key] = value;
-  store.set('editor_config', conf);
+  userPrefStore.set('editor_config', conf);
 });
 ipcMain.on('get-setting', (event, key) => {
-  const conf = store.get('editor_config');
+  const conf = userPrefStore.get('editor_config');
   event.returnValue = conf[key];
 });
 
@@ -201,7 +222,7 @@ app.whenReady().then(() => {
     if (BrowserWindow.getAllWindows().length === 0) createWindow();
   });
 
-  if (store.get('window_config').auto_update) {
+  if (userPrefStore.get('app_config').auto_update) {
     setTimeout(() => {
       checkLatestVersion();
     }, 8000);

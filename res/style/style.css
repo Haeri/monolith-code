@@ -55,14 +55,14 @@ body.rounded{
 	margin: 6px 8px 8px 6px;
 	box-shadow: 1px 1px 8px rgba(0, 0, 0, 0.2);
 	border-radius: 8px;
-	transition: 0.2s;
+	transition: 0.2s margin, border-radius, background-color;
 	background-color: transparent;	
 }
 body.fullscreen{
 	margin: 0px;
 	box-shadow: 0px 0px 0px rgba(0, 0, 0, 0);
 	border-radius: 0px;	
-	background: black;
+	background-color: black;
 }
 body.light{
 	color: var(--foreground-light);
@@ -70,17 +70,20 @@ body.light{
 
 #container{
 	background-color: var(--background);
-	height: calc(100% - 2px);
+	max-height: calc(100vh - 2px);
+    height: calc(100vh - 2px);
     overflow: hidden;
-    display: flex;
-    flex-direction: column;
-	transition: 0.2s max-height;
+    display: grid;
+    grid-template-rows: min-content auto min-content min-content;
 	border: 1px solid #2d2d2d;
 	position: relative;
 }
 body.rounded #container{
-	height: 100%;
 	border-radius: 8px;
+}
+body.rounded:not(.fullscreen) #container{
+	max-height: calc(100vh - 16px);
+    height: calc(100vh - 16px);
 }
 
 #container:before {
@@ -102,9 +105,6 @@ body.rounded #container{
 body.light #container{
 	background-color: var(--background-light);
     border: 1px solid #bdbdbd;
-}
-body.fullscreen #content{
-	max-height: calc(100vh - 72px);
 }
 
 
@@ -135,9 +135,6 @@ header #window-buttons a{
 	border: 1px solid var(--foreground);
 	transition: 0.3s;
 	margin-left: 8px;
-}
-header #window-buttons a:hover{
-	/*cursor: pointer;*/
 }
 
 header #window-buttons a#pin-button{
@@ -228,10 +225,9 @@ footer{
 /* ---------- BODY ---------- */
 
 #content{
-	flex: 1;
 	display: flex;
 	flex-direction: column;
-	/*max-height: calc(100vh - 86px);*/
+	overflow: hidden;
 }
 
 #main-divider{
