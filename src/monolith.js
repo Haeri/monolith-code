@@ -30,9 +30,10 @@ const file = {
 let langInfo;
 let runningProcess;
 let isSaved = true;
-let config;
-let winConfig;
-let configPath;
+let editorConfig;
+let windowConfig;
+let localWindowConfig;
+let userPrefPath;
 
 let documentNameUi;
 let languageDisplayUi;
@@ -223,9 +224,9 @@ function setFileInfo(filePath) {
 
 function toggleFullscreenStyle(isFullscreen) {
   if (isFullscreen) {
-    document.getElementsByTagName('body')[0].classList.add('fullscreen');
+    document.body.classList.add('fullscreen');
   } else {
-    document.getElementsByTagName('body')[0].classList.remove('fullscreen');
+    document.body.classList.remove('fullscreen');
   }
 }
 
@@ -335,7 +336,7 @@ function calculate(string) {
 }
 
 function openSettings() {
-  newWindow(configPath);
+  newWindow(userPrefPath);
 }
 
 function commandRunner(command, args, callback) {
@@ -492,24 +493,25 @@ function initialize() {
   assignVariables();
 
   const settings = ipcRenderer.sendSync('initial-settings');
-  config = settings.conf;
-  winConfig = settings.winConf;
-  configPath = settings.path;
+  editorConfig = settings.editorConfig;
+  windowConfig = settings.windowConfig;
+  localWindowConfig = settings.localWindowConfig;
+  userPrefPath = settings.userPrefPath;
 
   webFrame.setVisualZoomLevelLimits(1, 3);
 
   editor = ace.edit('main-text-area', {
     enableBasicAutocompletion: true,
     showPrintMargin: false,
-    showLineNumbers: config.line_numbers,
-    wrap: config.line_wrapping,
+    showLineNumbers: editorConfig.line_numbers,
+    wrap: editorConfig.line_wrapping,
     scrollPastEnd: 1,
     fixedWidthGutter: true,
     fadeFoldWidgets: true,
     highlightActiveLine: false,
     useWorker: false,
-    theme: config.theme,
-    fontSize: config.font_size,
+    theme: editorConfig.theme,
+    fontSize: editorConfig.font_size,
   });
 
   document.addEventListener('drop', (event) => {
@@ -521,8 +523,11 @@ function initialize() {
     });
   });
 
-  if (winConfig.rounded_window) {
+  if (windowConfig.rounded_window) {
     document.body.classList.add('rounded');
+  }
+  if(localWindowConfig.maximized){
+    document.body.classList.add('fullscreen'); 
   }
 
   const ro = new ResizeObserver(() => {
@@ -561,10 +566,10 @@ function initialize() {
     const window = requireRemote().getCurrentWindow();
     if (!window.isMaximized()) {
       window.maximize();
-      toggleFullscreenStyle(true);
+      window.emit('maximize');
     } else {
       window.unmaximize();
-      toggleFullscreenStyle(false);
+      window.emit('unmaximize');
     }
   });
 
@@ -588,6 +593,15 @@ function initialize() {
     } else {
       e.currentTarget.classList.remove('pinned');
     }
+  });
+
+  const browserWindow = requireRemote().getCurrentWindow();
+  browserWindow.on('maximize', () => {
+    toggleFullscreenStyle(true);
+  });
+
+  browserWindow.on('unmaximize', () => {
+    toggleFullscreenStyle(false);
   });
 
   window.addEventListener('keydown', (event) => {
@@ -865,8 +879,8 @@ function initialize() {
     });
   });
 
-  document.getElementById('editor-wrapper').style.width = config.media_div_percent;
-  document.getElementById('main-divider').style.height = config.console_div_percent;
+  document.getElementById('editor-wrapper').style.width = editorConfig.media_div_percent;
+  document.getElementById('main-divider').style.height = editorConfig.console_div_percent;
 
   ipcRenderer.on('can-close', (event) => {
     event.sender.send('can-close-response', isSaved);
