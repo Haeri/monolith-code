@@ -23,7 +23,7 @@ jobs:
       uses: actions/upload-artifact@v2
       with:
         name: monolithcode_${{ matrix.os }}
-        path: monolith_code-*/
+        path: monolith-code-*/
 
   release:    
    name: Publish Release
@@ -38,9 +38,9 @@ jobs:
       uses: actions/download-artifact@v2
     - name: Zip Artifacts
       run: |
-        cd monolithcode_windows-latest/monolith_code-*/; zip -r ../../monolithcode_win.zip .; cd ../..
-        cd monolithcode_ubuntu-latest/monolith_code-*/; zip -r ../../monolithcode_linux.zip .; cd ../..
-        cd monolithcode_macos-latest/monolith_code-*/; zip -r ../../monolithcode_mac.zip .; cd ../..
+        cd monolithcode_windows-latest/monolith-code-*/; zip -r ../../monolithcode_win.zip .; cd ../..
+        cd monolithcode_ubuntu-latest/monolith-code-*/; zip -r ../../monolithcode_linux.zip .; cd ../..
+        cd monolithcode_macos-latest/monolith-code-*/; zip -r ../../monolithcode_mac.zip .; cd ../..
     - name: Generate Checksum
       run: sha512sum *.zip > sha512sums.txt
     - name: Create Release
