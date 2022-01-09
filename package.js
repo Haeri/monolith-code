@@ -30,10 +30,14 @@ async function main() {
 
   console.log("Dumping contents:");
   fs.readdirSync(dir[0]).forEach(file => {
-    fs.access(file, fs.constants.X_OK, (err) => {
-      process.stdout.write(`${file} ${err ? '' : '\tx\n'}`);
-    });
-    //console.log(file);
+    err = false;
+    try{
+      fs.accessSync(file, fs.constants.X_OK);
+    }
+    catch(e){
+      err = true;
+    }
+    console.log(`${file} ${err ? '' : '\tx'}`);    
   });
   
 
