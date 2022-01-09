@@ -34,6 +34,7 @@ let editorConfig;
 let windowConfig;
 let localWindowConfig;
 let userPrefPath;
+let langPrefPath;
 
 let documentNameUi;
 let languageDisplayUi;
@@ -339,6 +340,10 @@ function openSettings() {
   newWindow(userPrefPath);
 }
 
+function openLanguageSettings() {
+  newWindow(langPrefPath);
+}
+
 function commandRunner(command, args, callback) {
   notifyLoadStart();
   print(`> ${command}`, INFO_LEVEL.user);
@@ -497,6 +502,7 @@ function initialize() {
   windowConfig = settings.windowConfig;
   localWindowConfig = settings.localWindowConfig;
   userPrefPath = settings.userPrefPath;
+  langPrefPath = settings.languageConfigPath;
 
   webFrame.setVisualZoomLevelLimits(1, 3);
 
@@ -504,6 +510,7 @@ function initialize() {
     enableBasicAutocompletion: true,
     showPrintMargin: false,
     showLineNumbers: editorConfig.line_numbers,
+    showGutter: editorConfig.line_numbers,
     wrap: editorConfig.line_wrapping,
     scrollPastEnd: 1,
     fixedWidthGutter: true,
@@ -740,6 +747,10 @@ function initialize() {
       return;
     }
     langInfo = JSON.parse(data);
+    console.log(langInfo);
+    console.log(settings.languageConfig);
+    mergeDeep(langInfo, settings.languageConfig);
+    console.log(langInfo);
 
     Object.entries(langInfo).forEach((el) => {
       const option = document.createElement('option');
@@ -783,6 +794,14 @@ function initialize() {
       desc: 'Open Chrome Devtools for the preview window',
       func: () => { webviewUi.openDevTools(); },
     },
+    '!settings': {
+      desc: 'Open settings file',
+      func: () => { openSettings(); },
+    },
+    '!lang_settings': {
+      desc: 'Open language settings file',
+      func: () => { openLanguageSettings(); },
+    },    
     '!help': {
       desc: 'Shows all the available commands.',
       func: () => {
