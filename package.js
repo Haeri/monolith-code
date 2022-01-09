@@ -25,11 +25,12 @@ async function main() {
 
   process.stdout.write('1. Packaging main executable...');
   process.stdout.write('\t\tOK\n');
-  const dir = await packager(packageOptions);
-  console.log(`Electron app bundles created:\n${dir.join("\n")}`)
+  let dir = await packager(packageOptions);
+  dir = dir[0];
+  console.log(`Electron app bundles created:\n${dir}`)
 
   console.log("Dumping contents:");
-  fs.readdirSync(dir[0]).forEach(file => {
+  fs.readdirSync(dir).forEach(file => {
     err = false;
     try{
       fs.accessSync(file, fs.constants.X_OK);
@@ -45,7 +46,7 @@ async function main() {
   if (process.platform === 'linux') {
     process.stdout.write('1.1. chmod-ing executable...');
     execSync(`chmod +x '${packageOptions.executableName}'`, {
-      cwd: dir[0],
+      cwd: dir,
     });
     process.stdout.write('\t\tOK\n');
   }
