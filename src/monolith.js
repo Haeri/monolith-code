@@ -746,11 +746,8 @@ function initialize() {
       print(`An error ocurred reading the file :${err.message}`, INFO_LEVEL.err);
       return;
     }
-    langInfo = JSON.parse(data);
-    console.log(langInfo);
-    console.log(settings.languageConfig);
-    mergeDeep(langInfo, settings.languageConfig);
-    console.log(langInfo);
+    langInfo = JSON.parse(data);    
+    mergeDeep(langInfo, settings.languageConfig);    
 
     Object.entries(langInfo).forEach((el) => {
       const option = document.createElement('option');
