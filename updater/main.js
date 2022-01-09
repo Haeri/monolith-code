@@ -41,7 +41,7 @@ try {
 
               if(process.platform !== 'win32'){
                 console.log('Applying chmod...');
-                execSync(`chmod +x 'monolith code'`, {});
+                execSync(`chmod +x 'monolith-code'`, {});
               }
             } else {
               console.error('ERROR: Checksum verification faild!', calculatedHash, checklist[common.PLATFORM_ZIP[process.platform]]);
