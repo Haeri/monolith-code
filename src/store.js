@@ -1,11 +1,15 @@
 const { app } = require('electron');
 const path = require('path');
 const fs = require('fs');
+const common = require('./common');
 
 function parseDataFile(filePath, defaults) {
   try {
     let stored = JSON.parse(fs.readFileSync(filePath));
-    return { ...defaults, ...stored };
+    let tmp = {};
+    common.mergeDeep(tmp, defaults);
+    common.mergeDeep(tmp, stored);
+    return tmp;
   } catch (error) {
     return defaults;
   }
@@ -22,12 +26,19 @@ function setDescendantProp(obj, desc, value) {
     return setDescendantProp(obj[desc[0]], desc.slice(1), value);
 }
 
+
 class Store {
   constructor(opts) {
     const userDataPath = app.getPath('userData');
     this.path = path.join(userDataPath, `${opts.configName}.json`);
 
-    this.data = parseDataFile(this.path, opts.defaults);
+    if(fs.existsSync(this.path)){
+      this.data = parseDataFile(this.path, opts.defaults);
+    }else{
+      // Create empty file
+      fs.closeSync(fs.openSync(this.path, 'w'));      
+      this.data = opts.defaults;
+    }
   }
 
   getFilePath() {

@@ -3,12 +3,7 @@ const fs = require('fs');
 const { execSync } = require('child_process');
 const crypto = require('crypto');
 const axios = require('axios').default;
-
-const PLATFORM_ZIP = Object.freeze({
-  linux: 'monolithcode_linux.zip',
-  darwin: 'monolithcode_mac.zip',
-  win32: 'monolithcode_win.zip',
-});
+const common = require('../src/common');
 
 const CHECKSUMS_URL = 'https://github.com/Haeri/MonolithCode2/releases/latest/download/sha512sums.txt';
 
@@ -35,7 +30,7 @@ try {
           fs.readFile('./monolith.zip', (err, data) => {
             const calculatedHash = crypto.createHash('sha512').update(data).digest('hex');
 
-            if (calculatedHash === checklist[PLATFORM_ZIP[process.platform]]) {
+            if (calculatedHash === checklist[common.PLATFORM_ZIP[process.platform]]) {
               console.log('Extracting zip...');
 
               const zip = new AdmZip('./monolith.zip');
@@ -49,7 +44,7 @@ try {
                 execSync(`chmod +x 'monolith code'`, {});
               }
             } else {
-              console.error('ERROR: Checksum verification faild!', calculatedHash, checklist[PLATFORM_ZIP[process.platform]]);
+              console.error('ERROR: Checksum verification faild!', calculatedHash, checklist[common.PLATFORM_ZIP[process.platform]]);
               return 1;
             }
           });
