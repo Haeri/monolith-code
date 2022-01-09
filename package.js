@@ -6,7 +6,7 @@ const pjson = require('./package.json');
 const packageOptions = {
   dir: '.',
   appVersion: pjson.version,
-  name: 'monolith_code',
+  name: 'monolith-code',
   executableName: 'monolith-code',
   icon: './res/img/icon',
   ignore: ['docs', 'updater', '.github', '.eslintrc.js', '.gitignore', '.gitattributes', 'package.js$'],
@@ -24,18 +24,21 @@ async function main() {
   console.log('------ STARTING PACKAGING ------');
 
   process.stdout.write('1. Packaging main executable...');
+  process.stdout.write('\t\tOK\n');
   const dir = await packager(packageOptions);
   console.log(`Electron app bundles created:\n${dir.join("\n")}`)
 
   console.log("Dumping contents:");
   fs.readdirSync(dir[0]).forEach(file => {
-    console.log(file);
+    fs.access(file, fs.constants.X_OK, (err) => {
+      process.stdout.write(`${file} ${err ? '' : '\tx\n'}`);
+    });
+    //console.log(file);
   });
   
 
-  process.stdout.write('\t\tOK\n');
 
-  if (process.platform === 'linux' || process.platform === 'darwin') {
+  if (process.platform === 'linux') {
     process.stdout.write('1.1. chmod-ing executable...');
     execSync(`chmod +x '${packageOptions.executableName}'`, {
       cwd: dir[0],
