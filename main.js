@@ -45,6 +45,12 @@ const userPrefStore = new Store({
     }
   },
 });
+const langStore = new Store({
+  configName: 'lang-settings',
+  defaults: {
+    language_config: {}
+  },
+});
 
 function requireAxios() {
   if (_axios === null) {
@@ -170,8 +176,14 @@ ipcMain.on('initial-settings', (event) => {
   const editorConfig = userPrefStore.get('editor_config');
   const windowConfig = userPrefStore.get('window_config');
   const localWindowConfig = localStore.get('window_config')
+  const languageConfig = langStore.get('language_config');
   const userPrefPath = userPrefStore.getFilePath();
-  event.returnValue = { editorConfig, windowConfig, localWindowConfig, userPrefPath };
+  const languageConfigPath = langStore.getFilePath();
+  event.returnValue = { 
+    editorConfig, windowConfig, 
+    localWindowConfig, languageConfig, 
+    userPrefPath, languageConfigPath
+  };
 });
 ipcMain.on('store-setting', (event, key, value) => {
   const conf = userPrefStore.get('editor_config');

@@ -22,5 +22,5 @@ jobs:
     - name: Upload
       uses: actions/upload-artifact@v2
       with:
-        name: monolithcode_${{ matrix.os }}
-        path: monolith_code-*/
+        name: monolith-code_${{ matrix.os }}
+        path: monolith-code-*/
