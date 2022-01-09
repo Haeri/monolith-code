@@ -24,12 +24,10 @@ async function main() {
   console.log('------ STARTING PACKAGING ------');
 
   process.stdout.write('1. Packaging main executable...');
-  process.stdout.write('\t\tOK\n');
   let dir = await packager(packageOptions);
   dir = dir[0];
+  /*
   console.log(`Electron app bundles created:\n${dir}`)
-
-  console.log("Dumping contents:");
   fs.readdirSync(dir).forEach(file => {
     err = false;
     try{
@@ -40,6 +38,8 @@ async function main() {
     }
     console.log(`${file} ${err ? '' : '\tx'}`);    
   });
+  */
+  process.stdout.write('\t\tOK\n');
   
 
 
