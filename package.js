@@ -25,6 +25,14 @@ async function main() {
 
   process.stdout.write('1. Packaging main executable...');
   const dir = await packager(packageOptions);
+  console.log(`Electron app bundles created:\n${dir.join("\n")}`)
+
+  console.log("Dumping contents:");
+  fs.readdirSync(dir[0]).forEach(file => {
+    console.log(file);
+  });
+  
+
   process.stdout.write('\t\tOK\n');
 
   if (process.platform === 'linux' || process.platform === 'darwin') {
