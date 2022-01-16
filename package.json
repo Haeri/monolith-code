@@ -24,7 +24,7 @@
   "dependencies": {
     "axios": "^0.21.1",
     "highlight.js": "^10.6.0",
-    "marked": "^2.0.0",
+    "marked": "^4.0.10",
     "mime-types": "^2.1.29",
     "tree-kill": "^1.2.2"
   }
