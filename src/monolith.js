@@ -162,7 +162,7 @@ const markdownUpdater = debounce(() => {
   const basepath = file.path.replaceAll('\\', '/');
   let pre = getContent();
   pre = pre.replaceAll(/src="(\..*?)"/ig, `src="${basepath}$1"`);
-  const markedHtml = requireMarked()(pre, { baseUrl: basepath });
+  const markedHtml = requireMarked().parse(pre, { baseUrl: basepath });
 
   webviewUi.send('fillContent', markedHtml);
 }, 200);
@@ -427,7 +427,7 @@ function runFile() {
       // Pre process relative html src
       let pre = getContent();
       pre = pre.replaceAll(/src="(\..*?)"/ig, `src="${basepath}$1"`);
-      const markedHtml = requireMarked()(pre, { baseUrl: basepath });
+      const markedHtml = requireMarked().parse(pre, { baseUrl: basepath });
 
       webviewUi.addEventListener('did-finish-load', () => {
         webviewUi.send('fillContent', markedHtml);
