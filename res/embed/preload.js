@@ -5,6 +5,6 @@ ipc.on('onLoad', (e, baseUrl) => {
 });
 
 // Inject html content
-ipc.on('fillContent', (e, data) => {
+ipc.on('fill_content', (e, data) => {
   document.getElementsByTagName('body')[0].innerHTML = data;
 });
