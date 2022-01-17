@@ -17,6 +17,7 @@ let _themelist = null;
 let _beautify = null;
 let _appInfo = null;
 let _tKill = null;
+let _pdf = null;
 
 let _mdTemplate = null;
 let editor = null;
@@ -65,11 +66,58 @@ function requireMarked() {
   if (_marked === null) {
     _marked = require('marked');
     _hljs = require('highlight.js');
+    const _katex = require('katex');
+
+    const renderer = new _marked.Renderer();
+    let originParagraph = renderer.paragraph.bind(renderer)
+    renderer.paragraph = (text) => {
+      const blockRegex = /\$\$[^\$]*\$\$/g
+      const inlineRegex = /\$[^\$]*\$/g
+      let blockExprArray = text.match(blockRegex)
+      let inlineExprArray = text.match(inlineRegex)
+      for (let i in blockExprArray) {
+        const expr = blockExprArray[i]
+        const result = renderMathsExpression(expr)
+        text = text.replace(expr, result)
+      }
+      for (let i in inlineExprArray) {
+        const expr = inlineExprArray[i]
+        const result = renderMathsExpression(expr)
+        text = text.replace(expr, result)
+      }
+      return originParagraph(text)
+    }
+    function renderMathsExpression (expr) {
+      if (expr[0] === '$' && expr[expr.length - 1] === '$') {
+        let displayStyle = false
+        expr = expr.substr(1, expr.length - 2)
+        if (expr[0] === '$' && expr[expr.length - 1] === '$') {
+          displayStyle = true
+          expr = expr.substr(1, expr.length - 2)
+        }
+        let html = null
+        try {
+          html = _katex.renderToString(expr)
+        } catch (e) {
+          console.error(e)
+        }
+        /*
+        if (displayStyle && html) {
+          html = html.replace(/class="katex"/g, 'class="katex katex-block" style="display: block;"')
+        }
+        */
+        return html
+      } else {
+        return null
+      }
+    }
+
 
     _marked.setOptions({
+      renderer: renderer,
       highlight: (code, lang) => {
         const validLanguage = _hljs.getLanguage(lang) ? lang : 'plaintext';
-        return _hljs.highlight(validLanguage, code).value;
+        return _hljs.highlight(code, {language: validLanguage}).value;
       },
     });
   }
@@ -121,6 +169,13 @@ function requireTreeKill() {
   return _tKill;
 }
 
+function requirePdf() {
+  if (_pdf === null) {
+    _pdf = require('html-pdf');
+  }
+  return _pdf;
+}
+
 function getAppInfo() {
   if (_appInfo === null) {
     _appInfo = {
@@ -158,13 +213,34 @@ function getContent() {
   return editor.getValue();
 }
 
-const markdownUpdater = debounce(() => {
-  const basepath = file.path.replaceAll('\\', '/');
-  let pre = getContent();
-  pre = pre.replaceAll(/src="(\..*?)"/ig, `src="${basepath}$1"`);
-  const markedHtml = requireMarked().parse(pre, { baseUrl: basepath });
+function exportPDFFromPreview() {  
+  if(!file.path){
+    print("Filepath not set for export", INFO_LEVEL.warn);
+    return;
+  }
+  if(webviewUi.src === "" || webviewUi.src === "about:blank") {
+    print("Document not suitable for PDF export.", INFO_LEVEL.warn);
+    return;
+  }
 
-  webviewUi.send('fillContent', markedHtml);
+  const pdfPath = path.resolve(file.path, file.name + '.pdf');
+
+  webviewUi.printToPDF({landscape: false, pageSize: 'A4'}).then(data => {
+    fs.writeFile(pdfPath, data, (error) => {
+      if (error) {
+        print(`Failed to write PDF to ${pdfPath}:\n${error}`, INFO_LEVEL.error);
+        return
+      }
+      print(`PDF successfully stored to ${pdfPath}`, INFO_LEVEL.confirm);
+    })
+  }).catch(error => {
+    print(`Failed to write PDF to ${pdfPath}:\n${error}`, INFO_LEVEL.error);
+  })
+}
+
+const markdownUpdater = debounce(() => {
+  const markedHtml = mdToHTML();
+  webviewUi.send('fill_content', markedHtml);
 }, 200);
 
 function newWindow(file_path = undefined) {
@@ -185,7 +261,7 @@ function setSaved(saved) {
 
 function setLanguage(langKey) {
   if (langKey === 'markdown') {
-    editor.on('input', markdownUpdater);
+    //editor.on('input', markdownUpdater);
   } else {
     editor.off('input', markdownUpdater);
   }
@@ -278,7 +354,8 @@ function openFile(filepath) {
       if (!err) {
         editor.setValue(data, -1);
         setFileInfo(filepath);
-        webviewUi.setAttribute('src', undefined);
+        //webviewUi.setAttribute('src', undefined);
+        webviewUi.src = 'about:blank'
         print(`Opened file ${filepath}`);
       } else {
         print(`Could not open file ${filepath}`, INFO_LEVEL.error);
@@ -329,6 +406,24 @@ function setTheme(name) {
 function setFontSize(size) {
   editor.setFontSize(size);
   ipcRenderer.send('store-setting', 'font_size', size);
+}
+
+function mdToHTML() {
+  const basepath = file.path.replaceAll('\\', '/');
+  let pre = getContent();
+  pre = pre.replaceAll(/src="\.\/(.*?)"/ig, `src="${basepath}$1"`);
+  let markedHtml = requireMarked().parse(pre, { baseUrl: basepath });
+
+  var parser = new DOMParser();
+  var htmlDoc = parser.parseFromString(markedHtml, 'text/html');
+  let sections = [...htmlDoc.querySelectorAll('h1[id], h2[id], h3[id], h4[id], h5[id], h6[id]')];
+
+  let toc = sections.map(el => `<li><a href="#${el.id}">${el.nodeName} - ${el.innerText}</a></li>`).join("");
+  toc = `<ul>${toc}</ul>`;
+
+  markedHtml = markedHtml.replace(/\[TOC\]/, toc);
+
+  return markedHtml;
 }
 
 function calculate(string) {
@@ -422,17 +517,15 @@ function runFile() {
     } else if (file.lang === 'latex') {
       webviewUi.src = `${file.path + file.name}.pdf?v=${Date.now()}`;
     } else if (file.lang === 'markdown') {
-      const basepath = file.path.replaceAll('\\', '/');
-
-      // Pre process relative html src
-      let pre = getContent();
-      pre = pre.replaceAll(/src="(\..*?)"/ig, `src="${basepath}$1"`);
-      const markedHtml = requireMarked().parse(pre, { baseUrl: basepath });
+      
+      const markedHtml = mdToHTML();
 
       webviewUi.addEventListener('did-finish-load', () => {
-        webviewUi.send('fillContent', markedHtml);
+        webviewUi.send('fill_content', markedHtml);
+        editor.on('input', markdownUpdater);
       }, { once: true });
       webviewUi.src = getMdTemplate();
+
     } else if (file.lang === 'html') {
       webviewUi.src = (`${file.path + file.name}.html`);
     }
@@ -799,12 +892,17 @@ function initialize() {
       desc: 'Open language settings file',
       func: () => { openLanguageSettings(); },
     },    
+    '!exp_pdf': {
+      desc: 'Generate and export PDF of the current preview panel',
+      func: () => { exportPDFFromPreview(); }
+    },
     '!help': {
       desc: 'Shows all the available commands.',
       func: () => {
         let ret = '';
+        let longest = Object.keys(commandList).reduce((prev, curr) => curr.length > prev ? curr.length : prev ,0) + 6;
         Object.entries(commandList).forEach(([key, value]) => {
-          ret += `${key}\t${value.desc}\n`;
+          ret += `${key}${" ".repeat(longest - key.length)}${value.desc}\n`;
         });
         print(ret);
       },
@@ -818,10 +916,10 @@ function initialize() {
   });
 
   webviewUi.addEventListener('load-commit', () => {
-    webviewUi.insertCSS(scrollBarsCss);
-    webviewUi.insertCSS('body{background: transparent !important;}');
   });
   webviewUi.addEventListener('did-finish-load', () => {
+    webviewUi.insertCSS(scrollBarsCss);
+    webviewUi.insertCSS('body{background: transparent !important;}');
     webviewUi.send('onLoad');
   });
   webviewUi.addEventListener('console-message', (e) => {
@@ -852,6 +950,12 @@ function initialize() {
 
     print(`Message from ${fileSource}\n${e.message}`, mode);
   });
+
+
+  webviewUi.addEventListener('ipc-message', (event) => {    
+    console.log(event.channel);
+  });
+
 
   editorMediaDivUi.addEventListener('divider-move', () => {
     const val = editorMediaDivUi.previousElementSibling.style.width;
