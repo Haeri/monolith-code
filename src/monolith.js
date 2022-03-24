@@ -17,7 +17,6 @@ let _themelist = null;
 let _beautify = null;
 let _appInfo = null;
 let _tKill = null;
-let _pdf = null;
 
 let _mdTemplate = null;
 let editor = null;
@@ -30,7 +29,7 @@ const file = {
 };
 let langInfo;
 let runningProcess;
-let isSaved = true;
+let isSaved = null;
 let editorConfig;
 let windowConfig;
 let localWindowConfig;
@@ -49,7 +48,7 @@ let editorConsoleDivUi;
 let processIndicatorUi;
 
 let commandList = {};
-const commandHistory = [];
+let commandHistory = [];
 let historyIndex;
 
 let scrollBarsCss;
@@ -87,7 +86,7 @@ function requireMarked() {
       }
       return originParagraph(text)
     }
-    function renderMathsExpression (expr) {
+    function renderMathsExpression(expr) {
       if (expr[0] === '$' && expr[expr.length - 1] === '$') {
         let displayStyle = false
         expr = expr.substr(1, expr.length - 2)
@@ -117,14 +116,13 @@ function requireMarked() {
       renderer: renderer,
       highlight: (code, lang) => {
         const validLanguage = _hljs.getLanguage(lang) ? lang : 'plaintext';
-        return _hljs.highlight(code, {language: validLanguage}).value;
+        return _hljs.highlight(code, { language: validLanguage }).value;
       },
     });
   }
 
   return _marked;
 }
-
 function requireRemote() {
   if (_remote === null) {
     _remote = require('electron').remote;
@@ -161,7 +159,6 @@ function requireBeautify() {
   }
   return _beautify;
 }
-
 function requireTreeKill() {
   if (_tKill === null) {
     _tKill = require('tree-kill');
@@ -169,12 +166,19 @@ function requireTreeKill() {
   return _tKill;
 }
 
-function requirePdf() {
-  if (_pdf === null) {
-    _pdf = require('html-pdf');
+function requireMdTemplate() {
+  if (_mdTemplate === null) {
+    _mdTemplate = path.resolve(__dirname, 'res/embed/markdown/index.html');
   }
-  return _pdf;
+  return _mdTemplate;
 }
+
+
+
+
+
+
+/* ------------- PUBLIC API ------------- */
 
 function getAppInfo() {
   if (_appInfo === null) {
@@ -186,78 +190,21 @@ function getAppInfo() {
   return _appInfo;
 }
 
-function getMdTemplate() {
-  if (_mdTemplate === null) {
-    _mdTemplate = path.resolve(__dirname, 'res/embed/markdown/index.html');
-  }
-  return _mdTemplate;
-}
-
-function debounce(func, wait, immediate) {
-  let timeout;
-  return () => {
-    const context = this; const
-      args = arguments;
-    const later = () => {
-      timeout = null;
-      if (!immediate) func.apply(context, args);
-    };
-    const callNow = immediate && !timeout;
-    clearTimeout(timeout);
-    timeout = setTimeout(later, wait);
-    if (callNow) func.apply(context, args);
-  };
-}
-
 function getContent() {
   return editor.getValue();
 }
 
-function exportPDFFromPreview() {  
-  if(!file.path){
-    print("Filepath not set for export", INFO_LEVEL.warn);
-    return;
-  }
-  if(webviewUi.src === "" || webviewUi.src === "about:blank") {
-    print("Document not suitable for PDF export.", INFO_LEVEL.warn);
-    return;
-  }
-
-  const pdfPath = path.resolve(file.path, file.name + '.pdf');
-
-  webviewUi.printToPDF({landscape: false, pageSize: 'A4'}).then(data => {
-    fs.writeFile(pdfPath, data, (error) => {
-      if (error) {
-        print(`Failed to write PDF to ${pdfPath}:\n${error}`, INFO_LEVEL.error);
-        return
-      }
-      print(`PDF successfully stored to ${pdfPath}`, INFO_LEVEL.confirm);
-    })
-  }).catch(error => {
-    print(`Failed to write PDF to ${pdfPath}:\n${error}`, INFO_LEVEL.error);
-  })
-}
-
-const markdownUpdater = debounce(() => {
-  const markedHtml = mdToHTML();
-  webviewUi.send('fill_content', markedHtml);
-}, 200);
-
-function newWindow(file_path = undefined) {
-  ipcRenderer.send('new-window', file_path);
-}
-
-function setSaved(saved) {
-  if (isSaved !== saved) {
-    const title = file.extension ? file.name + file.extension : 'new document';
-    if (saved) {
-      documentNameUi.textContent = title;
-    } else {
-      documentNameUi.textContent = `${title}*`;
+function getModeFromName(filename) {
+  return Object.entries(langInfo).find((item) => {
+    const re = item[1].detector;
+    if (filename.toLowerCase().match(re)) {
+      return true;
     }
-    isSaved = saved;
-  }
+
+    return false;
+  });
 }
+
 
 function setLanguage(langKey) {
   if (langKey === 'markdown') {
@@ -272,40 +219,111 @@ function setLanguage(langKey) {
   languageDisplayUi.value = langKey;
 }
 
-function getModeFromName(filename) {
-  return Object.entries(langInfo).find((item) => {
-    const re = item[1].detector;
-    if (filename.toLowerCase().match(re)) {
-      return true;
-    }
+function setContent(content) {
+  editor.setValue(content, -1);
+}
 
-    return false;
+
+function newWindow(file_path = undefined) {
+  ipcRenderer.send('new-window', file_path);
+}
+
+function writeFile(filePath, content) {
+  return new Promise((resolve, reject) => {
+    fs.writeFile(filePath, content, (err) => {
+      if (!err) {
+        notify('confirm');
+        resolve();
+      } else {
+        print(err, INFO_LEVEL.error);
+        reject(err);
+      }
+    });
   });
 }
 
-function setFileInfo(filePath) {
-  file.extension = path.extname(filePath);
-  file.path = path.dirname(filePath) + path.sep;
-  file.name = path.basename(filePath, file.extension);
+async function openFile(filepath = undefined) {
+  notifyLoadStart();
 
-  const lang = getModeFromName(file.name + file.extension);
-  if (lang == null) {
-    file.lang = 'plaintext';
-  } else {
-    file.lang = lang[0];
+  if (filepath === undefined) {
+    const options = {
+      title: 'Open a file',
+    };
+    const window = requireRemote().getCurrentWindow();
+    let ret = await requireDialog().showOpenDialog(window, options);
+    if (!ret.canceled) {
+      filepath = ret.filePaths[0];
+    }
   }
 
-  setSaved(true);
-  setLanguage(file.lang);
-}
-
-function toggleFullscreenStyle(isFullscreen) {
-  if (isFullscreen) {
-    document.body.classList.add('fullscreen');
+  if (file.path || (isSaved !== null && !isSaved)) {
+    newWindow(filepath);
+    notifyLoadEnd();
   } else {
-    document.body.classList.remove('fullscreen');
+    fs.readFile(filepath, { encoding: 'utf-8' }, (err, data) => {
+      if (!err) {
+        editor.setValue(data, -1);
+        _setFileInfo(filepath);
+        webviewUi.src = 'about:blank'
+        print(`Opened file ${filepath}`);
+      } else {
+        print(`Could not open file ${filepath}<br>${err}`, INFO_LEVEL.error);
+      }
+      notifyLoadEnd();
+    });
   }
 }
+
+function saveFile(saveAs = false) {
+  return new Promise((resolve, reject) => {
+    if (file.path === undefined || saveAs) {
+      const lang = langInfo[languageDisplayUi.value];
+      const options = {
+        defaultPath: `~/${lang.tempname}`,
+        filters: [
+          { name: lang.name, extensions: lang.ext },
+          { name: 'All Files', extensions: ['*'] },
+        ],
+      };
+      const window = requireRemote().getCurrentWindow();
+      requireDialog().showSaveDialog(window, options).then((ret) => {
+        if (!ret.canceled) {
+          writeFile(ret.filePath, getContent()).then(() => {
+            _setFileInfo(ret.filePath);
+            print(`file saved as ${ret.filePath}`);
+            resolve();
+          }).catch(err => {
+            reject(err);
+          });
+        }
+      });
+    } else {
+      writeFile(file.path + file.name + file.extension, getContent()).then(() => {
+        isSaved = true;
+        _updateTitle();
+        resolve();
+      }).catch(err => {
+        reject(err);
+      });
+    }
+  });
+}
+
+
+
+/* ------------- UI ------------- */
+
+function setTheme(name) {
+  editor.setTheme(name);
+  themeChoiceUi.value = name;
+  ipcRenderer.send('store-setting', 'theme', name);
+}
+
+function setFontSize(size) {
+  editor.setFontSize(size);
+  ipcRenderer.send('store-setting', 'font_size', size);
+}
+
 
 function notify(type) {
   document.getElementById('status-display').className = '';
@@ -335,78 +353,108 @@ function print(text, mode = INFO_LEVEL.info) {
   consoleUi.scrollTo({ top: consoleUi.scrollHeight, behavior: 'smooth' });
 }
 
-function writeFile(filePath, content, callback = undefined) {
-  fs.writeFile(filePath, content, (err) => {
-    if (!err) {
-      notify('confirm');
-    } else {
-      print(err, INFO_LEVEL.error);
-    }
-    if (callback !== undefined) callback(err);
-  });
+
+
+/* ------------- FEATURES ------------- */
+
+function beautifyDocument() {
+  requireBeautify().beautify(editor.session);
 }
 
-function openFile(filepath) {
-  if (file.path || !isSaved) {
-    newWindow(filepath);
+function makeLanguageTemplate() {
+  if ((languageDisplayUi.value in langInfo) && langInfo[languageDisplayUi.value].templ) {
+    editor.setValue(langInfo[languageDisplayUi.value].templ, -1);
   } else {
-    fs.readFile(filepath, 'utf-8', (err, data) => {
-      if (!err) {
-        editor.setValue(data, -1);
-        setFileInfo(filepath);
-        //webviewUi.setAttribute('src', undefined);
-        webviewUi.src = 'about:blank'
-        print(`Opened file ${filepath}`);
-      } else {
-        print(`Could not open file ${filepath}`, INFO_LEVEL.error);
-      }
-    });
+    print(`No default template exists for ${languageDisplayUi.value}`, INFO_LEVEL.warn);
   }
 }
 
-function saveFile(content, saveAs = false, callback = undefined) {
-  if (file.path === undefined || saveAs) {
-    const lang = langInfo[languageDisplayUi.value];
-    const options = {
-      defaultPath: `~/${lang.tempname}`,
-      filters: [
-        { name: lang.name, extensions: lang.ext },
-        { name: 'All Files', extensions: ['*'] },
-      ],
+function evaluateMathInline() {
+  const range = editor.selection.getRange();
+  let func = editor.getSelectedText();
+  if (range.start.row === range.end.row && range.start.column === range.end.column) {
+    func = editor.session.getLine(range.start.row);
+  }
+
+  try {
+    const result = _calculate(func);
+    editor.session.insert(editor.selection.getRange().end, ` = ${result}`);
+    notify('confirm');
+  } catch (error) {
+    print(`Unable to calculate '${func}'`, INFO_LEVEL.error);
+  }
+}
+
+function exportPDFFromPreview() {
+  if (!file.path) {
+    print("Filepath not set for export", INFO_LEVEL.warn);
+    return;
+  }
+  if (webviewUi.src === "" || webviewUi.src === "about:blank") {
+    print("Document not suitable for PDF export.", INFO_LEVEL.warn);
+    return;
+  }
+
+  const pdfPath = path.resolve(file.path, file.name + '.pdf');
+
+  webviewUi.printToPDF({ landscape: false, pageSize: 'A4' }).then(data => {
+    fs.writeFile(pdfPath, data, (error) => {
+      if (error) {
+        print(`Failed to write PDF to ${pdfPath}:\n${error}`, INFO_LEVEL.error);
+        return
+      }
+      print(`PDF successfully stored to ${pdfPath}`, INFO_LEVEL.confirm);
+    })
+  }).catch(error => {
+    print(`Failed to write PDF to ${pdfPath}:\n${error}`, INFO_LEVEL.error);
+  })
+}
+
+function openSettings() {
+  newWindow(userPrefPath);
+}
+
+function openLanguageSettings() {
+  newWindow(langPrefPath);
+}
+
+
+
+/* ------------- PRIVATE HELPERS ------------- */
+
+function _debounce(func, wait, immediate) {
+  let timeout;
+  return () => {
+    const context = this; const
+      args = arguments;
+    const later = () => {
+      timeout = null;
+      if (!immediate) func.apply(context, args);
     };
-    const window = requireRemote().getCurrentWindow();
-    requireDialog().showSaveDialog(window, options).then((ret) => {
-      if (!ret.canceled) {
-        writeFile(ret.filePath, content, (err) => {
-          if (!err) {
-            setFileInfo(ret.filePath);
-            print(`file saved as ${ret.filePath}`);
-
-            if (callback !== undefined) callback();
-          }
-        });
-      }
-    });
-  } else {
-    writeFile(file.path + file.name + file.extension, getContent(), (err) => {
-      if (!err) {
-        setSaved(true);
-      }
-      if (callback !== undefined) callback(err);
-    });
-  }
+    const callNow = immediate && !timeout;
+    clearTimeout(timeout);
+    timeout = setTimeout(later, wait);
+    if (callNow) func.apply(context, args);
+  };
 }
 
-function setTheme(name) {
-  editor.setTheme(name);
-  themeChoiceUi.value = name;
-  ipcRenderer.send('store-setting', 'theme', name);
-}
 
-function setFontSize(size) {
-  editor.setFontSize(size);
-  ipcRenderer.send('store-setting', 'font_size', size);
-}
+
+const markdownUpdater = _debounce(() => {
+  const markedHtml = mdToHTML();
+  webviewUi.send('fill_content', markedHtml);
+}, 200);
+
+
+
+
+
+
+
+
+
+
+
 
 function mdToHTML() {
   const basepath = file.path.replaceAll('\\', '/');
@@ -414,8 +462,8 @@ function mdToHTML() {
   pre = pre.replaceAll(/src="\.\/(.*?)"/ig, `src="${basepath}$1"`);
   let markedHtml = requireMarked().parse(pre, { baseUrl: basepath });
 
-  var parser = new DOMParser();
-  var htmlDoc = parser.parseFromString(markedHtml, 'text/html');
+  let parser = new DOMParser();
+  let htmlDoc = parser.parseFromString(markedHtml, 'text/html');
   let sections = [...htmlDoc.querySelectorAll('h1[id], h2[id], h3[id], h4[id], h5[id], h6[id]')];
 
   let toc = sections.map(el => `<li><a href="#${el.id}">${el.nodeName} - ${el.innerText}</a></li>`).join("");
@@ -426,18 +474,9 @@ function mdToHTML() {
   return markedHtml;
 }
 
-function calculate(string) {
-  // eslint-disable-next-line no-new-func
-  return Function(`return (${string})`)();
-}
 
-function openSettings() {
-  newWindow(userPrefPath);
-}
 
-function openLanguageSettings() {
-  newWindow(langPrefPath);
-}
+
 
 function commandRunner(command, args, callback) {
   notifyLoadStart();
@@ -517,14 +556,14 @@ function runFile() {
     } else if (file.lang === 'latex') {
       webviewUi.src = `${file.path + file.name}.pdf?v=${Date.now()}`;
     } else if (file.lang === 'markdown') {
-      
+
       const markedHtml = mdToHTML();
 
       webviewUi.addEventListener('did-finish-load', () => {
         webviewUi.send('fill_content', markedHtml);
         editor.on('input', markdownUpdater);
       }, { once: true });
-      webviewUi.src = getMdTemplate();
+      webviewUi.src = requireMdTemplate();
 
     } else if (file.lang === 'html') {
       webviewUi.src = (`${file.path + file.name}.html`);
@@ -532,7 +571,16 @@ function runFile() {
   }
 }
 
-function buildRunFile() {
+async function buildRunFile() {
+  if (file.path === undefined || !isSaved) {
+    try {
+      await saveFile();
+    } catch (err) {
+      return;
+    }
+  }
+
+
   if (file.lang in langInfo) {
     let cmdComp = langInfo[file.lang].comp;
     if (cmdComp) {
@@ -560,7 +608,49 @@ function buildRunFile() {
   }
 }
 
-function assignVariables() {
+
+
+
+function _updateTitle() {
+  const title = file.extension ? file.name + file.extension : 'new document';
+  if (isSaved === null || isSaved) {
+    documentNameUi.textContent = title;
+  } else {
+    documentNameUi.textContent = `${title}*`;
+  }
+}
+
+function _setFileInfo(filePath) {
+  file.extension = path.extname(filePath);
+  file.path = path.dirname(filePath) + path.sep;
+  file.name = path.basename(filePath, file.extension);
+
+  const lang = getModeFromName(file.name + file.extension);
+  if (lang == null) {
+    file.lang = 'plaintext';
+  } else {
+    file.lang = lang[0];
+  }
+
+  setLanguage(file.lang);
+  isSaved = true;
+  _updateTitle();
+}
+
+function _toggleFullscreenStyle(isFullscreen) {
+  if (isFullscreen) {
+    document.body.classList.add('fullscreen');
+  } else {
+    document.body.classList.remove('fullscreen');
+  }
+}
+
+function _calculate(string) {
+  // eslint-disable-next-line no-new-func
+  return Function(`return (${string})`)();
+}
+
+function _assignUIVariables() {
   documentNameUi = document.getElementById('document-name');
   languageDisplayUi = document.getElementById('language-display');
   themeChoiceUi = document.getElementById('theme-choice');
@@ -575,7 +665,7 @@ function assignVariables() {
   processIndicatorUi = document.getElementById('process-indicator');
 }
 
-function initializeOptions(config) {
+function _initializeOptions(config) {
   requireThemeList().themes.forEach((theme) => {
     const option = document.createElement('option');
     option.text = theme.caption;
@@ -586,9 +676,9 @@ function initializeOptions(config) {
   themeChoiceUi.value = config.theme;
 }
 
-function initialize() {
+function _initialize() {
   // Initialize all ui elements
-  assignVariables();
+  _assignUIVariables();
 
   const settings = ipcRenderer.sendSync('initial-settings');
   editorConfig = settings.editorConfig;
@@ -626,8 +716,8 @@ function initialize() {
   if (windowConfig.rounded_window) {
     document.body.classList.add('rounded');
   }
-  if(localWindowConfig.maximized){
-    document.body.classList.add('fullscreen'); 
+  if (localWindowConfig.maximized) {
+    document.body.classList.add('fullscreen');
   }
 
   const ro = new ResizeObserver(() => {
@@ -650,10 +740,9 @@ function initialize() {
   }, { passive: false });
 
   editor.on('change', () => {
-    if (isSaved) {
-      setSaved(false);
-    } else if (getContent() === '') {
-      setSaved(true);
+    if (isSaved === null || isSaved) {
+      isSaved = false;
+      _updateTitle();
     }
   });
 
@@ -697,74 +786,73 @@ function initialize() {
 
   const browserWindow = requireRemote().getCurrentWindow();
   browserWindow.on('maximize', () => {
-    toggleFullscreenStyle(true);
+    _toggleFullscreenStyle(true);
   });
 
   browserWindow.on('unmaximize', () => {
-    toggleFullscreenStyle(false);
+    _toggleFullscreenStyle(false);
   });
 
+
+
+  let keyBindings = {
+    ctrl: {
+      "o": {
+        desc: "Open a file",
+        func: openFile
+      },
+      "b": {
+        desc: "Build and run the current file",
+        func: buildRunFile
+      },
+      "s": {
+        desc: "Save the current file",
+        func: saveFile
+      },
+      "n": {
+        desc: "Open a new editor window",
+        func: newWindow
+      },
+      "i": {
+        desc: "Open settings",
+        func: openSettings
+      },
+      "p": {
+        desc: "Export the preview window as PDF",
+        func: exportPDFFromPreview
+      },
+      "t": {
+        desc: "Open a hello world tamplate for the current language",
+        func: makeLanguageTemplate
+      },
+      "m": {
+        desc: "Evaluate a mathematical equation on the selected line",
+        func: evaluateMathInline
+      }
+    },
+    ctrlshift: {
+      "b": {
+        desc: "Beautify the document",
+        func: beautifyDocument
+      },
+      "s": {
+        desc: "Save the current document as new file",
+        func: (() => saveFile(true))
+      }
+    }
+  }
+
   window.addEventListener('keydown', (event) => {
-    if (event.ctrlKey && event.key === 'o') {
-      event.preventDefault();
-      notifyLoadStart();
-
-      const options = {
-        title: 'Open a file',
-      };
-      const window = requireRemote().getCurrentWindow();
-      requireDialog().showOpenDialog(window, options).then((ret) => {
-        if (!ret.canceled) {
-          openFile(ret.filePaths[0]);
-        }
-
-        notifyLoadEnd();
-      });
-    } else if (event.ctrlKey && !event.shiftKey && event.key === 'b') {
-      event.preventDefault();
-
-      if (file.path === undefined || !isSaved) {
-        saveFile(getContent(), false, () => {
-          buildRunFile();
-        });
-      } else {
-        buildRunFile();
+    let lowerKey = event.key.toLowerCase();
+    if (event.ctrlKey && !event.shiftKey) {
+      if (lowerKey in keyBindings.ctrl) {
+        event.preventDefault();
+        keyBindings.ctrl[lowerKey].func();
       }
-    } else if (event.ctrlKey && event.shiftKey && event.key === 'B') { // ctrl + shift + b
-      event.preventDefault();
-      requireBeautify().beautify(editor.session);
-    } else if (event.ctrlKey && !event.shiftKey && event.key === 's') { // ctrl + s
-      event.preventDefault();
-      saveFile(getContent());
-    } else if (event.ctrlKey && event.shiftKey && event.key === 'S') { // ctrl + shift + s
-      event.preventDefault();
-      saveFile(getContent(), true);
-    } else if (event.ctrlKey && event.key === 'n') {
-      event.preventDefault();
-      newWindow();
-    } else if (event.ctrlKey && event.key === 't') {
-      openSettings();
-    } else if (event.ctrlKey && event.key === '.') {
-      event.preventDefault();
-      if ((languageDisplayUi.value in langInfo) && langInfo[languageDisplayUi.value].templ) {
-        editor.setValue(langInfo[languageDisplayUi.value].templ, -1);
-      } else {
-        print(`No default template exists for ${languageDisplayUi.value}`, INFO_LEVEL.warn);
-      }
-    } else if (event.ctrlKey && event.key === 'm') {
-      event.preventDefault();
-      const range = editor.selection.getRange();
-      let func = editor.getSelectedText();
-      if (range.start.row === range.end.row && range.start.column === range.end.column) {
-        func = editor.session.getLine(range.start.row);
-      }
-
-      try {
-        const result = calculate(func);
-        editor.session.insert(editor.selection.getRange().end, ` = ${result}`);
-        notify('confirm');
-      } catch (error) {
-        print(`Unable to calculate '${func}'`, INFO_LEVEL.error);
+    } else if (event.ctrlKey && event.shiftKey) {
+      if (lowerKey in keyBindings.ctrlshift) {
+        event.preventDefault();
+        keyBindings.ctrlshift[lowerKey].func();
       }
     }
   }, false);
@@ -834,13 +922,10 @@ function initialize() {
     setTheme(themeChoiceUi.value);
   });
 
-  fs.readFile(path.resolve(__dirname, 'res/lang.json'), 'utf-8', (err, data) => {
-    if (err) {
-      print(`An error ocurred reading the file :${err.message}`, INFO_LEVEL.err);
-      return;
-    }
-    langInfo = JSON.parse(data);    
-    mergeDeep(langInfo, settings.languageConfig);    
+  try {
+    let data = fs.readFileSync(path.resolve(__dirname, 'res/lang.json'), { encoding: 'utf-8' });
+    langInfo = JSON.parse(data);
+    mergeDeep(langInfo, settings.languageConfig);
 
     Object.entries(langInfo).forEach((el) => {
       const option = document.createElement('option');
@@ -851,7 +936,10 @@ function initialize() {
     });
 
     languageDisplayUi.value = 'plaintext';
-  });
+  } catch (err) {
+    print(`An error ocurred reading the file :${err.message}`, INFO_LEVEL.err);
+    return;
+  }
 
   commandList = {
     '!ver': {
@@ -891,7 +979,7 @@ function initialize() {
     '!lang_settings': {
       desc: 'Open language settings file',
       func: () => { openLanguageSettings(); },
-    },    
+    },
     '!exp_pdf': {
       desc: 'Generate and export PDF of the current preview panel',
       func: () => { exportPDFFromPreview(); }
@@ -900,7 +988,7 @@ function initialize() {
       desc: 'Shows all the available commands.',
       func: () => {
         let ret = '';
-        let longest = Object.keys(commandList).reduce((prev, curr) => curr.length > prev ? curr.length : prev ,0) + 6;
+        let longest = Object.keys(commandList).reduce((prev, curr) => curr.length > prev ? curr.length : prev, 0) + 6;
         Object.entries(commandList).forEach(([key, value]) => {
           ret += `${key}${" ".repeat(longest - key.length)}${value.desc}\n`;
         });
@@ -952,7 +1040,7 @@ function initialize() {
   });
 
 
-  webviewUi.addEventListener('ipc-message', (event) => {    
+  webviewUi.addEventListener('ipc-message', (event) => {
     console.log(event.channel);
   });
 
@@ -1003,7 +1091,7 @@ function initialize() {
   document.getElementById('main-divider').style.height = editorConfig.console_div_percent;
 
   ipcRenderer.on('can-close', (event) => {
-    event.sender.send('can-close-response', isSaved);
+    event.sender.send('can-close-response', (isSaved === null || isSaved));
   });
 
   ipcRenderer.on('print', (event, data) => {
@@ -1017,6 +1105,8 @@ function initialize() {
     openFile(shouldOpen[0].replace(/--open-file="(.*)"/, '$1'));
   }
 }
+
+
 
 document.addEventListener('DOMContentLoaded', () => {
   const resizable = (resizer) => {
@@ -1038,13 +1128,13 @@ document.addEventListener('DOMContentLoaded', () => {
       switch (direction) {
         case 'vertical': {
           const h = (prevSiblingHeight + dy) * 100 / resizer.parentNode.getBoundingClientRect().height;
-          prevSibling.style.height = `${h}%`;
+          prevSibling.style.height = `${h}% `;
           break;
         }
         case 'horizontal':
         default: {
           const w = (prevSiblingWidth + dx) * 100 / resizer.parentNode.getBoundingClientRect().width;
-          prevSibling.style.width = `${w}%`;
+          prevSibling.style.width = `${w}% `;
           break;
         }
       }
@@ -1101,4 +1191,4 @@ document.addEventListener('DOMContentLoaded', () => {
 });
 
 /* ---- DOCUMENT READY ---- */
-document.addEventListener('DOMContentLoaded', initialize);
+document.addEventListener('DOMContentLoaded', _initialize);
