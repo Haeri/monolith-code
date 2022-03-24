@@ -32,11 +32,11 @@ class Store {
     const userDataPath = app.getPath('userData');
     this.path = path.join(userDataPath, `${opts.configName}.json`);
 
-    if(fs.existsSync(this.path)){
+    if (fs.existsSync(this.path)) {
       this.data = parseDataFile(this.path, opts.defaults);
-    }else{
+    } else {
       // Create empty file
-      fs.closeSync(fs.openSync(this.path, 'w'));      
+      fs.closeSync(fs.openSync(this.path, 'w'));
       this.data = opts.defaults;
     }
   }

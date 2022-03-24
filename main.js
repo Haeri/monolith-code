@@ -123,6 +123,7 @@ function createWindow(caller = undefined, filePath = undefined) {
     frame: false,
     hasShadow: true,
     transparent: rounded_window,
+    backgroundColor: rounded_window ? '#00000000' : '#212121',
     titleBarStyle: 'hidden',
     show: false,
     minWidth: 220,
@@ -158,9 +159,9 @@ function createWindow(caller = undefined, filePath = undefined) {
     localStore.set('window_config.maximized', false);
   });
 
-  win.once('ready-to-show', () => {    
+  win.once('ready-to-show', () => {
     win.show();
-    if(maximized){
+    if (maximized) {
       win.maximize();
     }
   });
@@ -179,9 +180,9 @@ ipcMain.on('initial-settings', (event) => {
   const languageConfig = langStore.get('language_config');
   const userPrefPath = userPrefStore.getFilePath();
   const languageConfigPath = langStore.getFilePath();
-  event.returnValue = { 
-    editorConfig, windowConfig, 
-    localWindowConfig, languageConfig, 
+  event.returnValue = {
+    editorConfig, windowConfig,
+    localWindowConfig, languageConfig,
     userPrefPath, languageConfigPath
   };
 });
