@@ -943,15 +943,15 @@ function _initialize() {
 
   commandList = {
     '!ver': {
-      desc: 'Shows the current version of the application.',
+      desc: 'Shows the current version of the application',
       func: () => { print(`${getAppInfo().name} ${getAppInfo().version}`); },
     },
     '!cls': {
-      desc: 'Clear console.',
+      desc: 'Clear console',
       func: () => { consoleOutUi.innerHTML = ''; },
     },
     '!kill': {
-      desc: 'Kills the currently running process.',
+      desc: 'Kills the currently running process',
       func: () => {
         if (runningProcess) {
           requireTreeKill()(runningProcess.pid, 'SIGKILL', (err) => {
@@ -985,13 +985,22 @@ function _initialize() {
       func: () => { exportPDFFromPreview(); }
     },
     '!help': {
-      desc: 'Shows all the available commands.',
+      desc: 'Shows all the available commands',
       func: () => {
         let ret = '';
         let longest = Object.keys(commandList).reduce((prev, curr) => curr.length > prev ? curr.length : prev, 0) + 6;
         Object.entries(commandList).forEach(([key, value]) => {
           ret += `${key}${" ".repeat(longest - key.length)}${value.desc}\n`;
         });
+        
+        ret += "------------------------------------------------------------------------\n";
+        Object.entries(keyBindings.ctrl).forEach(([key, value]) => {
+          ret += `ctrl + ${key}            ${value.desc}\n`;
+        });
+        Object.entries(keyBindings.ctrlshift).forEach(([key, value]) => {
+          ret += `ctrl + shift + ${key}    ${value.desc}\n`;
+        });
+        
         print(ret);
       },
     },
