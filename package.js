@@ -40,7 +40,7 @@ async function main() {
   });
   */
   process.stdout.write('\t\tOK\n');
-  
+
 
 
   if (process.platform === 'linux') {
