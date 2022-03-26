@@ -1,6 +1,4 @@
-const {
-  app, BrowserWindow, ipcMain, dialog,
-} = require('electron');
+const { app, BrowserWindow, ipcMain, dialog } = require('electron');
 const path = require('path');
 const fs = require('fs');
 const common = require('./src/common');
@@ -123,6 +121,7 @@ function createWindow(caller = undefined, filePath = undefined) {
     frame: false,
     hasShadow: true,
     transparent: rounded_window,
+    backgroundColor: rounded_window ? '#00000000' : '#212121',
     titleBarStyle: 'hidden',
     show: false,
     minWidth: 220,
@@ -158,9 +157,9 @@ function createWindow(caller = undefined, filePath = undefined) {
     localStore.set('window_config.maximized', false);
   });
 
-  win.once('ready-to-show', () => {    
+  win.once('ready-to-show', () => {
     win.show();
-    if(maximized){
+    if (maximized) {
       win.maximize();
     }
   });
@@ -179,9 +178,9 @@ ipcMain.on('initial-settings', (event) => {
   const languageConfig = langStore.get('language_config');
   const userPrefPath = userPrefStore.getFilePath();
   const languageConfigPath = langStore.getFilePath();
-  event.returnValue = { 
-    editorConfig, windowConfig, 
-    localWindowConfig, languageConfig, 
+  event.returnValue = {
+    editorConfig, windowConfig,
+    localWindowConfig, languageConfig,
     userPrefPath, languageConfigPath
   };
 });
@@ -217,7 +216,7 @@ ipcMain.on('can-close-response', (event, canClose) => {
   win.destroy();
 });
 
-// Linux transparency hack
+// TEMPFIX: Linux transparency hack
 // from https://github.com/electron/electron/issues/25153
 let delay = 0;
 if (process.platform === 'linux') {
@@ -247,4 +246,16 @@ app.on('window-all-closed', () => {
   if (shouldUpdate) {
     doUpdate();
   }
+});
+
+
+
+// TEMPFIX: Temporary workaround for CWE-668
+app.on('web-contents-created', (event, webContents) => {
+  webContents.on('select-bluetooth-device', (event, devices, callback) => {
+    // Prevent default behavior
+    event.preventDefault();
+    // Cancel the request
+    callback('');
+  });
 });

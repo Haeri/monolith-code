@@ -7,7 +7,10 @@
 		"templ": "echo hello human",
 		"linere": null,
 		"tempname": "MyBatchscript",
-		"ext": ["bat", "cmd"],
+		"ext": [
+			"bat",
+			"cmd"
+		],
 		"detector": "(\\.bat$|\\.cmd$)"
 	},
 	"c": {
@@ -18,7 +21,10 @@
 		"templ": "#include <stdio.h>\r\n\r\nint main(int argc, char *argv[]){\r\n\tprintf(\"hello human\");\r\n\tfflush(stdout);\r\n\treturn 0;\r\n}",
 		"linere": "(<name>\\.c:(\\d*):\\d*:)",
 		"tempname": "MyCCode",
-		"ext": ["c", "h"],
+		"ext": [
+			"c",
+			"h"
+		],
 		"detector": "(\\.c$|\\.h$)"
 	},
 	"cpp": {
@@ -29,7 +35,11 @@
 		"templ": "#include <iostream>\r\n\r\nint main(int argc, char *argv[]){\r\n\tstd::cout << \"hello human\" << std::endl;\r\n\treturn 0;\r\n}",
 		"linere": "(<name>\\.cpp:(\\d*):\\d*:)",
 		"tempname": "MyCppCode",
-		"ext": ["cpp", "hpp", "h"],
+		"ext": [
+			"cpp",
+			"hpp",
+			"h"
+		],
 		"detector": "(\\.cpp$|\\.hpp$)"
 	},
 	"csharp": {
@@ -40,7 +50,9 @@
 		"templ": "public class CLASS_NAME{\r\n\tpublic static void Main(){\r\n\t\tSystem.Console.WriteLine(\"hello human\");\r\n\t}\r\n}",
 		"linere": null,
 		"tempname": "MyCSharpCode",
-		"ext": ["cs"],
+		"ext": [
+			"cs"
+		],
 		"detector": "\\.cs$"
 	},
 	"css": {
@@ -51,7 +63,9 @@
 		"templ": null,
 		"linere": null,
 		"tempname": "style",
-		"ext": ["css"],
+		"ext": [
+			"css"
+		],
 		"detector": "\\.css$"
 	},
 	"dart": {
@@ -62,7 +76,9 @@
 		"templ": null,
 		"linere": null,
 		"tempname": "MyDartScript",
-		"ext": ["dart"],
+		"ext": [
+			"dart"
+		],
 		"detector": "\\.dart$"
 	},
 	"dockerfile": {
@@ -73,7 +89,9 @@
 		"templ": null,
 		"linere": null,
 		"tempname": "Dockerfile",
-		"ext": ["*"],
+		"ext": [
+			"*"
+		],
 		"detector": "^dockerfile$"
 	},
 	"go": {
@@ -84,7 +102,9 @@
 		"templ": null,
 		"linere": null,
 		"tempname": "MyGoScript",
-		"ext": ["go"],
+		"ext": [
+			"go"
+		],
 		"detector": "\\.go$"
 	},
 	"html": {
@@ -95,8 +115,10 @@
 		"templ": "<!DOCTYPE html>\r\n<html>\r\n\t<head>\r\n\t\t<meta charset=\"UTF-8\">\r\n\t\t<title>hello human</title>\r\n\t</head>\r\n\t<body>\r\n\t\t<h1>hello human</h1>\r\n\t</body>\r\n</html>",
 		"linere": null,
 		"tempname": "index",
-		"ext": ["html"],
-		"detector": "\\.html$"		
+		"ext": [
+			"html"
+		],
+		"detector": "\\.html$"
 	},
 	"java": {
 		"name": "Java",
@@ -106,7 +128,9 @@
 		"templ": "public class CLASS_NAME {\r\n\tpublic static void main(String[] args){ \r\n\t\tSystem.out.println(\"hello human\");\r\n\t}\r\n}",
 		"linere": "(<name>\\.java:(\\d*):)",
 		"tempname": "<nama>",
-		"ext": ["java"],
+		"ext": [
+			"java"
+		],
 		"detector": "\\.java$"
 	},
 	"javascript": {
@@ -117,7 +141,9 @@
 		"templ": "console.log(\"hello human\");",
 		"linere": null,
 		"tempname": "MyJSScript",
-		"ext": ["js"],
+		"ext": [
+			"js"
+		],
 		"detector": "\\.js$"
 	},
 	"json": {
@@ -128,7 +154,9 @@
 		"templ": null,
 		"linere": null,
 		"tempname": "MyData",
-		"ext": ["json"],
+		"ext": [
+			"json"
+		],
 		"detector": "\\.json$"
 	},
 	"latex": {
@@ -139,7 +167,11 @@
 		"templ": "\\documentclass{article}\r\n\\usepackage[margin=0.7in]{geometry}\r\n\\usepackage[parfill]{parskip}\r\n\\usepackage[utf8]{inputenc}\r\n\r\n\\begin{document}\r\n\r\nhello human\r\n\r\n\\end{document}",
 		"linere": null,
 		"tempname": "MyDocument",
-		"ext": ["tex", "latex", "bib"],
+		"ext": [
+			"tex",
+			"latex",
+			"bib"
+		],
 		"detector": "(\\.tex$|\\.latex$|\\.bib$)"
 	},
 	"makefile": {
@@ -150,7 +182,9 @@
 		"templ": null,
 		"linere": null,
 		"tempname": "Makefile",
-		"ext": ["*"],
+		"ext": [
+			"*"
+		],
 		"detector": "^makefile$"
 	},
 	"markdown": {
@@ -161,7 +195,10 @@
 		"templ": "# hello human",
 		"linere": null,
 		"tempname": "MyDocument",
-		"ext": ["md", "markdown"],
+		"ext": [
+			"md",
+			"markdown"
+		],
 		"detector": "(\\.md$|\\.markdown$)"
 	},
 	"php": {
@@ -172,7 +209,9 @@
 		"templ": null,
 		"linere": null,
 		"tempname": "MyPHPScript",
-		"ext": ["php"],
+		"ext": [
+			"php"
+		],
 		"detector": "\\.php$"
 	},
 	"plaintext": {
@@ -183,7 +222,9 @@
 		"templ": "hello world",
 		"linere": null,
 		"tempname": "MyDocument",
-		"ext": ["txt"],
+		"ext": [
+			"txt"
+		],
 		"detector": "\\.txt$"
 	},
 	"powershell": {
@@ -194,7 +235,9 @@
 		"templ": null,
 		"linere": null,
 		"tempname": "MyPSScript",
-		"ext": ["ps1"],
+		"ext": [
+			"ps1"
+		],
 		"detector": "\\.ps1$"
 	},
 	"python": {
@@ -205,7 +248,9 @@
 		"templ": "print(\"hello human\")",
 		"linere": "(File \"<name>\\.py\", line (\\d*))",
 		"tempname": "MyPythonScript",
-		"ext": ["py"],
+		"ext": [
+			"py"
+		],
 		"detector": "\\.py$"
 	},
 	"sql": {
@@ -216,7 +261,9 @@
 		"templ": null,
 		"linere": null,
 		"tempname": "MySQLScript",
-		"ext": ["sql"],
+		"ext": [
+			"sql"
+		],
 		"detector": "\\.sql$"
 	},
 	"typescript": {
@@ -227,7 +274,9 @@
 		"templ": null,
 		"linere": null,
 		"tempname": "MyTSScript",
-		"ext": ["ts"],
+		"ext": [
+			"ts"
+		],
 		"detector": "\\.ts$"
 	},
 	"xml": {
@@ -238,7 +287,9 @@
 		"templ": null,
 		"linere": null,
 		"tempname": "MyData",
-		"ext": ["xml"],
+		"ext": [
+			"xml"
+		],
 		"detector": "\\.xml$"
 	},
 	"yaml": {
@@ -249,7 +300,10 @@
 		"templ": null,
 		"linere": null,
 		"tempname": "MyData",
-		"ext": ["yml", "yaml"],
+		"ext": [
+			"yml",
+			"yaml"
+		],
 		"detector": "(\\.yml$|\\.yaml$)"
 	}
 }

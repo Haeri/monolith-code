@@ -39,7 +39,7 @@ try {
               console.log('Deleting zip...');
               fs.unlinkSync('./monolith.zip');
 
-              if(process.platform == 'linux'){
+              if (process.platform == 'linux') {
                 console.log('Applying chmod...');
                 execSync(`chmod +x 'monolith-code'`, {});
               }
@@ -56,5 +56,5 @@ try {
     }, 1000);
   }
 } catch (error) {
-  fs.writeFile('./log.txt', error, (err) => {});
+  fs.writeFile('./log.txt', error, (err) => { });
 }
