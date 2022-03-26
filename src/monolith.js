@@ -1,22 +1,12 @@
 /* eslint-disable no-underscore-dangle */
 /* eslint-disable import/no-extraneous-dependencies */
 
-const { ipcRenderer, webFrame } = require('electron');
-const fs = require('fs');
-const path = require('path');
 
 const errorSVG = '<svg version="1.1" id="Capa_1" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" x="0px" y="0px" viewBox="0 0 52 52" style="enable-background:new 0 0 52 52;" xml:space="preserve"><g>	<path d="M26,0C11.664,0,0,11.663,0,26s11.664,26,26,26s26-11.663,26-26S40.336,0,26,0z M26,50C12.767,50,2,39.233,2,26	S12.767,2,26,2s24,10.767,24,24S39.233,50,26,50z"/>	<path d="M35.707,16.293c-0.391-0.391-1.023-0.391-1.414,0L26,24.586l-8.293-8.293c-0.391-0.391-1.023-0.391-1.414,0 s-0.391,1.023,0,1.414L24.586,26l-8.293,8.293c-0.391,0.391-0.391,1.023,0,1.414C16.488,35.902,16.744,36,17,36 s0.512-0.098,0.707-0.293L26,27.414l8.293,8.293C34.488,35.902,34.744,36,35,36s0.512-0.098,0.707-0.293 c0.391-0.391,0.391-1.023,0-1.414L27.414,26l8.293-8.293C36.098,17.316,36.098,16.684,35.707,16.293z"/></g></svg>';
 
-let _remote = null;
-let _dialog = null;
-let _childProcess = null;
-let _marked = null;
-let _hljs = null;
+
 let _modelist = null;
 let _themelist = null;
-let _beautify = null;
-let _appInfo = null;
-let _tKill = null;
 
 let _mdTemplate = null;
 let editor = null;
@@ -47,7 +37,6 @@ let editorMediaDivUi;
 let editorConsoleDivUi;
 let processIndicatorUi;
 
-let commandList = {};
 let commandHistory = [];
 let historyIndex;
 
@@ -61,110 +50,120 @@ const INFO_LEVEL = Object.freeze({
   error: 4,
 });
 
-function requireMarked() {
-  if (_marked === null) {
-    _marked = require('marked');
-    _hljs = require('highlight.js');
-    const _katex = require('katex');
-
-    const renderer = new _marked.Renderer();
-    let originParagraph = renderer.paragraph.bind(renderer)
-    renderer.paragraph = (text) => {
-      const blockRegex = /\$\$[^\$]*\$\$/g
-      const inlineRegex = /\$[^\$]*\$/g
-      let blockExprArray = text.match(blockRegex)
-      let inlineExprArray = text.match(inlineRegex)
-      for (let i in blockExprArray) {
-        const expr = blockExprArray[i]
-        const result = renderMathsExpression(expr)
-        text = text.replace(expr, result)
-      }
-      for (let i in inlineExprArray) {
-        const expr = inlineExprArray[i]
-        const result = renderMathsExpression(expr)
-        text = text.replace(expr, result)
-      }
-      return originParagraph(text)
+const keyBindings = {
+  ctrl: {
+    "o": {
+      desc: "Open a file",
+      func: openFile
+    },
+    "b": {
+      desc: "Build and run the current file",
+      func: buildRunFile
+    },
+    "s": {
+      desc: "Save the current file",
+      func: saveFile
+    },
+    "n": {
+      desc: "Open a new editor window",
+      func: newWindow
+    },
+    "i": {
+      desc: "Open settings",
+      func: openSettings
+    },
+    "p": {
+      desc: "Export the preview window as PDF",
+      func: exportPDFFromPreview
+    },
+    "t": {
+      desc: "Open a hello world tamplate for the current language",
+      func: makeLanguageTemplate
+    },
+    "m": {
+      desc: "Evaluate a mathematical equation on the selected line",
+      func: evaluateMathInline
     }
-    function renderMathsExpression(expr) {
-      if (expr[0] === '$' && expr[expr.length - 1] === '$') {
-        let displayStyle = false
-        expr = expr.substr(1, expr.length - 2)
-        if (expr[0] === '$' && expr[expr.length - 1] === '$') {
-          displayStyle = true
-          expr = expr.substr(1, expr.length - 2)
-        }
-        let html = null
-        try {
-          html = _katex.renderToString(expr)
-        } catch (e) {
-          console.error(e)
-        }
-        /*
-        if (displayStyle && html) {
-          html = html.replace(/class="katex"/g, 'class="katex katex-block" style="display: block;"')
-        }
-        */
-        return html
+  },
+  ctrlshift: {
+    "b": {
+      desc: "Beautify the document",
+      func: beautifyDocument
+    },
+    "s": {
+      desc: "Save the current document as new file",
+      func: (() => saveFile(true))
+    }
+  }
+}
+
+const commandList = {
+  '!ver': {
+    desc: 'Shows the current version of the application',
+    func: () => { print(`${getAppInfo().name} ${getAppInfo().version}`); },
+  },
+  '!cls': {
+    desc: 'Clear console',
+    func: () => { consoleOutUi.innerHTML = ''; },
+  },
+  '!kill': {
+    desc: 'Kills the currently running process',
+    func: () => {
+      if (runningProcess) {
+        requireTreeKill()(runningProcess.pid, 'SIGKILL', (err) => {
+          if (err) {
+            print('Could not stop the running process.', INFO_LEVEL.error);
+          }
+        });
       } else {
-        return null
+        print('No Process to kill.', INFO_LEVEL.warn);
       }
-    }
+    },
+  },
+  '!hello': {
+    desc: 'Hello There :D',
+    func: () => { print('Hi there :D'); },
+  },
+  '!dev': {
+    desc: 'Open Chrome Devtools for the preview window',
+    func: () => { webviewUi.openDevTools(); },
+  },
+  '!settings': {
+    desc: 'Open settings file',
+    func: () => { openSettings(); },
+  },
+  '!lang_settings': {
+    desc: 'Open language settings file',
+    func: () => { openLanguageSettings(); },
+  },
+  '!exp_pdf': {
+    desc: 'Generate and export PDF of the current preview panel',
+    func: () => { exportPDFFromPreview(); }
+  },
+  '!help': {
+    desc: 'Shows all the available commands',
+    func: () => {
+      let ret = '';
+      let longest = Object.keys(commandList).reduce((prev, curr) => curr.length > prev ? curr.length : prev, 0) + 6;
+      Object.entries(commandList).forEach(([key, value]) => {
+        ret += `${key}${" ".repeat(longest - key.length)}${value.desc}\n`;
+      });
+      
+      ret += "------------------------------------------------------------------------\n";
+      Object.entries(keyBindings.ctrl).forEach(([key, value]) => {
+        ret += `ctrl + ${key}            ${value.desc}\n`;
+      });
+      Object.entries(keyBindings.ctrlshift).forEach(([key, value]) => {
+        ret += `ctrl + shift + ${key}    ${value.desc}\n`;
+      });
+      
+      print(ret);
+    },
+  },
+};
 
 
-    _marked.setOptions({
-      renderer: renderer,
-      highlight: (code, lang) => {
-        const validLanguage = _hljs.getLanguage(lang) ? lang : 'plaintext';
-        return _hljs.highlight(code, { language: validLanguage }).value;
-      },
-    });
-  }
 
-  return _marked;
-}
-function requireRemote() {
-  if (_remote === null) {
-    _remote = require('electron').remote;
-  }
-  return _remote;
-}
-function requireDialog() {
-  if (_dialog === null) {
-    _dialog = requireRemote().dialog;
-  }
-  return _dialog;
-}
-function requireChildProcess() {
-  if (_childProcess === null) {
-    _childProcess = require('child_process');
-  }
-  return _childProcess;
-}
-function requireModeList() {
-  if (_modelist === null) {
-    _modelist = ace.require('ace/ext/modelist');
-  }
-  return _modelist;
-}
-function requireThemeList() {
-  if (_themelist === null) {
-    _themelist = ace.require('ace/ext/themelist');
-  }
-  return _themelist;
-}
-function requireBeautify() {
-  if (_beautify === null) {
-    _beautify = ace.require('ace/ext/beautify');
-  }
-  return _beautify;
-}
-function requireTreeKill() {
-  if (_tKill === null) {
-    _tKill = require('tree-kill');
-  }
-  return _tKill;
-}
 
 function requireMdTemplate() {
   if (_mdTemplate === null) {
@@ -180,15 +179,6 @@ function requireMdTemplate() {
 
 /* ------------- PUBLIC API ------------- */
 
-function getAppInfo() {
-  if (_appInfo === null) {
-    _appInfo = {
-      version: requireRemote().app.getVersion(),
-      name: 'monolith code',
-    };
-  }
-  return _appInfo;
-}
 
 function getContent() {
   return editor.getValue();
@@ -795,53 +785,6 @@ function _initialize() {
 
 
 
-  let keyBindings = {
-    ctrl: {
-      "o": {
-        desc: "Open a file",
-        func: openFile
-      },
-      "b": {
-        desc: "Build and run the current file",
-        func: buildRunFile
-      },
-      "s": {
-        desc: "Save the current file",
-        func: saveFile
-      },
-      "n": {
-        desc: "Open a new editor window",
-        func: newWindow
-      },
-      "i": {
-        desc: "Open settings",
-        func: openSettings
-      },
-      "p": {
-        desc: "Export the preview window as PDF",
-        func: exportPDFFromPreview
-      },
-      "t": {
-        desc: "Open a hello world tamplate for the current language",
-        func: makeLanguageTemplate
-      },
-      "m": {
-        desc: "Evaluate a mathematical equation on the selected line",
-        func: evaluateMathInline
-      }
-    },
-    ctrlshift: {
-      "b": {
-        desc: "Beautify the document",
-        func: beautifyDocument
-      },
-      "s": {
-        desc: "Save the current document as new file",
-        func: (() => saveFile(true))
-      }
-    }
-  }
-
   window.addEventListener('keydown', (event) => {
     let lowerKey = event.key.toLowerCase();
     if (event.ctrlKey && !event.shiftKey) {
@@ -940,71 +883,6 @@ function _initialize() {
     print(`An error ocurred reading the file :${err.message}`, INFO_LEVEL.err);
     return;
   }
-
-  commandList = {
-    '!ver': {
-      desc: 'Shows the current version of the application',
-      func: () => { print(`${getAppInfo().name} ${getAppInfo().version}`); },
-    },
-    '!cls': {
-      desc: 'Clear console',
-      func: () => { consoleOutUi.innerHTML = ''; },
-    },
-    '!kill': {
-      desc: 'Kills the currently running process',
-      func: () => {
-        if (runningProcess) {
-          requireTreeKill()(runningProcess.pid, 'SIGKILL', (err) => {
-            if (err) {
-              print('Could not stop the running process.', INFO_LEVEL.error);
-            }
-          });
-        } else {
-          print('No Process to kill.', INFO_LEVEL.warn);
-        }
-      },
-    },
-    '!hello': {
-      desc: 'Hello There :D',
-      func: () => { print('Hi there :D'); },
-    },
-    '!dev': {
-      desc: 'Open Chrome Devtools for the preview window',
-      func: () => { webviewUi.openDevTools(); },
-    },
-    '!settings': {
-      desc: 'Open settings file',
-      func: () => { openSettings(); },
-    },
-    '!lang_settings': {
-      desc: 'Open language settings file',
-      func: () => { openLanguageSettings(); },
-    },
-    '!exp_pdf': {
-      desc: 'Generate and export PDF of the current preview panel',
-      func: () => { exportPDFFromPreview(); }
-    },
-    '!help': {
-      desc: 'Shows all the available commands',
-      func: () => {
-        let ret = '';
-        let longest = Object.keys(commandList).reduce((prev, curr) => curr.length > prev ? curr.length : prev, 0) + 6;
-        Object.entries(commandList).forEach(([key, value]) => {
-          ret += `${key}${" ".repeat(longest - key.length)}${value.desc}\n`;
-        });
-        
-        ret += "------------------------------------------------------------------------\n";
-        Object.entries(keyBindings.ctrl).forEach(([key, value]) => {
-          ret += `ctrl + ${key}            ${value.desc}\n`;
-        });
-        Object.entries(keyBindings.ctrlshift).forEach(([key, value]) => {
-          ret += `ctrl + shift + ${key}    ${value.desc}\n`;
-        });
-        
-        print(ret);
-      },
-    },
-  };
 
   fs.readFile(path.resolve(__dirname, 'res/style/bars.css'), 'utf-8', (err, data) => {
     if (!err) {
