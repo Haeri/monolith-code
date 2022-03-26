@@ -1,6 +1,4 @@
-const {
-  app, BrowserWindow, ipcMain, dialog,
-} = require('electron');
+const { app, BrowserWindow, ipcMain, dialog } = require('electron');
 const path = require('path');
 const fs = require('fs');
 const common = require('./src/common');
@@ -129,9 +127,10 @@ function createWindow(caller = undefined, filePath = undefined) {
     minWidth: 220,
     minHeight: 300,
     webPreferences: {
-      nodeIntegration: true,
-      contextIsolation: false,
-      enableRemoteModule: true,
+      preload: path.join(__dirname, 'src/preload.js'),
+//      nodeIntegration: true,
+      contextIsolation: true,
+      //enableRemoteModule: true,
       webviewTag: true,
       ...filePath && { additionalArguments: [`--open-file="${filePath}"`] },
     },

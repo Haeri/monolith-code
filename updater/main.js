@@ -1,6 +1,6 @@
 const AdmZip = require('adm-zip');
 const fs = require('fs');
-const { execSync } = require('child_process');
+const execSync = require('child_process');
 const crypto = require('crypto');
 const axios = require('axios').default;
 const common = require('../src/common');
