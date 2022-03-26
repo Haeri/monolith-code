@@ -217,7 +217,7 @@ ipcMain.on('can-close-response', (event, canClose) => {
   win.destroy();
 });
 
-// Linux transparency hack
+// TEMPFIX: Linux transparency hack
 // from https://github.com/electron/electron/issues/25153
 let delay = 0;
 if (process.platform === 'linux') {
@@ -247,4 +247,16 @@ app.on('window-all-closed', () => {
   if (shouldUpdate) {
     doUpdate();
   }
+});
+
+
+
+// TEMPFIX: Temporary workaround for CWE-668
+app.on('web-contents-created', (event, webContents) => {
+  webContents.on('select-bluetooth-device', (event, devices, callback) => {
+    // Prevent default behavior
+    event.preventDefault();
+    // Cancel the request
+    callback('');
+  });
 });
