@@ -9,6 +9,7 @@ let _modelist = null;
 let _themelist = null;
 
 let _mdTemplate = null;
+let _scrollBarsCss = null;
 let editor = null;
 
 const file = {
@@ -39,8 +40,6 @@ let processIndicatorUi;
 
 let commandHistory = [];
 let historyIndex;
-
-let scrollBarsCss;
 
 const INFO_LEVEL = Object.freeze({
   user: 0,
@@ -110,11 +109,7 @@ const commandList = {
     desc: 'Kills the currently running process',
     func: () => {
       if (runningProcess) {
-        requireTreeKill()(runningProcess.pid, 'SIGKILL', (err) => {
-          if (err) {
-            print('Could not stop the running process.', INFO_LEVEL.error);
-          }
-        });
+        killProcess();
       } else {
         print('No Process to kill.', INFO_LEVEL.warn);
       }
@@ -148,7 +143,7 @@ const commandList = {
       Object.entries(commandList).forEach(([key, value]) => {
         ret += `${key}${" ".repeat(longest - key.length)}${value.desc}\n`;
       });
-      
+
       ret += "------------------------------------------------------------------------\n";
       Object.entries(keyBindings.ctrl).forEach(([key, value]) => {
         ret += `ctrl + ${key}            ${value.desc}\n`;
@@ -156,7 +151,7 @@ const commandList = {
       Object.entries(keyBindings.ctrlshift).forEach(([key, value]) => {
         ret += `ctrl + shift + ${key}    ${value.desc}\n`;
       });
-      
+
       print(ret);
     },
   },
@@ -165,11 +160,20 @@ const commandList = {
 
 
 
-function requireMdTemplate() {
+async function fetchMdTemplate() {
   if (_mdTemplate === null) {
-    _mdTemplate = path.resolve(__dirname, 'res/embed/markdown/index.html');
+    const response = await fetch('res/embed/markdown/index.html');
+    _mdTemplate = await response.text();
   }
   return _mdTemplate;
+}
+
+async function fetchScrollBarsCss() {
+  if (_scrollBarsCss === null) {    
+    const response = await fetch('res/style/bars.css');
+    _scrollBarsCss = await response.text();
+  }
+  return _scrollBarsCss;
 }
 
 
@@ -218,7 +222,7 @@ function newWindow(file_path = undefined) {
   ipcRenderer.send('new-window', file_path);
 }
 
-function writeFile(filePath, content) {
+async function writeFile(filePath, content) {
   return new Promise((resolve, reject) => {
     fs.writeFile(filePath, content, (err) => {
       if (!err) {
@@ -264,7 +268,7 @@ async function openFile(filepath = undefined) {
   }
 }
 
-function saveFile(saveAs = false) {
+async function saveFile(saveAs = false) {
   return new Promise((resolve, reject) => {
     if (file.path === undefined || saveAs) {
       const lang = langInfo[languageDisplayUi.value];
@@ -408,6 +412,23 @@ function openLanguageSettings() {
   newWindow(langPrefPath);
 }
 
+async function killProcess() {
+  return new Promise((resolve, reject) => {
+    if (runningProcess != null) {
+      requireTreeKill()(runningProcess.pid, 'SIGKILL', (err) => {
+        if (err) {
+          print('Could not stop the running process.', INFO_LEVEL.error);
+          reject();
+        } else {
+          resolve();
+        }
+      });
+    } else {
+      resolve();
+    }
+  });
+}
+
 
 
 /* ------------- PRIVATE HELPERS ------------- */
@@ -521,20 +542,10 @@ function commandRunner(command, args, callback) {
 }
 
 function runCommand(command, args, callback = undefined) {
-  if (runningProcess != null) {
-    requireTreeKill()(runningProcess.pid, 'SIGKILL', (err) => {
-      if (err) {
-        print('Could not stop the running process.', INFO_LEVEL.error);
-      } else {
-        commandRunner(command, args, callback);
-      }
-    });
-  } else {
-    commandRunner(command, args, callback);
-  }
+  killProcess().then(() => { commandRunner(command, args, callback); });
 }
 
-function runFile() {
+async function runFile() {
   if (file.lang in langInfo) {
     let cmdRun = langInfo[file.lang].run;
     if (cmdRun) {
@@ -553,7 +564,7 @@ function runFile() {
         webviewUi.send('fill_content', markedHtml);
         editor.on('input', markdownUpdater);
       }, { once: true });
-      webviewUi.src = requireMdTemplate();
+      webviewUi.src = await fetchMdTemplate();
 
     } else if (file.lang === 'html') {
       webviewUi.src = (`${file.path + file.name}.html`);
@@ -666,18 +677,17 @@ function _initializeOptions(config) {
   themeChoiceUi.value = config.theme;
 }
 
-function _initialize() {
+async function _initialize() {
   // Initialize all ui elements
   _assignUIVariables();
 
-  const settings = ipcRenderer.sendSync('initial-settings');
+  const settings = await window.api.getInitialSettings();
   editorConfig = settings.editorConfig;
   windowConfig = settings.windowConfig;
   localWindowConfig = settings.localWindowConfig;
   userPrefPath = settings.userPrefPath;
   langPrefPath = settings.languageConfigPath;
 
-  webFrame.setVisualZoomLevelLimits(1, 3);
 
   editor = ace.edit('main-text-area', {
     enableBasicAutocompletion: true,
@@ -737,50 +747,38 @@ function _initialize() {
   });
 
   document.getElementById('min-button').addEventListener('click', () => {
-    const window = requireRemote().getCurrentWindow();
-    window.minimize();
+    window.api.minimize();
   });
 
   document.getElementById('max-button').addEventListener('click', () => {
-    const window = requireRemote().getCurrentWindow();
-    if (!window.isMaximized()) {
-      window.maximize();
-      window.emit('maximize');
-    } else {
-      window.unmaximize();
-      window.emit('unmaximize');
-    }
+    window.api.toggleMaxUnmax();
   });
 
   document.getElementById('close-button').addEventListener('click', () => {
-    const window = requireRemote().getCurrentWindow();
-
-    if (runningProcess != null) {
-      requireTreeKill()(runningProcess.pid, 'SIGKILL');
-    }
-
-    window.close();
+    killProcess().then(() => window.api.close() );
   });
 
   document.getElementById('pin-button').addEventListener('click', (e) => {
-    const window = requireRemote().getCurrentWindow();
-    const pinned = window.isAlwaysOnTop();
-
-    window.setAlwaysOnTop(!pinned);
-    if (!pinned) {
-      e.currentTarget.classList.add('pinned');
-    } else {
-      e.currentTarget.classList.remove('pinned');
-    }
+    window.api.togglePin().then(pinned => {
+      if (!pinned) {
+        e.target.classList.add('pinned');
+      } else {
+        e.target.classList.remove('pinned');
+      }
+    });
   });
 
-  const browserWindow = requireRemote().getCurrentWindow();
-  browserWindow.on('maximize', () => {
-    _toggleFullscreenStyle(true);
+
+  window.api.updateMaxUnmax((_, value) => {
+    _toggleFullscreenStyle(value);
   });
 
-  browserWindow.on('unmaximize', () => {
-    _toggleFullscreenStyle(false);
+  window.api.canClose((event) => {
+    event.sender.send('can-close-response', (isSaved === null || isSaved));
+  });
+
+  window.api.print((_, value) => {
+    print(value.text);
   });
 
 
@@ -884,16 +882,10 @@ function _initialize() {
     return;
   }
 
-  fs.readFile(path.resolve(__dirname, 'res/style/bars.css'), 'utf-8', (err, data) => {
-    if (!err) {
-      scrollBarsCss = data;
-    }
-  });
-
   webviewUi.addEventListener('load-commit', () => {
   });
-  webviewUi.addEventListener('did-finish-load', () => {
-    webviewUi.insertCSS(scrollBarsCss);
+  webviewUi.addEventListener('did-finish-load', async () => {
+    webviewUi.insertCSS(await fetchScrollBarsCss());
     webviewUi.insertCSS('body{background: transparent !important;}');
     webviewUi.send('onLoad');
   });
@@ -977,13 +969,6 @@ function _initialize() {
   document.getElementById('editor-wrapper').style.width = editorConfig.media_div_percent;
   document.getElementById('main-divider').style.height = editorConfig.console_div_percent;
 
-  ipcRenderer.on('can-close', (event) => {
-    event.sender.send('can-close-response', (isSaved === null || isSaved));
-  });
-
-  ipcRenderer.on('print', (event, data) => {
-    print(data.text);
-  });
 
   print(`${getAppInfo().name} ${getAppInfo().version}`);
 

@@ -128,9 +128,8 @@ function createWindow(caller = undefined, filePath = undefined) {
     minHeight: 300,
     webPreferences: {
       preload: path.join(__dirname, 'src/preload.js'),
-//      nodeIntegration: true,
+      nodeIntegration: false,
       contextIsolation: true,
-      //enableRemoteModule: true,
       webviewTag: true,
       ...filePath && { additionalArguments: [`--open-file="${filePath}"`] },
     },
@@ -152,10 +151,12 @@ function createWindow(caller = undefined, filePath = undefined) {
 
   win.on('maximize', () => {
     localStore.set('window_config.maximized', true);
+    win.webContents.send('update-max-unmax', true);
   });
 
   win.on('unmaximize', () => {
     localStore.set('window_config.maximized', false);
+    win.webContents.send('update-max-unmax', false);
   });
 
   win.once('ready-to-show', () => {
@@ -165,57 +166,113 @@ function createWindow(caller = undefined, filePath = undefined) {
     }
   });
 
+
+
+
+  ipcMain.handle('initial-settings', () => {
+    const editorConfig = userPrefStore.get('editor_config');
+    const windowConfig = userPrefStore.get('window_config');
+    const localWindowConfig = localStore.get('window_config')
+    const languageConfig = langStore.get('language_config');
+    const userPrefPath = userPrefStore.getFilePath();
+    const languageConfigPath = langStore.getFilePath();
+    return{
+      editorConfig, windowConfig,
+      localWindowConfig, languageConfig,
+      userPrefPath, languageConfigPath
+    };
+  });
+  
+  
+  
+  ipcMain.on('minimize', (event) => {
+    const win = BrowserWindow.fromWebContents(event.sender);
+    win.minimize();
+  });
+  ipcMain.on('maximize', (event) => {
+    const win = BrowserWindow.fromWebContents(event.sender);
+    win.maximize();
+  });
+  ipcMain.on('unmaximize', (event) => {
+    const win = BrowserWindow.fromWebContents(event.sender);
+    win.unmaximize();
+  });
+  ipcMain.on('toggle-max-unmax', (event) => {
+    const win = BrowserWindow.fromWebContents(event.sender);
+    if (!win.isMaximized()) {
+      win.maximize();
+      //window.emit('maximize');
+    } else {
+      win.unmaximize();
+      //window.emit('unmaximize');
+    }
+  });
+  ipcMain.handle('toggle-pin', (event) => {
+    const win = BrowserWindow.fromWebContents(event.sender);
+    const pinned = win.isAlwaysOnTop();
+    win.setAlwaysOnTop(!pinned);
+    return pinned;
+  });
+  
+  ipcMain.on('close', (event) => {
+    const win = BrowserWindow.fromWebContents(event.sender);
+    win.close();
+  });
+  
+  
+  
+  
+  ipcMain.on('new-window', (event, filePath) => {
+    const win = BrowserWindow.fromWebContents(event.sender);
+    createWindow(win, filePath);
+  });
+  ipcMain.on('store-setting', (event, key, value) => {
+    const conf = userPrefStore.get('editor_config');
+    conf[key] = value;
+    userPrefStore.set('editor_config', conf);
+  });
+  ipcMain.on('get-setting', (event, key) => {
+    const conf = userPrefStore.get('editor_config');
+    event.returnValue = conf[key];
+  });
+  
+  ipcMain.on('can-close-response', (event, canClose) => {
+    const win = BrowserWindow.fromWebContents(event.sender);
+    if (!canClose) {
+      const options = {
+        type: 'question',
+        buttons: ['Cancel', 'Yes', 'No'],
+        defaultId: 2,
+        title: 'Unsaved Content',
+        message: 'Do you want to quit the application without saving?',
+        detail: 'You will loose the current document',
+      };
+  
+      const ret = dialog.showMessageBoxSync(win, options);
+  
+      if (ret !== 1) {
+        return;
+      }
+    }
+  
+    win.destroy();
+  });
+
+
+
+
+
+  
   win.loadFile('index.html');
 }
 
-ipcMain.on('new-window', (event, filePath) => {
-  const win = BrowserWindow.fromWebContents(event.sender);
-  createWindow(win, filePath);
-});
-ipcMain.on('initial-settings', (event) => {
-  const editorConfig = userPrefStore.get('editor_config');
-  const windowConfig = userPrefStore.get('window_config');
-  const localWindowConfig = localStore.get('window_config')
-  const languageConfig = langStore.get('language_config');
-  const userPrefPath = userPrefStore.getFilePath();
-  const languageConfigPath = langStore.getFilePath();
-  event.returnValue = {
-    editorConfig, windowConfig,
-    localWindowConfig, languageConfig,
-    userPrefPath, languageConfigPath
-  };
-});
-ipcMain.on('store-setting', (event, key, value) => {
-  const conf = userPrefStore.get('editor_config');
-  conf[key] = value;
-  userPrefStore.set('editor_config', conf);
-});
-ipcMain.on('get-setting', (event, key) => {
-  const conf = userPrefStore.get('editor_config');
-  event.returnValue = conf[key];
-});
 
-ipcMain.on('can-close-response', (event, canClose) => {
-  const win = BrowserWindow.fromWebContents(event.sender);
-  if (!canClose) {
-    const options = {
-      type: 'question',
-      buttons: ['Cancel', 'Yes', 'No'],
-      defaultId: 2,
-      title: 'Unsaved Content',
-      message: 'Do you want to quit the application without saving?',
-      detail: 'You will loose the current document',
-    };
 
-    const ret = dialog.showMessageBoxSync(win, options);
 
-    if (ret !== 1) {
-      return;
-    }
-  }
 
-  win.destroy();
-});
+
+
+
 
 // TEMPFIX: Linux transparency hack
 // from https://github.com/electron/electron/issues/25153
@@ -247,16 +304,4 @@ app.on('window-all-closed', () => {
   if (shouldUpdate) {
     doUpdate();
   }
-});
-
-
-
-// TEMPFIX: Temporary workaround for CWE-668
-app.on('web-contents-created', (event, webContents) => {
-  webContents.on('select-bluetooth-device', (event, devices, callback) => {
-    // Prevent default behavior
-    event.preventDefault();
-    // Cancel the request
-    callback('');
-  });
 });

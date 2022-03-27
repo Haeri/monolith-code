@@ -109,9 +109,25 @@ function requireTreeKill() {
     return _tKill;
 }
 
+webFrame.setVisualZoomLevelLimits(1, 3);
 
 const API = {
+    // Getter
+    getInitialSettings: () => ipcRenderer.invoke("initial-settings"),
 
+    // Public API
+    minimize: () => ipcRenderer.send("minimize"),
+    maximize: () => ipcRenderer.send("maximize"),
+    unmaximize: () => ipcRenderer.send("unmaximize"),
+    toggleMaxUnmax: () => ipcRenderer.send("toggle-max-unmax"),
+    close: () => ipcRenderer.send("close"),
+    togglePin: () => ipcRenderer.invoke("toggle-pin"),
+
+    // Handler
+    updateMaxUnmax: (callback) => ipcRenderer.on('update-max-unmax', callback),
+    canClose: (callback) => ipcRenderer.on('can-close', callback),
+    print: (callback) => ipcRenderer.on('print', callback),
+  
 };
 
 contextBridge.exposeInMainWorld("api", API);
