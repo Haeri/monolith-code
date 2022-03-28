@@ -1,6 +1,5 @@
 const { contextBridge, ipcRenderer, webFrame } = require("electron");
-const fs = require('fs');
-const path = require('path');
+
 
 let _appInfo = null;
 let _childProcess = null;
@@ -10,17 +9,6 @@ let _beautify = null;
 let _tKill = null;
 
 
-function requireAppInfo() {
-    if (_appInfo === null) {
-        let app = require('electron').app;
-        _appInfo = {
-            name: 'monolith code',
-            version: app.getVersion(),
-            os: process.platform
-        };
-    }
-    return _appInfo;
-}
 function requireMarked() {
     if (_marked === null) {
         _marked = require('marked');
@@ -122,6 +110,8 @@ const API = {
     toggleMaxUnmax: () => ipcRenderer.send("toggle-max-unmax"),
     close: () => ipcRenderer.send("close"),
     togglePin: () => ipcRenderer.invoke("toggle-pin"),
+    openFile: (filePath) =>  ipcRenderer.invoke("open-file", filePath),
+    saveFile: () =>  ipcRenderer.invoke("save-file"),
 
     // Handler
     updateMaxUnmax: (callback) => ipcRenderer.on('update-max-unmax', callback),

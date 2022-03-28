@@ -104,7 +104,7 @@ function doUpdate() {
   child.unref();
 }
 
-function createWindow(caller = undefined, filePath = undefined) {
+function createWindow(caller = undefined, filePathsToOpen = []) {
   let { x, y, width, height, maximized } = localStore.get('window_config');
   let { rounded_window } = userPrefStore.get('window_config');
 
@@ -130,8 +130,7 @@ function createWindow(caller = undefined, filePath = undefined) {
       preload: path.join(__dirname, 'src/preload.js'),
       nodeIntegration: false,
       contextIsolation: true,
-      webviewTag: true,
-      ...filePath && { additionalArguments: [`--open-file="${filePath}"`] },
+      webviewTag: true,      
     },
     icon: path.join(__dirname, 'res/img/icon.png'),
   });
@@ -176,15 +175,21 @@ function createWindow(caller = undefined, filePath = undefined) {
     const languageConfig = langStore.get('language_config');
     const userPrefPath = userPrefStore.getFilePath();
     const languageConfigPath = langStore.getFilePath();
-    return{
+    return {
+      appInfo: {
+        name: 'monolith code',
+        version: app.getVersion(),
+        os: process.platform
+      },
+      filePathsToOpen,
       editorConfig, windowConfig,
       localWindowConfig, languageConfig,
       userPrefPath, languageConfigPath
     };
   });
-  
-  
-  
+
+
+
   ipcMain.on('minimize', (event) => {
     const win = BrowserWindow.fromWebContents(event.sender);
     win.minimize();
@@ -201,10 +206,8 @@ function createWindow(caller = undefined, filePath = undefined) {
     const win = BrowserWindow.fromWebContents(event.sender);
     if (!win.isMaximized()) {
       win.maximize();
-      //window.emit('maximize');
     } else {
       win.unmaximize();
-      //window.emit('unmaximize');
     }
   });
   ipcMain.handle('toggle-pin', (event) => {
@@ -213,15 +216,56 @@ function createWindow(caller = undefined, filePath = undefined) {
     win.setAlwaysOnTop(!pinned);
     return pinned;
   });
-  
+
   ipcMain.on('close', (event) => {
     const win = BrowserWindow.fromWebContents(event.sender);
     win.close();
   });
+
+
+  ipcMain.handle('open-file', (event, filePath) => {
+    const win = BrowserWindow.fromWebContents(event.sender);    
+    
+    if (filePath === undefined) {
+      const options = {
+        title: 'Open a file',
+      };
+      
+      let ret = await requireDialog().showOpenDialog(win, options);
+      if (!ret.canceled) {
+        filePath = ret.filePaths[0];
+      }
+    }
   
-  
-  
-  
+    if (file.path || (isSaved !== null && !isSaved)) {
+      newWindow(filePath);
+      notifyLoadEnd();
+    } else {    
+      fs.readFile(filePath, { encoding: 'utf-8' }, (err, data) => {
+        if (!err) {
+          editor.setValue(data, -1);
+          _setFileInfo(filePath);
+          webviewUi.src = 'about:blank'
+          print(`Opened file ${filePath}`);
+        } else {
+          print(`Could not open file ${filePath}<br>${err}`, INFO_LEVEL.error);
+        }
+        notifyLoadEnd();
+      });
+    }
+    
+    return pinned;
+  });
+
+  ipcMain.handle('save-file', (event) => {
+    const win = BrowserWindow.fromWebContents(event.sender);
+    
+    return ;
+  });
+
+
+
+
   ipcMain.on('new-window', (event, filePath) => {
     const win = BrowserWindow.fromWebContents(event.sender);
     createWindow(win, filePath);
@@ -235,7 +279,7 @@ function createWindow(caller = undefined, filePath = undefined) {
     const conf = userPrefStore.get('editor_config');
     event.returnValue = conf[key];
   });
-  
+
   ipcMain.on('can-close-response', (event, canClose) => {
     const win = BrowserWindow.fromWebContents(event.sender);
     if (!canClose) {
@@ -247,22 +291,18 @@ function createWindow(caller = undefined, filePath = undefined) {
         message: 'Do you want to quit the application without saving?',
         detail: 'You will loose the current document',
       };
-  
+
       const ret = dialog.showMessageBoxSync(win, options);
-  
+
       if (ret !== 1) {
         return;
       }
     }
-  
+
     win.destroy();
   });
 
 
-
-
-
-  
   win.loadFile('index.html');
 }
 
@@ -283,7 +323,13 @@ if (process.platform === 'linux') {
 }
 
 app.whenReady().then(() => {
-  setTimeout(createWindow, delay);
+  setTimeout(() => {
+    if (process.argv.length> 1) {
+      createWindow(null, process.argv.slice(1));
+    } else{
+      createWindow();
+    }
+  }, delay);
 
   app.on('activate', () => {
     // On macOS it's common to re-create a window in the app when the
