@@ -16,7 +16,8 @@
 		        margin: 0;
 		        padding: 0;
 		        font-family: 'Open Sans';
-		        background: white !important;
+		        background: #e5e5e5 !important;
+				color: #211f1e;
 		    }
 		    .main-wrapper{
 		        height: 100vh;
@@ -66,33 +67,36 @@
     			gap: 30px;
 		    }
 		    .download-btn{
-				background: #2b58db;
-				border-bottom: 2px solid #1545d0;
+				background: #231f1f;
+				border: 1px solid #2d2d2d;
 				border-radius: 10px;
 				padding: 10px 36px;
-				color: #dcdcdc;
+				padding-left: 28px;
+				color: #aeaeae;
 				text-decoration: none;
 				display: inline-block;
 				font-size: 0.9rem;
 				text-align: center;
 				transition: 0.3s;
-				margin-top: 2px;
+				margin-top: 2px;				
+				display: flex;
+    			align-items: center;
+				box-shadow: 1px 1px 8px rgba(0, 0, 0, 0.2);
 		    }
 		    .download-btn:hover{
-                background: rgb(68 115 255);
-                margin-top: 1px;
-                border-bottom: 3px solid #1545d0;
-                box-shadow: 0px 0px 30px 0px #adc1ff;
+				background: #3a3535;
+				box-shadow: 1px 1px 10px rgba(0, 0, 0, 0.2);
 		    }
 		    .download-btn strong{
 		        color: white;
 		        font-size: 1rem;
 		    }
 		    .download-btn svg{
-		        color: white;
-		        height: 26px;
-                vertical-align: bottom;
-                margin-right: 4px;
+				color: white;
+				width: 25px;
+				height: 25px;
+				vertical-align: bottom;
+				margin-right: 12px;
 		    }
 		    .demo{
 		        width: 100%;
@@ -107,35 +111,29 @@
     	        <div class="title-wrapper">
         		    <h1><img src="res/img/icon.ico"> monolith code</h1>
         		    <h3>minimalistic but powerful code editor</h3>
-    				<span>Latest version <span id="version_insert"></span></span>
+    				<span>latest version <span id="version_insert"></span></span>
     			</div>
     			<div class="dl-panel">
     				<a href="https://github.com/Haeri/MonolithCode2/releases/latest/download/monolithcode_win.zip" class="download-btn">
     					<i data-feather="download"></i>
-    					<span><strong>Download</strong><br>for Windows</span>
+    					<span><strong>Download</strong><br>for windows</span>
     				</a>
     				<a href="https://github.com/Haeri/MonolithCode2/releases/latest/download/monolithcode_linux.zip" class="download-btn"><i data-feather="download"></i>
-    					<span><strong>Download</strong><br>for Linux</span>
+    					<span><strong>Download</strong><br>for linux</span>
     				</a>
     				<a href="https://github.com/Haeri/MonolithCode2/releases/latest/download/monolithcode_mac.zip" class="download-btn"><i data-feather="download"></i>
     					<span><strong>Download</strong><br>for macOS</span>
     				</a>		        
     	        </div>
 	        </div>
-	    </section>
-	    
+	    </section>	
 		
 		<script src="res/js/feather.min.js"></script>
 		<script>
             function initLatestVersion(){
-                let xhttp = new XMLHttpRequest();
-                xhttp.responseType = 'json';
-                xhttp.onload = function() {
-                    let info = xhttp.response;
-                    document.getElementById("version_insert").innerHTML = info.tag_name;
-                }
-                xhttp.open("GET", "https://api.github.com/repos/Haeri/MonolithCode2/releases/latest");
-                xhttp.send();
+				fetch('https://api.github.com/repos/Haeri/MonolithCode2/releases/latest')
+					.then(response => response.json())
+					.then(data => document.getElementById("version_insert").innerHTML = data.tag_name);							
             }
             
             
