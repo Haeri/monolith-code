@@ -4,6 +4,7 @@
 
 const errorSVG = '<svg version="1.1" id="Capa_1" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" x="0px" y="0px" viewBox="0 0 52 52" style="enable-background:new 0 0 52 52;" xml:space="preserve"><g>	<path d="M26,0C11.664,0,0,11.663,0,26s11.664,26,26,26s26-11.663,26-26S40.336,0,26,0z M26,50C12.767,50,2,39.233,2,26	S12.767,2,26,2s24,10.767,24,24S39.233,50,26,50z"/>	<path d="M35.707,16.293c-0.391-0.391-1.023-0.391-1.414,0L26,24.586l-8.293-8.293c-0.391-0.391-1.023-0.391-1.414,0 s-0.391,1.023,0,1.414L24.586,26l-8.293,8.293c-0.391,0.391-0.391,1.023,0,1.414C16.488,35.902,16.744,36,17,36 s0.512-0.098,0.707-0.293L26,27.414l8.293,8.293C34.488,35.902,34.744,36,35,36s0.512-0.098,0.707-0.293 c0.391-0.391,0.391-1.023,0-1.414L27.414,26l8.293-8.293C36.098,17.316,36.098,16.684,35.707,16.293z"/></g></svg>';
 
+let appInfo = null;
 
 let _modelist = null;
 let _themelist = null;
@@ -99,7 +100,7 @@ const keyBindings = {
 const commandList = {
   '!ver': {
     desc: 'Shows the current version of the application',
-    func: () => { print(`${getAppInfo().name} ${getAppInfo().version}`); },
+    func: () => { print(`${appInfo.name} ${appInfo.version}`); },
   },
   '!cls': {
     desc: 'Clear console',
@@ -239,33 +240,9 @@ async function writeFile(filePath, content) {
 async function openFile(filepath = undefined) {
   notifyLoadStart();
 
-  if (filepath === undefined) {
-    const options = {
-      title: 'Open a file',
-    };
-    const window = requireRemote().getCurrentWindow();
-    let ret = await requireDialog().showOpenDialog(window, options);
-    if (!ret.canceled) {
-      filepath = ret.filePaths[0];
-    }
-  }
-
-  if (file.path || (isSaved !== null && !isSaved)) {
-    newWindow(filepath);
-    notifyLoadEnd();
-  } else {
-    fs.readFile(filepath, { encoding: 'utf-8' }, (err, data) => {
-      if (!err) {
-        editor.setValue(data, -1);
-        _setFileInfo(filepath);
-        webviewUi.src = 'about:blank'
-        print(`Opened file ${filepath}`);
-      } else {
-        print(`Could not open file ${filepath}<br>${err}`, INFO_LEVEL.error);
-      }
-      notifyLoadEnd();
-    });
-  }
+  let data = await window.api.openFile(filepath);
+  
+  notifyLoadEnd();
 }
 
 async function saveFile(saveAs = false) {
@@ -682,6 +659,7 @@ async function _initialize() {
   _assignUIVariables();
 
   const settings = await window.api.getInitialSettings();
+  appInfo = settings.appInfo;
   editorConfig = settings.editorConfig;
   windowConfig = settings.windowConfig;
   localWindowConfig = settings.localWindowConfig;
@@ -864,7 +842,8 @@ async function _initialize() {
   });
 
   try {
-    let data = fs.readFileSync(path.resolve(__dirname, 'res/lang.json'), { encoding: 'utf-8' });
+    const response = await fetch('res/lang.json');
+    const data = await response.text();
     langInfo = JSON.parse(data);
     mergeDeep(langInfo, settings.languageConfig);
 
@@ -969,12 +948,10 @@ async function _initialize() {
   document.getElementById('editor-wrapper').style.width = editorConfig.media_div_percent;
   document.getElementById('main-divider').style.height = editorConfig.console_div_percent;
 
+  print(`${appInfo.name} ${appInfo.version}`);
 
-  print(`${getAppInfo().name} ${getAppInfo().version}`);
-
-  const shouldOpen = window.process.argv.filter((s) => s.includes('--open-file='));
-  if (shouldOpen.length > 0) {
-    openFile(shouldOpen[0].replace(/--open-file="(.*)"/, '$1'));
+  if (settings.filePathsToOpen.length) {
+    openFile(settings.filePathsToOpen);
   }
 }
 
