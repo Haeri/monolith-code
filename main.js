@@ -1,16 +1,25 @@
-const { app, BrowserWindow, ipcMain, dialog } = require('electron');
+const { app, BrowserWindow, ipcMain } = require('electron');
 const path = require('path');
 const fs = require('fs');
-const common = require('./src/common');
 const Store = require('./src/store');
 
+// Just use fetch
 let _axios = null;
+
+let lazyRequires = {
+  dialog: null,
+  fsp: null,
+
+  common: null
+};
 
 const RELEASE_VERSION_URL = 'https://api.github.com/repos/Haeri/MonolithCode2/releases/latest';
 const RELEASE_ZIP_URL = 'https://github.com/Haeri/MonolithCode2/releases/latest/download/';
 
 let newVersion = null;
 let shouldUpdate = false;
+
+let filePathsToOpen = [];
 
 const localStore = new Store({
   configName: 'local-settings',
@@ -57,9 +66,30 @@ function requireAxios() {
   return _axios;
 }
 
+function dialog() {
+  if (lazyRequires.dialog === null) {
+    lazyRequires.dialog = require('electron').dialog;
+  }
+  return lazyRequires.dialog;
+}
+function fsp() {
+  if (lazyRequires.fsp === null) {
+    lazyRequires.fsp = require('fs').promises;
+  }
+  return lazyRequires.fsp;
+}
+function common() {
+  if (lazyRequires.common === null) {
+    lazyRequires.common = require('./src/common');
+  }
+  return lazyRequires.common;
+}
+
+
+
 function downloadLatestVersion() {
   requireAxios()
-    .get(RELEASE_ZIP_URL + common.PLATFORM_ZIP[process.platform], { responseType: 'stream' })
+    .get(RELEASE_ZIP_URL + common().PLATFORM_ZIP[process.platform], { responseType: 'stream' })
     .then((response) => {
       response.data.pipe(fs.createWriteStream('monolith.zip'))
         .on('close', () => {
@@ -96,15 +126,16 @@ function checkLatestVersion() {
 }
 
 function doUpdate() {
-  let command = `./${app.getVersion()}/updater${common.getExeExtension()}`;
+  let command = `./${app.getVersion()}/updater${common().getExeExtension()}`;
   if (process.platform !== 'win32') {
-    command = `chmod +x ./${app.getVersion()}/updater${common.getExeExtension()} && ${command}`;
+    command = `chmod +x ./${app.getVersion()}/updater${common().getExeExtension()} && ${command}`;
   }
   const child = require('child_process').spawn(command, [], { detached: true, shell: true });
   child.unref();
 }
 
-function createWindow(caller = undefined, filePathsToOpen = []) {
+function createWindow(caller = undefined, filePaths = []) {
+  filePathsToOpen = filePaths;
   let { x, y, width, height, maximized } = localStore.get('window_config');
   let { rounded_window } = userPrefStore.get('window_config');
 
@@ -130,7 +161,7 @@ function createWindow(caller = undefined, filePathsToOpen = []) {
       preload: path.join(__dirname, 'src/preload.js'),
       nodeIntegration: false,
       contextIsolation: true,
-      webviewTag: true,      
+      webviewTag: true,
     },
     icon: path.join(__dirname, 'res/img/icon.png'),
   });
@@ -165,144 +196,6 @@ function createWindow(caller = undefined, filePathsToOpen = []) {
     }
   });
 
-
-
-
-  ipcMain.handle('initial-settings', () => {
-    const editorConfig = userPrefStore.get('editor_config');
-    const windowConfig = userPrefStore.get('window_config');
-    const localWindowConfig = localStore.get('window_config')
-    const languageConfig = langStore.get('language_config');
-    const userPrefPath = userPrefStore.getFilePath();
-    const languageConfigPath = langStore.getFilePath();
-    return {
-      appInfo: {
-        name: 'monolith code',
-        version: app.getVersion(),
-        os: process.platform
-      },
-      filePathsToOpen,
-      editorConfig, windowConfig,
-      localWindowConfig, languageConfig,
-      userPrefPath, languageConfigPath
-    };
-  });
-
-
-
-  ipcMain.on('minimize', (event) => {
-    const win = BrowserWindow.fromWebContents(event.sender);
-    win.minimize();
-  });
-  ipcMain.on('maximize', (event) => {
-    const win = BrowserWindow.fromWebContents(event.sender);
-    win.maximize();
-  });
-  ipcMain.on('unmaximize', (event) => {
-    const win = BrowserWindow.fromWebContents(event.sender);
-    win.unmaximize();
-  });
-  ipcMain.on('toggle-max-unmax', (event) => {
-    const win = BrowserWindow.fromWebContents(event.sender);
-    if (!win.isMaximized()) {
-      win.maximize();
-    } else {
-      win.unmaximize();
-    }
-  });
-  ipcMain.handle('toggle-pin', (event) => {
-    const win = BrowserWindow.fromWebContents(event.sender);
-    const pinned = win.isAlwaysOnTop();
-    win.setAlwaysOnTop(!pinned);
-    return pinned;
-  });
-
-  ipcMain.on('close', (event) => {
-    const win = BrowserWindow.fromWebContents(event.sender);
-    win.close();
-  });
-
-
-  ipcMain.handle('open-file', (event, filePath) => {
-    const win = BrowserWindow.fromWebContents(event.sender);    
-    
-    if (filePath === undefined) {
-      const options = {
-        title: 'Open a file',
-      };
-      
-      let ret = await requireDialog().showOpenDialog(win, options);
-      if (!ret.canceled) {
-        filePath = ret.filePaths[0];
-      }
-    }
-  
-    if (file.path || (isSaved !== null && !isSaved)) {
-      newWindow(filePath);
-      notifyLoadEnd();
-    } else {    
-      fs.readFile(filePath, { encoding: 'utf-8' }, (err, data) => {
-        if (!err) {
-          editor.setValue(data, -1);
-          _setFileInfo(filePath);
-          webviewUi.src = 'about:blank'
-          print(`Opened file ${filePath}`);
-        } else {
-          print(`Could not open file ${filePath}<br>${err}`, INFO_LEVEL.error);
-        }
-        notifyLoadEnd();
-      });
-    }
-    
-    return pinned;
-  });
-
-  ipcMain.handle('save-file', (event) => {
-    const win = BrowserWindow.fromWebContents(event.sender);
-    
-    return ;
-  });
-
-
-
-
-  ipcMain.on('new-window', (event, filePath) => {
-    const win = BrowserWindow.fromWebContents(event.sender);
-    createWindow(win, filePath);
-  });
-  ipcMain.on('store-setting', (event, key, value) => {
-    const conf = userPrefStore.get('editor_config');
-    conf[key] = value;
-    userPrefStore.set('editor_config', conf);
-  });
-  ipcMain.on('get-setting', (event, key) => {
-    const conf = userPrefStore.get('editor_config');
-    event.returnValue = conf[key];
-  });
-
-  ipcMain.on('can-close-response', (event, canClose) => {
-    const win = BrowserWindow.fromWebContents(event.sender);
-    if (!canClose) {
-      const options = {
-        type: 'question',
-        buttons: ['Cancel', 'Yes', 'No'],
-        defaultId: 2,
-        title: 'Unsaved Content',
-        message: 'Do you want to quit the application without saving?',
-        detail: 'You will loose the current document',
-      };
-
-      const ret = dialog.showMessageBoxSync(win, options);
-
-      if (ret !== 1) {
-        return;
-      }
-    }
-
-    win.destroy();
-  });
-
-
   win.loadFile('index.html');
 }
 
@@ -310,23 +203,118 @@ function createWindow(caller = undefined, filePathsToOpen = []) {
 
 
 
+ipcMain.handle('initial-settings', () => {
+  const editorConfig = userPrefStore.get('editor_config');
+  const windowConfig = userPrefStore.get('window_config');
+  const localWindowConfig = localStore.get('window_config')
+  const languageConfig = langStore.get('language_config');
+  const userPrefPath = userPrefStore.getFilePath();
+  const languageConfigPath = langStore.getFilePath();
+  return {
+    appInfo: {
+      name: 'monolith code',
+      version: app.getVersion(),
+      os: process.platform
+    },
+    filePathsToOpen,
+    editorConfig, windowConfig,
+    localWindowConfig, languageConfig,
+    userPrefPath, languageConfigPath
+  };
+});
 
+
+
+ipcMain.on('minimize', (event) => {
+  const win = BrowserWindow.fromWebContents(event.sender);
+  win.minimize();
+});
+ipcMain.on('maximize', (event) => {
+  const win = BrowserWindow.fromWebContents(event.sender);
+  win.maximize();
+});
+ipcMain.on('unmaximize', (event) => {
+  const win = BrowserWindow.fromWebContents(event.sender);
+  win.unmaximize();
+});
+ipcMain.on('toggle-max-unmax', (event) => {
+  const win = BrowserWindow.fromWebContents(event.sender);
+  if (!win.isMaximized()) {
+    win.maximize();
+  } else {
+    win.unmaximize();
+  }
+});
+ipcMain.handle('toggle-pin', (event) => {
+  const win = BrowserWindow.fromWebContents(event.sender);
+  const pinned = win.isAlwaysOnTop();
+  win.setAlwaysOnTop(!pinned);
+  return pinned;
+});
+
+ipcMain.on('close', (event) => {
+  const win = BrowserWindow.fromWebContents(event.sender);
+  win.close();
+});
+
+ipcMain.handle('show-open-dialog', async (event) => {
+  const win = BrowserWindow.fromWebContents(event.sender);
+  return await dialog().showOpenDialog(win, { title: 'Open a file' });
+});
+
+ipcMain.handle('show-save-dialog', async (event, options) => {
+  const win = BrowserWindow.fromWebContents(event.sender);
+  return await dialog().showSaveDialog(win, options);
+});
+
+
+ipcMain.on('new-window', (event, filePaths) => {
+  const win = BrowserWindow.fromWebContents(event.sender);
+  createWindow(win, filePaths);
+});
+ipcMain.on('store-setting', (_, key, value) => {
+  const conf = userPrefStore.get('editor_config');
+  conf[key] = value;
+  userPrefStore.set('editor_config', conf);
+});
+
+ipcMain.on('can-close-response', (event, canClose) => {
+  const win = BrowserWindow.fromWebContents(event.sender);
+  if (!canClose) {
+    const options = {
+      type: 'question',
+      buttons: ['Cancel', 'Yes', 'No'],
+      defaultId: 2,
+      title: 'Unsaved Content',
+      message: 'Do you want to quit the application without saving?',
+      detail: 'You will loose the current document',
+    };
+
+    const ret = dialog().showMessageBoxSync(win, options);
+
+    if (ret !== 1) {
+      return;
+    }
+  }
+
+  win.destroy();
+});
 
 
 
 // TEMPFIX: Linux transparency hack
 // from https://github.com/electron/electron/issues/25153
 let delay = 0;
-if (process.platform === 'linux') {
+if (process.platform === 'linux' && userPrefStore.get('window_config').rounded_window) {
   delay = 200;
   app.commandLine.appendSwitch('use-gl', 'desktop');
 }
 
 app.whenReady().then(() => {
   setTimeout(() => {
-    if (process.argv.length> 1) {
+    if (process.argv.length > 1 && !fs.existsSync('./src')) {
       createWindow(null, process.argv.slice(1));
-    } else{
+    } else {
       createWindow();
     }
   }, delay);
