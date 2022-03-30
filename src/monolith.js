@@ -170,7 +170,7 @@ async function fetchMdTemplate() {
 }
 
 async function fetchScrollBarsCss() {
-  if (_scrollBarsCss === null) {    
+  if (_scrollBarsCss === null) {
     const response = await fetch('res/style/bars.css');
     _scrollBarsCss = await response.text();
   }
@@ -209,7 +209,7 @@ function setLanguage(langKey) {
   }
 
   const lang = langInfo[langKey];
-  const { mode } = requireModeList().modesByName[lang.mode];
+  const { mode } = ace.require('ace/ext/modelist').modesByName[lang.mode];
   editor.session.setMode(mode);
   languageDisplayUi.value = langKey;
 }
@@ -219,65 +219,80 @@ function setContent(content) {
 }
 
 
-function newWindow(file_path = undefined) {
-  ipcRenderer.send('new-window', file_path);
+function newWindow(filePaths = []) {
+  filePaths = Array.isArray(filePaths) ? filePaths : [filePaths];
+  window.api.newWindow(filePaths);
 }
 
-async function writeFile(filePath, content) {
-  return new Promise((resolve, reject) => {
-    fs.writeFile(filePath, content, (err) => {
-      if (!err) {
-        notify('confirm');
-        resolve();
-      } else {
-        print(err, INFO_LEVEL.error);
-        reject(err);
-      }
-    });
-  });
-}
-
-async function openFile(filepath = undefined) {
+async function openFile(filePaths = []) {
   notifyLoadStart();
 
-  let data = await window.api.openFile(filepath);
-  
-  notifyLoadEnd();
+  filePaths = Array.isArray(filePaths) ? filePaths : [filePaths];
+
+  if (!filePaths.length) {
+    const { canceled, filePaths: _filePaths } = await window.api.showOpenDialog()
+    if (canceled) {
+      notifyLoadEnd();
+      return;
+    } else {
+      filePaths = _filePaths;
+    }
+  }
+
+  if (!file.path && (isSaved === null || isSaved)) {
+    let fileToOpen = filePaths.shift();
+    window.api.readFile(fileToOpen)
+      .then(data => {
+        editor.setValue(data, -1);
+        _setFileInfo(fileToOpen);
+        webviewUi.src = 'about:blank'
+        print(`Opened file ${fileToOpen}`);
+      })
+      .catch(err => {
+        print(`Could not open file ${fileToOpen}<br>${err}`, INFO_LEVEL.error);
+      }).finally(() => {
+        notifyLoadEnd();
+      });
+  }
+
+  if (filePaths.length) {
+    newWindow(filePaths);
+  }
 }
 
 async function saveFile(saveAs = false) {
-  return new Promise((resolve, reject) => {
-    if (file.path === undefined || saveAs) {
-      const lang = langInfo[languageDisplayUi.value];
-      const options = {
-        defaultPath: `~/${lang.tempname}`,
-        filters: [
-          { name: lang.name, extensions: lang.ext },
-          { name: 'All Files', extensions: ['*'] },
-        ],
-      };
-      const window = requireRemote().getCurrentWindow();
-      requireDialog().showSaveDialog(window, options).then((ret) => {
-        if (!ret.canceled) {
-          writeFile(ret.filePath, getContent()).then(() => {
-            _setFileInfo(ret.filePath);
-            print(`file saved as ${ret.filePath}`);
-            resolve();
-          }).catch(err => {
-            reject(err);
-          });
-        }
-      });
+  notifyLoadStart();
+
+  let filePath = file.path + file.name + file.extension;
+
+  if (file.path === undefined || saveAs) {
+    const lang = langInfo[languageDisplayUi.value];
+    const options = {
+      defaultPath: `~/${lang.tempname}`,
+      filters: [
+        { name: lang.name, extensions: lang.ext },
+        { name: 'All Files', extensions: ['*'] },
+      ],
+    };
+
+    let { canceled, filePath: _filepath } = await window.api.showSaveDialog(options);
+
+    if (canceled) {
+      notifyLoadEnd();
+      return;
     } else {
-      writeFile(file.path + file.name + file.extension, getContent()).then(() => {
-        isSaved = true;
-        _updateTitle();
-        resolve();
-      }).catch(err => {
-        reject(err);
-      });
+      filePath = _filepath;
     }
-  });
+  }
+
+  await window.api.writeFile(filePath, getContent());
+
+  if (file.path === undefined || saveAs) {
+    print(`file saved as ${filePath}`);
+  }
+  _setFileInfo(filePath);
+
+  notifyLoadEnd();
 }
 
 
@@ -287,12 +302,12 @@ async function saveFile(saveAs = false) {
 function setTheme(name) {
   editor.setTheme(name);
   themeChoiceUi.value = name;
-  ipcRenderer.send('store-setting', 'theme', name);
+  window.api.storeSetting('theme', name)
 }
 
 function setFontSize(size) {
   editor.setFontSize(size);
-  ipcRenderer.send('store-setting', 'font_size', size);
+  window.api.storeSetting('font_size', size)
 }
 
 
@@ -366,7 +381,7 @@ function exportPDFFromPreview() {
     return;
   }
 
-  const pdfPath = path.resolve(file.path, file.name + '.pdf');
+  const pdfPath = window.api.path.resolve(file.path, file.name + '.pdf');
 
   webviewUi.printToPDF({ landscape: false, pageSize: 'A4' }).then(data => {
     fs.writeFile(pdfPath, data, (error) => {
@@ -599,9 +614,9 @@ function _updateTitle() {
 }
 
 function _setFileInfo(filePath) {
-  file.extension = path.extname(filePath);
-  file.path = path.dirname(filePath) + path.sep;
-  file.name = path.basename(filePath, file.extension);
+  file.extension = window.api.path.extname(filePath);
+  file.path = window.api.path.dirname(filePath) + window.api.path.sep;
+  file.name = window.api.path.basename(filePath, file.extension);
 
   const lang = getModeFromName(file.name + file.extension);
   if (lang == null) {
@@ -733,7 +748,7 @@ async function _initialize() {
   });
 
   document.getElementById('close-button').addEventListener('click', () => {
-    killProcess().then(() => window.api.close() );
+    killProcess().then(() => window.api.close());
   });
 
   document.getElementById('pin-button').addEventListener('click', (e) => {
@@ -905,11 +920,11 @@ async function _initialize() {
 
   editorMediaDivUi.addEventListener('divider-move', () => {
     const val = editorMediaDivUi.previousElementSibling.style.width;
-    ipcRenderer.send('store-setting', 'media_div_percent', val);
+    window.api.storeSetting('media_div_percent', val)
   });
   editorConsoleDivUi.addEventListener('divider-move', () => {
     const val = editorConsoleDivUi.previousElementSibling.style.height;
-    ipcRenderer.send('store-setting', 'console_div_percent', val);
+    window.api.storeSetting('console_div_percent', val)
   });
 
   editorMediaDivUi.addEventListener('dblclick', () => {
@@ -925,7 +940,7 @@ async function _initialize() {
     });
     anim.finished.then(() => {
       editorMediaDivUi.previousElementSibling.style.width = targetPercent;
-      ipcRenderer.send('store-setting', 'media_div_percent', targetPercent);
+      window.api.storeSetting('media_div_percent', targetPercent)
     });
   });
   editorConsoleDivUi.addEventListener('dblclick', () => {
@@ -941,7 +956,7 @@ async function _initialize() {
     });
     anim.finished.then(() => {
       editorConsoleDivUi.previousElementSibling.style.height = targetPercent;
-      ipcRenderer.send('store-setting', 'console_div_percent', targetPercent);
+      window.api.storeSetting('console_div_percent', targetPercent)
     });
   });
 

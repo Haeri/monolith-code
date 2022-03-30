@@ -13,8 +13,7 @@
         <link rel="stylesheet" href="res/style/style.css">
         <link rel="stylesheet" href="res/style/bars.css">
         
-        <!-- https://electronjs.org/docs/tutorial/security#csp-meta-tag -->
-        <!--<meta http-equiv="Content-Security-Policy" content="script-src 'self' 'unsafe-inline';" />-->
+        <meta http-equiv="Content-Security-Policy" content="script-src 'self';">
     </head>
     <body >
         <div id="container">
@@ -33,7 +32,7 @@
                         <pre id="main-text-area"></pre>
                     </div>
                     <div id="editor-media-div" class="resizer" data-direction="horizontal"></div>
-                    <webview id="embed-content" webpreferences="contextIsolation=false" preload="res/embed/preload.js"></webview>
+                    <webview id="embed-content" preload="res/embed/preload.js"></webview>
                 </div>
                 <div id="editor-console-div" class="resizer" data-direction="vertical"></div>
                 <div id="console">

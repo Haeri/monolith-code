@@ -1,7 +1,17 @@
 const { contextBridge, ipcRenderer, webFrame } = require("electron");
 
+let lazyRequires = {
+    dialog: null,
+    fsp: null
+};
 
-let _appInfo = null;
+function fsp() {
+    if (lazyRequires.fsp === null) {
+        lazyRequires.fsp = require('fs').promises;
+    }
+    return lazyRequires.fsp;
+}
+
 let _childProcess = null;
 let _marked = null;
 let _hljs = null;
@@ -72,12 +82,7 @@ function requireChildProcess() {
     }
     return _childProcess;
 }
-function requireModeList() {
-    if (_modelist === null) {
-        _modelist = ace.require('ace/ext/modelist');
-    }
-    return _modelist;
-}
+
 function requireThemeList() {
     if (_themelist === null) {
         _themelist = ace.require('ace/ext/themelist');
@@ -100,24 +105,33 @@ function requireTreeKill() {
 webFrame.setVisualZoomLevelLimits(1, 3);
 
 const API = {
+    path: require('path'),
+
     // Getter
     getInitialSettings: () => ipcRenderer.invoke("initial-settings"),
 
-    // Public API
+    // Window API
     minimize: () => ipcRenderer.send("minimize"),
     maximize: () => ipcRenderer.send("maximize"),
     unmaximize: () => ipcRenderer.send("unmaximize"),
     toggleMaxUnmax: () => ipcRenderer.send("toggle-max-unmax"),
     close: () => ipcRenderer.send("close"),
     togglePin: () => ipcRenderer.invoke("toggle-pin"),
-    openFile: (filePath) =>  ipcRenderer.invoke("open-file", filePath),
-    saveFile: () =>  ipcRenderer.invoke("save-file"),
+    newWindow: (filePaths) => ipcRenderer.send("new-window", filePaths),
+
+    showOpenDialog: () => ipcRenderer.invoke("show-open-dialog"),
+    showSaveDialog: (options) => ipcRenderer.invoke("show-save-dialog", options),
+
+    storeSetting: (key, value) => ipcRenderer.send('store-setting', key, value),
+
+    readFile: (filePath) => fsp().readFile(filePath, { encoding: 'utf-8' }),
+    writeFile: (filePath, content) => fsp().writeFile(filePath, content),
 
     // Handler
     updateMaxUnmax: (callback) => ipcRenderer.on('update-max-unmax', callback),
     canClose: (callback) => ipcRenderer.on('can-close', callback),
     print: (callback) => ipcRenderer.on('print', callback),
-  
+
 };
 
 contextBridge.exposeInMainWorld("api", API);
