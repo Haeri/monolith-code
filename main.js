@@ -3,6 +3,7 @@ const path = require('path');
 const fs = require('fs');
 const common = require('./src/common');
 const Store = require('./src/store');
+const isDev = require('electron-is-dev');
 
 let _axios = null;
 
@@ -225,7 +226,9 @@ if (process.platform === 'linux') {
 }
 
 app.whenReady().then(() => {
-  setTimeout(createWindow, delay);
+  const openFileFromCommandlineParam = (isDev ? process.argv[2] : process.argv[1]) || null);
+  setTimeout(() => createWindow(null, openFileFromCommandlineParam, delay);
+
 
   app.on('activate', () => {
     // On macOS it's common to re-create a window in the app when the
