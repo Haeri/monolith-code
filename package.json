@@ -23,6 +23,7 @@
   },
   "dependencies": {
     "axios": "^0.21.1",
+    "electron-is-dev": "^2.0.0",
     "highlight.js": "^10.6.0",
     "katex": "^0.15.2",
     "marked": "^4.0.10",
