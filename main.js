@@ -72,7 +72,7 @@ function downloadLatestVersion() {
 }
 
 function checkLatestVersion() {
-  if (fs.existsSync('./src')) return;
+  if (!app.isPackaged) return;
 
   requireAxios()
     .get(RELEASE_VERSION_URL)
@@ -96,7 +96,8 @@ function checkLatestVersion() {
 }
 
 function doUpdate() {
-  let command = `./${app.getVersion()}/updater${common.getExeExtension()}`;
+  const root = path.dirname(process.execPath);  
+  let command = `${root}/${app.getVersion()}/updater${common.getExeExtension()}`;
   if (process.platform !== 'win32') {
     command = `chmod +x ./${app.getVersion()}/updater${common.getExeExtension()} && ${command}`;
   }
@@ -235,7 +236,8 @@ app.whenReady().then(() => {
 
   if (userPrefStore.get('app_config').auto_update) {
     setTimeout(() => {
-      checkLatestVersion();
+      // TODO: There are a lot of issues with the updater so lets not bother
+      //checkLatestVersion();
     }, 8000);
   }
 });
@@ -247,7 +249,6 @@ app.on('window-all-closed', () => {
     doUpdate();
   }
 });
-
 
 
 // TEMPFIX: Temporary workaround for CWE-668
