@@ -96,7 +96,7 @@ function checkLatestVersion() {
 }
 
 function doUpdate() {
-  const root = path.dirname(process.execPath);  
+  const root = path.dirname(process.execPath);
   let command = `${root}/${app.getVersion()}/updater${common.getExeExtension()}`;
   if (process.platform !== 'win32') {
     command = `chmod +x ./${app.getVersion()}/updater${common.getExeExtension()} && ${command}`;
@@ -226,7 +226,10 @@ if (process.platform === 'linux') {
 }
 
 app.whenReady().then(() => {
-  setTimeout(createWindow, delay);
+  setTimeout(() => {
+    let idx = (app.isPackaged ? 1 : 2);
+    createWindow(null, process.argv[idx]);
+  }, delay);
 
   app.on('activate', () => {
     // On macOS it's common to re-create a window in the app when the
