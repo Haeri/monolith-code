@@ -312,11 +312,8 @@ if (process.platform === 'linux' && userPrefStore.get('window_config').rounded_w
 
 app.whenReady().then(() => {
   setTimeout(() => {
-    if (process.argv.length > 1 && !fs.existsSync('./src')) {
-      createWindow(null, process.argv.slice(1));
-    } else {
-      createWindow();
-    }
+    let num = app.isPackaged ? 1 : 2;
+    createWindow(null, process.argv.slice(num));
   }, delay);
 
   app.on('activate', () => {
