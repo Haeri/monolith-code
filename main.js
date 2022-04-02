@@ -72,7 +72,7 @@ function downloadLatestVersion() {
 }
 
 function checkLatestVersion() {
-  if (fs.existsSync('./src')) return;
+  if (!app.isPackaged) return;
 
   requireAxios()
     .get(RELEASE_VERSION_URL)
@@ -96,7 +96,8 @@ function checkLatestVersion() {
 }
 
 function doUpdate() {
-  let command = `./${app.getVersion()}/updater${common.getExeExtension()}`;
+  const root = path.dirname(process.execPath);
+  let command = `${root}/${app.getVersion()}/updater${common.getExeExtension()}`;
   if (process.platform !== 'win32') {
     command = `chmod +x ./${app.getVersion()}/updater${common.getExeExtension()} && ${command}`;
   }
@@ -225,7 +226,10 @@ if (process.platform === 'linux') {
 }
 
 app.whenReady().then(() => {
-  setTimeout(createWindow, delay);
+  setTimeout(() => {
+    let idx = (app.isPackaged ? 1 : 2);
+    createWindow(null, process.argv[idx]);
+  }, delay);
 
   app.on('activate', () => {
     // On macOS it's common to re-create a window in the app when the
@@ -235,7 +239,8 @@ app.whenReady().then(() => {
 
   if (userPrefStore.get('app_config').auto_update) {
     setTimeout(() => {
-      checkLatestVersion();
+      // TODO: There are a lot of issues with the updater so lets not bother
+      //checkLatestVersion();
     }, 8000);
   }
 });
@@ -247,7 +252,6 @@ app.on('window-all-closed', () => {
     doUpdate();
   }
 });
-
 
 
 // TEMPFIX: Temporary workaround for CWE-668
