@@ -1,16 +1,14 @@
 /* eslint-disable no-underscore-dangle */
 /* eslint-disable import/no-extraneous-dependencies */
 
+let modelist = new lazyRequire(() => ace.require('ace/ext/modelist'));
+let themelist = new lazyRequire(() => ace.require('ace/ext/themelist'));
+let beautify = new lazyRequire(() => ace.require('ace/ext/beautify'));
 
-const errorSVG = '<svg version="1.1" id="Capa_1" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" x="0px" y="0px" viewBox="0 0 52 52" style="enable-background:new 0 0 52 52;" xml:space="preserve"><g>	<path d="M26,0C11.664,0,0,11.663,0,26s11.664,26,26,26s26-11.663,26-26S40.336,0,26,0z M26,50C12.767,50,2,39.233,2,26	S12.767,2,26,2s24,10.767,24,24S39.233,50,26,50z"/>	<path d="M35.707,16.293c-0.391-0.391-1.023-0.391-1.414,0L26,24.586l-8.293-8.293c-0.391-0.391-1.023-0.391-1.414,0 s-0.391,1.023,0,1.414L24.586,26l-8.293,8.293c-0.391,0.391-0.391,1.023,0,1.414C16.488,35.902,16.744,36,17,36 s0.512-0.098,0.707-0.293L26,27.414l8.293,8.293C34.488,35.902,34.744,36,35,36s0.512-0.098,0.707-0.293 c0.391-0.391,0.391-1.023,0-1.414L27.414,26l8.293-8.293C36.098,17.316,36.098,16.684,35.707,16.293z"/></g></svg>';
+let mdTemplate = new lazyRequire(async () => await fetch('res/embed/markdown/index.html').then(res => res.text()));
+let scrollBarsCss = new lazyRequire(async () => await fetch('res/style/bars.css').then(res => res.text()));
 
 let appInfo = null;
-
-let _modelist = null;
-let _themelist = null;
-
-let _mdTemplate = null;
-let _scrollBarsCss = null;
 let editor = null;
 
 const file = {
@@ -28,6 +26,10 @@ let localWindowConfig;
 let userPrefPath;
 let langPrefPath;
 
+let commandHistory = [];
+let historyIndex;
+
+// UI Components
 let documentNameUi;
 let languageDisplayUi;
 let themeChoiceUi;
@@ -39,9 +41,9 @@ let editorMediaDivUi;
 let editorConsoleDivUi;
 let processIndicatorUi;
 
-let commandHistory = [];
-let historyIndex;
+let errorSVG = new lazyRequire(async () => await fetch('res/img/err.svg').then(res => res.text()));
 
+// Constants
 const INFO_LEVEL = Object.freeze({
   user: 0,
   info: 1,
@@ -161,26 +163,6 @@ const commandList = {
 
 
 
-async function fetchMdTemplate() {
-  if (_mdTemplate === null) {
-    const response = await fetch('res/embed/markdown/index.html');
-    _mdTemplate = await response.text();
-  }
-  return _mdTemplate;
-}
-
-async function fetchScrollBarsCss() {
-  if (_scrollBarsCss === null) {
-    const response = await fetch('res/style/bars.css');
-    _scrollBarsCss = await response.text();
-  }
-  return _scrollBarsCss;
-}
-
-
-
-
-
 
 /* ------------- PUBLIC API ------------- */
 
@@ -209,7 +191,7 @@ function setLanguage(langKey) {
   }
 
   const lang = langInfo[langKey];
-  const { mode } = ace.require('ace/ext/modelist').modesByName[lang.mode];
+  const { mode } = modelist.get().modesByName[lang.mode];
   editor.session.setMode(mode);
   languageDisplayUi.value = langKey;
 }
@@ -328,7 +310,10 @@ function notifyLoadEnd() {
 function print(text, mode = INFO_LEVEL.info) {
   const block = document.createElement('div');
   block.classList.add(Object.keys(INFO_LEVEL).find((key) => INFO_LEVEL[key] === mode));
-  block.innerHTML = (mode === 4 ? errorSVG : '') + text;
+
+  errorSVG.get().then((svg) => {
+    block.innerHTML = (mode === 4 ? svg : '') + text;
+  });
   consoleOutUi.appendChild(block);
 
   if (mode >= 2) {
@@ -344,7 +329,7 @@ function print(text, mode = INFO_LEVEL.info) {
 /* ------------- FEATURES ------------- */
 
 function beautifyDocument() {
-  requireBeautify().beautify(editor.session);
+  beautify.get().beautify(editor.session);
 }
 
 function makeLanguageTemplate() {
@@ -405,21 +390,26 @@ function openLanguageSettings() {
 }
 
 async function killProcess() {
-  return new Promise((resolve, reject) => {
-    if (runningProcess != null) {
-      requireTreeKill()(runningProcess.pid, 'SIGKILL', (err) => {
-        if (err) {
-          print('Could not stop the running process.', INFO_LEVEL.error);
-          reject();
-        } else {
-          resolve();
-        }
-      });
-    } else {
-      resolve();
-    }
-  });
+  //return new Promise((resolve, reject) => {
+  if (runningProcess != null) {
+    await window.api.treeKill(runningProcess.pid, 'SIGKILL');
+  }
+  /*  
+    , (err) => {
+      if (err) {
+        print('Could not stop the running process.', INFO_LEVEL.error);
+        reject();
+      } else {
+        resolve();
+      }
+    });
+  } else {
+    resolve();
+  }
+});
+*/
 }
+
 
 
 
@@ -479,13 +469,11 @@ function mdToHTML() {
 
 
 
-
-
 function commandRunner(command, args, callback) {
   notifyLoadStart();
   print(`> ${command}`, INFO_LEVEL.user);
 
-  runningProcess = requireChildProcess().spawn(command, args, {
+  runningProcess = window.api.spawnProcess(command, args, {
     encoding: 'utf8',
     shell: true,
     ...file.path && { cwd: file.path },
@@ -543,7 +531,7 @@ async function runFile() {
     if (cmdRun) {
       cmdRun = cmdRun.replaceAll('<name>', file.name);
       cmdRun = cmdRun.replaceAll('<path>', file.path);
-      cmdRun = cmdRun.replaceAll('<exe_extension>', getExeExtension());
+      cmdRun = cmdRun.replaceAll('<exe_extension>', getExeExtension(appInfo.os));
 
       runCommand(cmdRun);
     } else if (file.lang === 'latex') {
@@ -556,7 +544,7 @@ async function runFile() {
         webviewUi.send('fill_content', markedHtml);
         editor.on('input', markdownUpdater);
       }, { once: true });
-      webviewUi.src = await fetchMdTemplate();
+      webviewUi.src = await mdTemplate.get();
 
     } else if (file.lang === 'html') {
       webviewUi.src = (`${file.path + file.name}.html`);
@@ -579,7 +567,7 @@ async function buildRunFile() {
     if (cmdComp) {
       cmdComp = cmdComp.replaceAll('<name>', file.name);
       cmdComp = cmdComp.replaceAll('<path>', file.path);
-      cmdComp = cmdComp.replaceAll('<exe_extension>', getExeExtension());
+      cmdComp = cmdComp.replaceAll('<exe_extension>', getExeExtension(appInfo.os));
 
       runCommand(cmdComp, [], (code) => {
         if (code === 0) {
@@ -659,7 +647,7 @@ function _assignUIVariables() {
 }
 
 function _initializeOptions(config) {
-  requireThemeList().themes.forEach((theme) => {
+  themelist.get().themes.forEach((theme) => {
     const option = document.createElement('option');
     option.text = theme.caption;
     option.value = theme.theme;
@@ -879,7 +867,7 @@ async function _initialize() {
   webviewUi.addEventListener('load-commit', () => {
   });
   webviewUi.addEventListener('did-finish-load', async () => {
-    webviewUi.insertCSS(await fetchScrollBarsCss());
+    webviewUi.insertCSS(await scrollBarsCss.get());
     webviewUi.insertCSS('body{background: transparent !important;}');
     webviewUi.send('onLoad');
   });

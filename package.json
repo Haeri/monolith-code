@@ -26,7 +26,6 @@
     "highlight.js": "^10.6.0",
     "katex": "^0.15.2",
     "marked": "^4.0.10",
-    "mime-types": "^2.1.29",
     "tree-kill": "^1.2.2"
   }
 }
