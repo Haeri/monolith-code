@@ -1,29 +1,13 @@
 name: Publish Release
 
 on: 
-  push:
-    branches:
-    - master
+  workflow_run:
+    workflows: ["Test Build"]
+    branches: [master]
+    types:
+      - completed
 
 jobs:
-  build:
-   name: Build Release
-   runs-on: ${{ matrix.os }}   
-   strategy:
-      matrix:
-        os: [macos-latest, ubuntu-latest, windows-latest]
-   steps:
-    - name: Download Repository
-      uses: actions/checkout@v2    
-    - name: Install Modules
-      run: npm install    
-    - name: Package
-      run: npm run package    
-    - name: Upload
-      uses: actions/upload-artifact@v2
-      with:
-        name: monolithcode_${{ matrix.os }}
-        path: monolith-code-*/
 
   release:    
    name: Publish Release
@@ -39,8 +23,8 @@ jobs:
     - name: Zip Artifacts
       run: |
         cd monolithcode_windows-latest/monolith-code-*/; zip -r ../../monolithcode_win.zip .; cd ../..
-        cd monolithcode_ubuntu-latest/monolith-code-*/; zip -r ../../monolithcode_linux.zip .; cd ../..
-        cd monolithcode_macos-latest/monolith-code-*/; zip -r ../../monolithcode_mac.zip .; cd ../..
+       # cd monolithcode_ubuntu-latest/monolith-code-*/; zip -r ../../monolithcode_linux.zip .; cd ../..
+       # cd monolithcode_macos-latest/monolith-code-*/; zip -r ../../monolithcode_mac.zip .; cd ../..
     - name: Generate Checksum
       run: sha512sum *.zip > sha512sums.txt
     - name: Create Release
@@ -70,18 +54,18 @@ jobs:
         GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
       with:
         upload_url: ${{ steps.create_release.outputs.upload_url }}
-        asset_path: ./monolithcode_linux.zip
-        asset_name: monolithcode_linux.zip
-        asset_content_type: application/zip      
+        asset_path: ./monolithcode_linux.tar
+        asset_name: monolithcode_linux.tar
+        asset_content_type: application/tar
     - name: Release MacOS Artifact
       uses: actions/upload-release-asset@v1
       env:
         GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
       with:
         upload_url: ${{ steps.create_release.outputs.upload_url }}
-        asset_path: ./monolithcode_mac.zip
-        asset_name: monolithcode_mac.zip
-        asset_content_type: application/zip
+        asset_path: ./monolithcode_mac.tar
+        asset_name: monolithcode_mac.tar
+        asset_content_type: application/tar
     - name: Release Checksum
       uses: actions/upload-release-asset@v1
       env:

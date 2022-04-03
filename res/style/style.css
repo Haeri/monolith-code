@@ -265,6 +265,9 @@ footer {
 	border: none;
 	background: #ffffff04;
 }
+#main-divider iframe.html-style {
+	background: #a9a9a9;
+}
 
 #editor-wrapper {
 	width: 100%;

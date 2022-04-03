@@ -240,6 +240,7 @@ async function openFile(filePaths = []) {
   if (filePaths.length) {
     newWindow(filePaths);
   }
+  notifyLoadEnd();
 }
 
 async function saveFile(saveAs = false) {
@@ -553,7 +554,21 @@ async function runFile() {
       //webviewUi.srcdoc = template;
 
     } else if (file.lang === 'html') {
+      webviewUi.className = "";
+      webviewUi.classList.add("html-style");
       webviewUi.src = (`${file.path + file.name}.html`);
+      
+      webviewUi.addEventListener('load', (e) => {
+
+      webviewUi.contentWindow.console = {
+        log: (text) => {
+            window.parent.postMessage({message: text, level: 1}, "*");
+        }
+      }
+    });
+    }else{
+      webviewUi.className = "";
+      webviewUi.src = 'about:blank';
     }
   }
 }
@@ -869,6 +884,9 @@ async function _initialize() {
     print(`An error ocurred reading the file :${err.message}`, INFO_LEVEL.err);
     return;
   }
+
+
+
   /*
     webviewUi.addEventListener('load-commit', () => {
     });
@@ -879,14 +897,13 @@ async function _initialize() {
     });
     */
 
-  /*
-    webviewUi.contentWindow.console.addEventListener("log", (e) => {
-      //if (e.sourceId === 'electron/js2c/renderer_init.js') return;
+    
   
-      console.log(e);
+    window.addEventListener("message", (e) => {
+      if (e.source.name !== 'embed-content') return;
   
       let mode = 1;
-      switch (e.level) {
+      switch (e.data.level) {
         case 1:
           mode = INFO_LEVEL.info;
           break;
@@ -901,17 +918,18 @@ async function _initialize() {
           break;
       }
   
-      const source = e.sourceId.split('/').pop();
+      /*const source = e.sourceId.split('/').pop();
       let fileSource = `${source}:${e.line}`;
   
       if (source === (file.name + file.extension)) {
         fileSource = `<a class="jump-to-line" href="#${e.line}">${fileSource}</a>`;
       }
-  
-      print(`Message from ${fileSource}\n${e.message}`, mode);
-    });
   */
-
+      let fileSource = "preview"
+      print(`Message from ${fileSource}\n${e.data.message}`, mode);
+    });
+  
+  
 
   editorMediaDivUi.addEventListener('divider-move', () => {
     const val = editorMediaDivUi.previousElementSibling.style.width;
