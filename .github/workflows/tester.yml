@@ -4,14 +4,15 @@ on:
   push:
     branches:
     - dev
+    - electron17
 
 jobs:
-  build:
-   name: Test Build
+  build-nix:
+   name: Test Build ${{ matrix.os }}
    runs-on: ${{ matrix.os }}   
    strategy:
       matrix:
-        os: [macos-latest, ubuntu-latest, windows-latest]
+        os: [macos-latest, ubuntu-latest]
    steps:
     - name: Download Repository
       uses: actions/checkout@v2    
@@ -19,8 +20,29 @@ jobs:
       run: npm install    
     - name: Package
       run: npm run package    
+    - name: Tar files
+      run: tar -cvf monolith-code_${{ matrix.os }}.tar monolith-code-*/
     - name: Upload
-      uses: actions/upload-artifact@v2
+      uses: actions/upload-artifact@v3
+      with:
+        name: monolith-code_${{ matrix.os }}
+        path: monolith-code_${{ matrix.os }}.tar
+  
+  build-win:
+   name: Test Build ${{ matrix.os }}
+   runs-on: ${{ matrix.os }}   
+   strategy:
+      matrix:
+        os: [windows-latest]
+   steps:
+    - name: Download Repository
+      uses: actions/checkout@v2    
+    - name: Install Modules
+      run: npm install    
+    - name: Package
+      run: npm run package
+    - name: Upload
+      uses: actions/upload-artifact@v3
       with:
         name: monolith-code_${{ matrix.os }}
         path: monolith-code-*/

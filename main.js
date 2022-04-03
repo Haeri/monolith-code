@@ -9,7 +9,6 @@ const appInfo = {
   os: process.platform
 };
 
-// Just use fetch
 let axios = new lazyRequire(() => require('axios').default);
 let dialog = new lazyRequire(() => require('electron').dialog);
 let fs = new lazyRequire(() => require('fs'));
@@ -86,8 +85,8 @@ function checkLatestVersion() {
     .then((response) => {
       const info = response.data;
 
-      if (app.getVersion() !== info.tag_name) {
-        const currArr = app.getVersion().split('.');
+      if (appInfo.version !== info.tag_name) {
+        const currArr = appInfo.version.split('.');
         const latestArr = info.tag_name.split('.');
 
         if (parseInt(currArr[0], 10) < parseInt(latestArr[0], 10)
@@ -104,10 +103,10 @@ function checkLatestVersion() {
 
 function doUpdate() {
   const root = path.dirname(process.execPath);
-  let command = `${root}/${app.getVersion()}/updater${getExeExtension(appInfo.os)}`;
+  let command = `${root}/${appInfo.version}/updater${getExeExtension(appInfo.os)}`;
 
   if (process.platform !== 'win32') {
-    command = `chmod +x ./${app.getVersion()}/updater${getExeExtension(appInfo.os)} && ${command}`;
+    command = `chmod +x ./${appInfo.version}/updater${getExeExtension(appInfo.os)} && ${command}`;
   }
   const child = require('child_process').spawn(command, [], { detached: true, shell: true });
   child.unref();
@@ -139,8 +138,7 @@ function createWindow(caller = undefined, filePaths = []) {
     webPreferences: {
       preload: path.join(__dirname, 'src/preload.js'),
       nodeIntegration: false,
-      contextIsolation: true,
-      webviewTag: true,
+      contextIsolation: true
     },
     icon: path.join(__dirname, 'res/img/icon.png'),
   });

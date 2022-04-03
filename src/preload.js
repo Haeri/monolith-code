@@ -6,17 +6,15 @@ let fsp = new lazyRequire(() => require('fs').promises);
 let treeKill = new lazyRequire(() => require('tree-kill'));
 let childProcess = new lazyRequire(() => require('child_process'));
 
-let _marked = null;
-let _hljs = null;
-
+let marked = null;
 
 function requireMarked() {
-    if (_marked === null) {
-        _marked = require('marked');
-        _hljs = require('highlight.js');
-        const _katex = require('katex');
+    if (marked === null) {
+        marked = require('marked');
+        const hljs = require('highlight.js');
+        const katex = require('katex');
 
-        const renderer = new _marked.Renderer();
+        const renderer = new marked.Renderer();
         let originParagraph = renderer.paragraph.bind(renderer)
         renderer.paragraph = (text) => {
             const blockRegex = /\$\$[^\$]*\$\$/g
@@ -45,7 +43,7 @@ function requireMarked() {
                 }
                 let html = null
                 try {
-                    html = _katex.renderToString(expr)
+                    html = katex.renderToString(expr)
                 } catch (e) {
                     console.error(e)
                 }
@@ -56,16 +54,16 @@ function requireMarked() {
         }
 
 
-        _marked.setOptions({
+        marked.setOptions({
             renderer: renderer,
             highlight: (code, lang) => {
-                const validLanguage = _hljs.getLanguage(lang) ? lang : 'plaintext';
-                return _hljs.highlight(code, { language: validLanguage }).value;
+                const validLanguage = hljs.getLanguage(lang) ? lang : 'plaintext';
+                return hljs.highlight(code, { language: validLanguage }).value;
             },
         });
     }
 
-    return _marked;
+    return marked;
 }
 
 
@@ -99,6 +97,7 @@ const API = {
     path: path.get(),
     spawnProcess: (...args) => childProcess.get().spawn(...args),
     treeKill: (pid, signal) => new Promise(resolve => treeKill.get()(pid, signal, resolve)),
+    markedParse: (...args) => requireMarked().parse(...args),
 
 
     // Handler
