@@ -13,15 +13,15 @@ const PLATFORM_ZIP = Object.freeze({
 class lazyRequire {
   #requireValue = null;
   #requireFunk = null;
-  constructor(requireFunk){
+  constructor(requireFunk) {
     this.#requireFunk = requireFunk;
   }
-  get(){
-    if(this.#requireValue === null) { 
+  get() {
+    if (this.#requireValue === null) {
       this.#requireValue = this.#requireFunk();
     };
     return this.#requireValue;
-  }  
+  }
 };
 
 const getExeExtension = (platform) => (Object.prototype.hasOwnProperty.call(EXE_EXTENSION, platform) ? EXE_EXTENSION[platform] : '');

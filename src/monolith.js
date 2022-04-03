@@ -5,8 +5,8 @@ let modelist = new lazyRequire(() => ace.require('ace/ext/modelist'));
 let themelist = new lazyRequire(() => ace.require('ace/ext/themelist'));
 let beautify = new lazyRequire(() => ace.require('ace/ext/beautify'));
 
-let mdTemplate = new lazyRequire(async () => await fetch('res/embed/markdown/index.html').then(res => res.text()));
-let scrollBarsCss = new lazyRequire(async () => await fetch('res/style/bars.css').then(res => res.text()));
+//let mdTemplate = new lazyRequire(async () => await fetch('res/embed/markdown/index.html').then(res => res.text()));
+//let scrollBarsCss = new lazyRequire(async () => await fetch('res/style/bars.css').then(res => res.text()));
 
 let appInfo = null;
 let editor = null;
@@ -435,7 +435,9 @@ function _debounce(func, wait, immediate) {
 
 const markdownUpdater = _debounce(() => {
   const markedHtml = mdToHTML();
-  webviewUi.send('fill_content', markedHtml);
+  //webviewUi.send('fill_content', markedHtml);
+  webviewUi.contentWindow.document.body.innerHTML = markedHtml;
+
 }, 200);
 
 
@@ -453,7 +455,7 @@ function mdToHTML() {
   const basepath = file.path.replaceAll('\\', '/');
   let pre = getContent();
   pre = pre.replaceAll(/src="\.\/(.*?)"/ig, `src="${basepath}$1"`);
-  let markedHtml = requireMarked().parse(pre, { baseUrl: basepath });
+  let markedHtml = window.api.markedParse(pre, { baseUrl: basepath });
 
   let parser = new DOMParser();
   let htmlDoc = parser.parseFromString(markedHtml, 'text/html');
@@ -540,11 +542,15 @@ async function runFile() {
 
       const markedHtml = mdToHTML();
 
-      webviewUi.addEventListener('did-finish-load', () => {
-        webviewUi.send('fill_content', markedHtml);
+      webviewUi.addEventListener('load', () => {
+        webviewUi.contentWindow.document.body.innerHTML = markedHtml;
+        //webviewUi.send('fill_content', markedHtml);
         editor.on('input', markdownUpdater);
       }, { once: true });
-      webviewUi.src = await mdTemplate.get();
+      //let template = await mdTemplate.get();
+      //console.log(template);
+      webviewUi.src = "./res/embed/markdown/index.html";
+      //webviewUi.srcdoc = template;
 
     } else if (file.lang === 'html') {
       webviewUi.src = (`${file.path + file.name}.html`);
@@ -863,47 +869,48 @@ async function _initialize() {
     print(`An error ocurred reading the file :${err.message}`, INFO_LEVEL.err);
     return;
   }
+  /*
+    webviewUi.addEventListener('load-commit', () => {
+    });
+    webviewUi.addEventListener('did-finish-load', async () => {
+      webviewUi.insertCSS(await scrollBarsCss.get());
+      webviewUi.insertCSS('body{background: transparent !important;}');
+      webviewUi.send('onLoad');
+    });
+    */
 
-  webviewUi.addEventListener('load-commit', () => {
-  });
-  webviewUi.addEventListener('did-finish-load', async () => {
-    webviewUi.insertCSS(await scrollBarsCss.get());
-    webviewUi.insertCSS('body{background: transparent !important;}');
-    webviewUi.send('onLoad');
-  });
-  webviewUi.addEventListener('console-message', (e) => {
-    if (e.sourceId === 'electron/js2c/renderer_init.js') return;
-
-    let mode = 1;
-    switch (e.level) {
-      case 1:
-        mode = INFO_LEVEL.info;
-        break;
-      case 2:
-        mode = INFO_LEVEL.warn;
-        break;
-      case 3:
-        mode = INFO_LEVEL.error;
-        break;
-      default:
-        mode = INFO_LEVEL.info;
-        break;
-    }
-
-    const source = e.sourceId.split('/').pop();
-    let fileSource = `${source}:${e.line}`;
-
-    if (source === (file.name + file.extension)) {
-      fileSource = `<a class="jump-to-line" href="#${e.line}">${fileSource}</a>`;
-    }
-
-    print(`Message from ${fileSource}\n${e.message}`, mode);
-  });
-
-
-  webviewUi.addEventListener('ipc-message', (event) => {
-    console.log(event.channel);
-  });
+  /*
+    webviewUi.contentWindow.console.addEventListener("log", (e) => {
+      //if (e.sourceId === 'electron/js2c/renderer_init.js') return;
+  
+      console.log(e);
+  
+      let mode = 1;
+      switch (e.level) {
+        case 1:
+          mode = INFO_LEVEL.info;
+          break;
+        case 2:
+          mode = INFO_LEVEL.warn;
+          break;
+        case 3:
+          mode = INFO_LEVEL.error;
+          break;
+        default:
+          mode = INFO_LEVEL.info;
+          break;
+      }
+  
+      const source = e.sourceId.split('/').pop();
+      let fileSource = `${source}:${e.line}`;
+  
+      if (source === (file.name + file.extension)) {
+        fileSource = `<a class="jump-to-line" href="#${e.line}">${fileSource}</a>`;
+      }
+  
+      print(`Message from ${fileSource}\n${e.message}`, mode);
+    });
+  */
 
 
   editorMediaDivUi.addEventListener('divider-move', () => {
