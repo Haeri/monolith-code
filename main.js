@@ -1,17 +1,19 @@
 const { app, BrowserWindow, ipcMain } = require('electron');
-const path = require('path');
-const fs = require('fs');
+const { lazyRequire, PLATFORM_ZIP } = require('./src/common');
 const Store = require('./src/store');
+const path = require('path');
+
+const appInfo = {
+  name: 'monolith code',
+  version: app.getVersion(),
+  os: process.platform
+};
 
 // Just use fetch
-let _axios = null;
+let axios = new lazyRequire(() => require('axios').default);
+let dialog = new lazyRequire(() => require('electron').dialog);
+let fs = new lazyRequire(() => require('fs'));
 
-let lazyRequires = {
-  dialog: null,
-  fsp: null,
-
-  common: null
-};
 
 const RELEASE_VERSION_URL = 'https://api.github.com/repos/Haeri/MonolithCode2/releases/latest';
 const RELEASE_ZIP_URL = 'https://github.com/Haeri/MonolithCode2/releases/latest/download/';
@@ -59,37 +61,12 @@ const langStore = new Store({
   },
 });
 
-function requireAxios() {
-  if (_axios === null) {
-    _axios = require('axios').default;
-  }
-  return _axios;
-}
-
-function dialog() {
-  if (lazyRequires.dialog === null) {
-    lazyRequires.dialog = require('electron').dialog;
-  }
-  return lazyRequires.dialog;
-}
-function fsp() {
-  if (lazyRequires.fsp === null) {
-    lazyRequires.fsp = require('fs').promises;
-  }
-  return lazyRequires.fsp;
-}
-function common() {
-  if (lazyRequires.common === null) {
-    lazyRequires.common = require('./src/common');
-  }
-  return lazyRequires.common;
-}
 
 
 
 function downloadLatestVersion() {
-  requireAxios()
-    .get(RELEASE_ZIP_URL + common().PLATFORM_ZIP[process.platform], { responseType: 'stream' })
+  axios.get()
+    .get(RELEASE_ZIP_URL + PLATFORM_ZIP[process.platform], { responseType: 'stream' })
     .then((response) => {
       response.data.pipe(fs.createWriteStream('monolith.zip'))
         .on('close', () => {
@@ -104,7 +81,7 @@ function downloadLatestVersion() {
 function checkLatestVersion() {
   if (!app.isPackaged) return;
 
-  requireAxios()
+  axios.get()
     .get(RELEASE_VERSION_URL)
     .then((response) => {
       const info = response.data;
@@ -127,10 +104,10 @@ function checkLatestVersion() {
 
 function doUpdate() {
   const root = path.dirname(process.execPath);
-  let command = `${root}/${app.getVersion()}/updater${common().getExeExtension()}`;
+  let command = `${root}/${app.getVersion()}/updater${getExeExtension(appInfo.os)}`;
 
   if (process.platform !== 'win32') {
-    command = `chmod +x ./${app.getVersion()}/updater${common().getExeExtension()} && ${command}`;
+    command = `chmod +x ./${app.getVersion()}/updater${getExeExtension(appInfo.os)} && ${command}`;
   }
   const child = require('child_process').spawn(command, [], { detached: true, shell: true });
   child.unref();
@@ -213,11 +190,7 @@ ipcMain.handle('initial-settings', () => {
   const userPrefPath = userPrefStore.getFilePath();
   const languageConfigPath = langStore.getFilePath();
   return {
-    appInfo: {
-      name: 'monolith code',
-      version: app.getVersion(),
-      os: process.platform
-    },
+    appInfo,
     filePathsToOpen,
     editorConfig, windowConfig,
     localWindowConfig, languageConfig,
@@ -261,12 +234,12 @@ ipcMain.on('close', (event) => {
 
 ipcMain.handle('show-open-dialog', async (event) => {
   const win = BrowserWindow.fromWebContents(event.sender);
-  return await dialog().showOpenDialog(win, { title: 'Open a file' });
+  return await dialog.get().showOpenDialog(win, { title: 'Open a file' });
 });
 
 ipcMain.handle('show-save-dialog', async (event, options) => {
   const win = BrowserWindow.fromWebContents(event.sender);
-  return await dialog().showSaveDialog(win, options);
+  return await dialog.get().showSaveDialog(win, options);
 });
 
 
@@ -292,7 +265,7 @@ ipcMain.on('can-close-response', (event, canClose) => {
       detail: 'You will loose the current document',
     };
 
-    const ret = dialog().showMessageBoxSync(win, options);
+    const ret = dialog.get().showMessageBoxSync(win, options);
 
     if (ret !== 1) {
       return;

@@ -1,22 +1,13 @@
 const { contextBridge, ipcRenderer, webFrame } = require("electron");
+const { lazyRequire } = require('./common');
 
-let lazyRequires = {
-    dialog: null,
-    fsp: null
-};
+let path = new lazyRequire(() => require('path'));
+let fsp = new lazyRequire(() => require('fs').promises);
+let treeKill = new lazyRequire(() => require('tree-kill'));
+let childProcess = new lazyRequire(() => require('child_process'));
 
-function fsp() {
-    if (lazyRequires.fsp === null) {
-        lazyRequires.fsp = require('fs').promises;
-    }
-    return lazyRequires.fsp;
-}
-
-let _childProcess = null;
 let _marked = null;
 let _hljs = null;
-let _beautify = null;
-let _tKill = null;
 
 
 function requireMarked() {
@@ -76,36 +67,13 @@ function requireMarked() {
 
     return _marked;
 }
-function requireChildProcess() {
-    if (_childProcess === null) {
-        _childProcess = require('child_process');
-    }
-    return _childProcess;
-}
 
-function requireThemeList() {
-    if (_themelist === null) {
-        _themelist = ace.require('ace/ext/themelist');
-    }
-    return _themelist;
-}
-function requireBeautify() {
-    if (_beautify === null) {
-        _beautify = ace.require('ace/ext/beautify');
-    }
-    return _beautify;
-}
-function requireTreeKill() {
-    if (_tKill === null) {
-        _tKill = require('tree-kill');
-    }
-    return _tKill;
-}
+
 
 webFrame.setVisualZoomLevelLimits(1, 3);
 
+
 const API = {
-    path: require('path'),
 
     // Getter
     getInitialSettings: () => ipcRenderer.invoke("initial-settings"),
@@ -119,13 +87,19 @@ const API = {
     togglePin: () => ipcRenderer.invoke("toggle-pin"),
     newWindow: (filePaths) => ipcRenderer.send("new-window", filePaths),
 
+    // Features API
     showOpenDialog: () => ipcRenderer.invoke("show-open-dialog"),
     showSaveDialog: (options) => ipcRenderer.invoke("show-save-dialog", options),
 
     storeSetting: (key, value) => ipcRenderer.send('store-setting', key, value),
 
-    readFile: (filePath) => fsp().readFile(filePath, { encoding: 'utf-8' }),
-    writeFile: (filePath, content) => fsp().writeFile(filePath, content),
+    readFile: (filePath) => fsp.get().readFile(filePath, { encoding: 'utf-8' }),
+    writeFile: (filePath, content) => fsp.get().writeFile(filePath, content),
+
+    path: path.get(),
+    spawnProcess: (...args) => childProcess.get().spawn(...args),
+    treeKill: (pid, signal) => new Promise(resolve => treeKill.get()(pid, signal, resolve)),
+
 
     // Handler
     updateMaxUnmax: (callback) => ipcRenderer.on('update-max-unmax', callback),
