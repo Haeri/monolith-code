@@ -245,10 +245,12 @@ footer {
 
 /* ---------- BODY ---------- */
 
-#content {
+#content,
+#preview-wrapper {
 	display: flex;
 	flex-direction: column;
 	overflow: hidden;
+	flex: 1;
 }
 
 #main-divider {
@@ -259,15 +261,25 @@ footer {
 	overflow: hidden;
 }
 
-#main-divider iframe {
+/*
+#preview-wrapper {
 	min-width: 0;
 	flex: 1;
 	border: none;
 	background: #ffffff04;
 }
-#main-divider iframe.html-style {
+*/
+
+#embed-content {	
+	background: #ffffff04;
+}
+#embed-content.html-style {
 	background: #a9a9a9;
 }
+#embed-content-dev-view{
+	height: 0;
+}
+
 
 #editor-wrapper {
 	width: 100%;
