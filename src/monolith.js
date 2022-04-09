@@ -37,6 +37,7 @@ let consoleUi;
 let consoleInUi;
 let consoleOutUi;
 let webviewUi;
+let webviewDevUi;
 let editorMediaDivUi;
 let editorConsoleDivUi;
 let processIndicatorUi;
@@ -124,7 +125,7 @@ const commandList = {
   },
   '!dev': {
     desc: 'Open Chrome Devtools for the preview window',
-    func: () => { webviewUi.openDevTools(); },
+    func: () => { toggleDevTool(); },
   },
   '!settings': {
     desc: 'Open settings file',
@@ -227,7 +228,7 @@ async function openFile(filePaths = []) {
       .then(data => {
         editor.setValue(data, -1);
         _setFileInfo(fileToOpen);
-        webviewUi.src = 'about:blank'
+        //webviewUi.src = 'about:blank'
         print(`Opened file ${fileToOpen}`);
       })
       .catch(err => {
@@ -448,7 +449,11 @@ const markdownUpdater = _debounce(() => {
 
 
 
-
+function toggleDevTool() {
+    const targetId = webviewUi.getWebContentsId();
+    const devtoolsId = webviewDevUi.getWebContentsId();
+    window.api.openDevTool(targetId, devtoolsId);
+}
 
 
 
@@ -661,6 +666,7 @@ function _assignUIVariables() {
   consoleInUi = document.getElementById('console-in');
   consoleOutUi = document.getElementById('console-out');
   webviewUi = document.getElementById('embed-content');
+  webviewDevUi = document.getElementById('embed-content-dev-view');
   themeLink = document.getElementById('theme-link');
   editorMediaDivUi = document.getElementById('editor-media-div');
   editorConsoleDivUi = document.getElementById('editor-console-div');
@@ -783,6 +789,15 @@ async function _initialize() {
     print(value.text);
   });
 
+
+  const emittedOnce = (element, eventName) => new Promise(resolve => {
+    element.addEventListener(eventName, event => resolve(event), { once: true })
+  })
+  const browserReady = emittedOnce(webviewUi, 'dom-ready');
+  const devtoolsReady = emittedOnce(webviewDevUi, 'dom-ready');
+  Promise.all([browserReady, devtoolsReady]).then(() => {
+    
+  })
 
 
   window.addEventListener('keydown', (event) => {

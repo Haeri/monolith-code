@@ -1,4 +1,4 @@
-const { app, BrowserWindow, ipcMain } = require('electron');
+const { app, BrowserWindow, ipcMain, webContents } = require('electron');
 const { lazyRequire, PLATFORM_ZIP } = require('./src/common');
 const Store = require('./src/store');
 const path = require('path');
@@ -138,7 +138,8 @@ function createWindow(caller = undefined, filePaths = []) {
     webPreferences: {
       preload: path.join(__dirname, 'src/preload.js'),
       nodeIntegration: false,
-      contextIsolation: true
+      contextIsolation: true,
+      webviewTag: true,
     },
     icon: path.join(__dirname, 'res/img/icon.png'),
   });
@@ -240,6 +241,12 @@ ipcMain.handle('show-save-dialog', async (event, options) => {
   return await dialog.get().showSaveDialog(win, options);
 });
 
+ipcMain.on('open-devtools', (event, targetContentsId, devtoolsContentsId) => {
+  const target = webContents.fromId(targetContentsId)
+  const devtools = webContents.fromId(devtoolsContentsId)
+  target.setDevToolsWebContents(devtools)
+  target.openDevTools()
+})
 
 ipcMain.on('new-window', (event, filePaths) => {
   const win = BrowserWindow.fromWebContents(event.sender);

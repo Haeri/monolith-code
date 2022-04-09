@@ -35,8 +35,11 @@
                     <pre id="main-text-area"></pre>
                 </div>
                 <div id="editor-media-div" class="resizer" data-direction="horizontal"></div>
-                <iframe src="about:blank" id="embed-content" name="embed-content"
-                    sandbox="allow-scripts allow-same-origin allow-modals"></iframe>
+                <div id="preview-wrapper">
+                    <webview id="embed-content" src="about:blank" preload="res/embed/preload.js"></webview>
+                    <div id="preview-dev-div" class="resizer" data-direction="vertical"></div>
+                    <webview id="embed-content-dev-view" src="about:blank"></webview>
+                </div>
             </div>
             <div id="editor-console-div" class="resizer" data-direction="vertical"></div>
             <div id="console">

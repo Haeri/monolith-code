@@ -98,6 +98,7 @@ const API = {
     spawnProcess: (...args) => childProcess.get().spawn(...args),
     treeKill: (pid, signal) => new Promise(resolve => treeKill.get()(pid, signal, resolve)),
     markedParse: (...args) => requireMarked().parse(...args),
+    openDevTool: (targetId, devtoolsId) => ipcRenderer.send('open-devtools', targetId, devtoolsId),
 
 
     // Handler
