@@ -24,6 +24,12 @@ class lazyRequire {
   }
 };
 
+function requireLazy(func) {
+  return new lazyRequire(func);
+}
+
+
+
 const getExeExtension = (platform) => (Object.prototype.hasOwnProperty.call(EXE_EXTENSION, platform) ? EXE_EXTENSION[platform] : '');
 
 // https://stackoverflow.com/a/34749873
@@ -59,5 +65,5 @@ if (typeof module !== 'undefined' && module.exports) {
   module.exports.getExeExtension = getExeExtension;
   module.exports.isObject = isObject;
   module.exports.mergeDeep = mergeDeep;
-  module.exports.lazyRequire = lazyRequire;
+  module.exports.requireLazy = requireLazy;
 }

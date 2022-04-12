@@ -1,5 +1,5 @@
 const { app, BrowserWindow, ipcMain, webContents } = require('electron');
-const { lazyRequire, PLATFORM_ZIP } = require('./src/common');
+const { requireLazy, PLATFORM_ZIP } = require('./src/common');
 const Store = require('./src/store');
 const path = require('path');
 
@@ -9,9 +9,9 @@ const appInfo = {
   os: process.platform
 };
 
-let axios = new lazyRequire(() => require('axios').default);
-let dialog = new lazyRequire(() => require('electron').dialog);
-let fs = new lazyRequire(() => require('fs'));
+let axios = requireLazy(() => require('axios').default);
+let dialog = requireLazy(() => require('electron').dialog);
+let fs = requireLazy(() => require('fs'));
 
 
 const RELEASE_VERSION_URL = 'https://api.github.com/repos/Haeri/MonolithCode2/releases/latest';
@@ -241,11 +241,13 @@ ipcMain.handle('show-save-dialog', async (event, options) => {
   return await dialog.get().showSaveDialog(win, options);
 });
 
-ipcMain.on('open-devtools', (event, targetContentsId, devtoolsContentsId) => {
+ipcMain.on('open-devtools', (_, targetContentsId, devtoolsContentsId) => {
   const target = webContents.fromId(targetContentsId)
   const devtools = webContents.fromId(devtoolsContentsId)
+
   target.setDevToolsWebContents(devtools)
   target.openDevTools()
+  devtools.executeJavaScript("window.location.reload()");
 })
 
 ipcMain.on('new-window', (event, filePaths) => {
