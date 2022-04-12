@@ -381,3 +381,12 @@ button::-moz-focus-inner {
   padding: 0;
   border: 0;
 }
+
+
+
+
+@media print {
+  body{
+    color:rgb(30, 30, 30);
+  }
+}

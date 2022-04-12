@@ -1,10 +1,10 @@
 const { contextBridge, ipcRenderer, webFrame } = require("electron");
-const { lazyRequire } = require('./common');
+const { requireLazy } = require('./common');
 
-let path = new lazyRequire(() => require('path'));
-let fsp = new lazyRequire(() => require('fs').promises);
-let treeKill = new lazyRequire(() => require('tree-kill'));
-let childProcess = new lazyRequire(() => require('child_process'));
+let path = requireLazy(() => require('path'));
+let fsp = requireLazy(() => require('fs').promises);
+let treeKill = requireLazy(() => require('tree-kill'));
+let childProcess = requireLazy(() => require('child_process'));
 
 let marked = null;
 

@@ -1,12 +1,9 @@
 /* eslint-disable no-underscore-dangle */
 /* eslint-disable import/no-extraneous-dependencies */
 
-let modelist = new lazyRequire(() => ace.require('ace/ext/modelist'));
-let themelist = new lazyRequire(() => ace.require('ace/ext/themelist'));
-let beautify = new lazyRequire(() => ace.require('ace/ext/beautify'));
-
-//let mdTemplate = new lazyRequire(async () => await fetch('res/embed/markdown/index.html').then(res => res.text()));
-//let scrollBarsCss = new lazyRequire(async () => await fetch('res/style/bars.css').then(res => res.text()));
+let modelist = requireLazy(() => ace.require('ace/ext/modelist'));
+let themelist = requireLazy(() => ace.require('ace/ext/themelist'));
+let beautify = requireLazy(() => ace.require('ace/ext/beautify'));
 
 let appInfo = null;
 let editor = null;
@@ -39,10 +36,11 @@ let consoleOutUi;
 let webviewUi;
 let webviewDevUi;
 let editorMediaDivUi;
+let previewDevDivUi;
 let editorConsoleDivUi;
 let processIndicatorUi;
 
-let errorSVG = new lazyRequire(async () => await fetch('res/img/err.svg').then(res => res.text()));
+let errorSVG = requireLazy(async () => await fetch('res/img/err.svg').then(res => res.text()));
 
 // Constants
 const INFO_LEVEL = Object.freeze({
@@ -358,7 +356,7 @@ function evaluateMathInline() {
   }
 }
 
-function exportPDFFromPreview() {
+async function exportPDFFromPreview() {
   if (!file.path) {
     print("Filepath not set for export", INFO_LEVEL.warn);
     return;
@@ -370,17 +368,14 @@ function exportPDFFromPreview() {
 
   const pdfPath = window.api.path.resolve(file.path, file.name + '.pdf');
 
-  webviewUi.printToPDF({ landscape: false, pageSize: 'A4' }).then(data => {
-    fs.writeFile(pdfPath, data, (error) => {
-      if (error) {
-        print(`Failed to write PDF to ${pdfPath}:\n${error}`, INFO_LEVEL.error);
-        return
-      }
-      print(`PDF successfully stored to ${pdfPath}`, INFO_LEVEL.confirm);
-    })
-  }).catch(error => {
+  let data = await webviewUi.printToPDF({ landscape: false, pageSize: 'A4' });
+  let error = await window.api.writeFile(pdfPath, data);
+
+  if (error) {
     print(`Failed to write PDF to ${pdfPath}:\n${error}`, INFO_LEVEL.error);
-  })
+  } else {
+    print(`PDF successfully stored to ${pdfPath}`, INFO_LEVEL.confirm);
+  }
 }
 
 function openSettings() {
@@ -437,8 +432,8 @@ function _debounce(func, wait, immediate) {
 
 const markdownUpdater = _debounce(() => {
   const markedHtml = mdToHTML();
-  //webviewUi.send('fill_content', markedHtml);
-  webviewUi.contentWindow.document.body.innerHTML = markedHtml;
+  webviewUi.send('fill_content', markedHtml);
+  //webviewUi.contentWindow.document.body.innerHTML = markedHtml;
 
 }, 200);
 
@@ -450,9 +445,10 @@ const markdownUpdater = _debounce(() => {
 
 
 function toggleDevTool() {
-    const targetId = webviewUi.getWebContentsId();
-    const devtoolsId = webviewDevUi.getWebContentsId();
-    window.api.openDevTool(targetId, devtoolsId);
+  const targetId = webviewUi.getWebContentsId();
+  const devtoolsId = webviewDevUi.getWebContentsId();
+  window.api.openDevTool(targetId, devtoolsId);
+  togglePreviewDivider();
 }
 
 
@@ -543,35 +539,28 @@ async function runFile() {
 
       runCommand(cmdRun);
     } else if (file.lang === 'latex') {
+      webviewUi.className = "";
+
       webviewUi.src = `${file.path + file.name}.pdf?v=${Date.now()}`;
     } else if (file.lang === 'markdown') {
+      webviewUi.className = "";
 
       const markedHtml = mdToHTML();
 
-      webviewUi.addEventListener('load', () => {
-        webviewUi.contentWindow.document.body.innerHTML = markedHtml;
-        //webviewUi.send('fill_content', markedHtml);
+      webviewUi.addEventListener('did-finish-load', () => {
+        webviewUi.send('fill_content', markedHtml);
         editor.on('input', markdownUpdater);
       }, { once: true });
-      //let template = await mdTemplate.get();
-      //console.log(template);
+
       webviewUi.src = "./res/embed/markdown/index.html";
-      //webviewUi.srcdoc = template;
+
 
     } else if (file.lang === 'html') {
       webviewUi.className = "";
       webviewUi.classList.add("html-style");
-      webviewUi.src = (`${file.path + file.name}.html`);
-      
-      webviewUi.addEventListener('load', (e) => {
 
-      webviewUi.contentWindow.console = {
-        log: (text) => {
-            window.parent.postMessage({message: text, level: 1}, "*");
-        }
-      }
-    });
-    }else{
+      webviewUi.src = (`${file.path + file.name}.html`);
+    } else {
       webviewUi.className = "";
       webviewUi.src = 'about:blank';
     }
@@ -616,7 +605,28 @@ async function buildRunFile() {
 }
 
 
+function togglePreviewDivider(open = undefined) {
+  const num = parseFloat(previewDevDivUi.previousElementSibling.style.height.replace('%', ''));
 
+  let targetPercent = "100%";
+  if (open === undefined) {
+    targetPercent = Math.abs(num - 60) < 1 ? '99%' : '60%';
+  } else {
+    targetPercent = open ? '99%' : '60%';
+  }
+
+  const anim = previewDevDivUi.previousElementSibling.animate([
+    { height: previewDevDivUi.previousElementSibling.style.height },
+    { height: targetPercent },
+  ], {
+    duration: 450,
+    easing: 'cubic-bezier(0.860, 0.000, 0.070, 1.000)',
+  });
+  anim.finished.then(() => {
+    previewDevDivUi.previousElementSibling.style.height = targetPercent;
+    //window.api.storeSetting('console_div_percent', targetPercent)
+  });
+}
 
 function _updateTitle() {
   const title = file.extension ? file.name + file.extension : 'new document';
@@ -670,6 +680,7 @@ function _assignUIVariables() {
   themeLink = document.getElementById('theme-link');
   editorMediaDivUi = document.getElementById('editor-media-div');
   editorConsoleDivUi = document.getElementById('editor-console-div');
+  previewDevDivUi = document.getElementById('preview-dev-div');
   processIndicatorUi = document.getElementById('process-indicator');
 }
 
@@ -796,7 +807,7 @@ async function _initialize() {
   const browserReady = emittedOnce(webviewUi, 'dom-ready');
   const devtoolsReady = emittedOnce(webviewDevUi, 'dom-ready');
   Promise.all([browserReady, devtoolsReady]).then(() => {
-    
+
   })
 
 
@@ -902,49 +913,38 @@ async function _initialize() {
 
 
 
-  /*
-    webviewUi.addEventListener('load-commit', () => {
-    });
-    webviewUi.addEventListener('did-finish-load', async () => {
-      webviewUi.insertCSS(await scrollBarsCss.get());
-      webviewUi.insertCSS('body{background: transparent !important;}');
-      webviewUi.send('onLoad');
-    });
-    */
 
-    
-  
-    window.addEventListener("message", (e) => {
-      if (e.source.name !== 'embed-content') return;
-  
-      let mode = 1;
-      switch (e.data.level) {
-        case 1:
-          mode = INFO_LEVEL.info;
-          break;
-        case 2:
-          mode = INFO_LEVEL.warn;
-          break;
-        case 3:
-          mode = INFO_LEVEL.error;
-          break;
-        default:
-          mode = INFO_LEVEL.info;
-          break;
-      }
-  
-      /*const source = e.sourceId.split('/').pop();
-      let fileSource = `${source}:${e.line}`;
-  
-      if (source === (file.name + file.extension)) {
-        fileSource = `<a class="jump-to-line" href="#${e.line}">${fileSource}</a>`;
-      }
-  */
-      let fileSource = "preview"
-      print(`Message from ${fileSource}\n${e.data.message}`, mode);
-    });
-  
-  
+
+  webviewUi.addEventListener('console-message', (e) => {
+    if (e.sourceId === 'electron/js2c/renderer_init.js') return;
+
+    let mode = 1;
+    switch (e.level) {
+      case 1:
+        mode = INFO_LEVEL.info;
+        break;
+      case 2:
+        mode = INFO_LEVEL.warn;
+        break;
+      case 3:
+        mode = INFO_LEVEL.error;
+        break;
+      default:
+        mode = INFO_LEVEL.info;
+        break;
+    }
+
+    const source = e.sourceId.split('/').pop();
+    let fileSource = `${source}:${e.line}`;
+
+    if (source === (file.name + file.extension)) {
+      fileSource = `<a class="jump-to-line" href="#${e.line}">${fileSource}</a>`;
+    }
+
+    print(`Message from ${fileSource}\n${e.message}`, mode);
+  });
+
+
 
   editorMediaDivUi.addEventListener('divider-move', () => {
     const val = editorMediaDivUi.previousElementSibling.style.width;
@@ -988,8 +988,15 @@ async function _initialize() {
     });
   });
 
+
+
+  previewDevDivUi.addEventListener('dblclick', () => {
+    togglePreviewDivider();
+  });
+
   document.getElementById('editor-wrapper').style.width = editorConfig.media_div_percent;
   document.getElementById('main-divider').style.height = editorConfig.console_div_percent;
+  document.getElementById('embed-content').style.height = "100%";
 
   print(`${appInfo.name} ${appInfo.version}`);
 
