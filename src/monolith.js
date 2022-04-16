@@ -29,6 +29,7 @@ let historyIndex;
 // UI Components
 let documentNameUi;
 let languageDisplayUi;
+let languageDisplaySelectedUi;
 let themeChoiceUi;
 let consoleUi;
 let consoleInUi;
@@ -192,7 +193,9 @@ function setLanguage(langKey) {
   const lang = langInfo[langKey];
   const { mode } = modelist.get().modesByName[lang.mode];
   editor.session.setMode(mode);
-  languageDisplayUi.value = langKey;
+
+  languageDisplaySelectedUi.innerText = lang.name;
+  languageDisplaySelectedUi.dataset.value = langKey;
 }
 
 function setContent(content) {
@@ -248,7 +251,7 @@ async function saveFile(saveAs = false) {
   let filePath = file.path + file.name + file.extension;
 
   if (file.path === undefined || saveAs) {
-    const lang = langInfo[languageDisplayUi.value];
+    const lang = langInfo[languageDisplaySelectedUi.dataset.value];
     const options = {
       defaultPath: `~/${lang.tempname}`,
       filters: [
@@ -333,10 +336,10 @@ function beautifyDocument() {
 }
 
 function makeLanguageTemplate() {
-  if ((languageDisplayUi.value in langInfo) && langInfo[languageDisplayUi.value].templ) {
-    editor.setValue(langInfo[languageDisplayUi.value].templ, -1);
+  if ((languageDisplaySelectedUi.dataset.value in langInfo) && langInfo[languageDisplaySelectedUi.dataset.value].templ) {
+    editor.setValue(langInfo[languageDisplaySelectedUi.dataset.value].templ, -1);
   } else {
-    print(`No default template exists for ${languageDisplayUi.value}`, INFO_LEVEL.warn);
+    print(`No default template exists for ${languageDisplaySelectedUi.dataset.value}`, INFO_LEVEL.warn);
   }
 }
 
@@ -670,6 +673,7 @@ function _calculate(string) {
 function _assignUIVariables() {
   documentNameUi = document.getElementById('document-name');
   languageDisplayUi = document.getElementById('language-display');
+  languageDisplaySelectedUi = document.querySelector("#language-display .selected");
   themeChoiceUi = document.getElementById('theme-choice');
   charDisplayUi = document.getElementById('fchar-display');
   consoleUi = document.getElementById('console');
@@ -883,12 +887,19 @@ async function _initialize() {
     return true;
   }, false);
 
+  /*
   languageDisplayUi.addEventListener('change', () => {
     setLanguage(languageDisplayUi.value);
   });
-
+*/
   themeChoiceUi.addEventListener('change', () => {
     setTheme(themeChoiceUi.value);
+  });
+
+
+  let optionsContainer = document.getElementsByClassName("options-container")[0];
+  languageDisplaySelectedUi.addEventListener("click", () => {
+    optionsContainer.classList.toggle("active");
   });
 
   try {
@@ -898,14 +909,18 @@ async function _initialize() {
     mergeDeep(langInfo, settings.languageConfig);
 
     Object.entries(langInfo).forEach((el) => {
-      const option = document.createElement('option');
+      const option = document.createElement('div');
+      option.classList.add("option");
       const [name, obj] = el;
-      option.text = obj.name;
-      option.value = name;
-      languageDisplayUi.add(option);
+      option.innerText = obj.name;
+      option.dataset.value = name;
+      optionsContainer.appendChild(option);
+      option.addEventListener("click", () => {
+        optionsContainer.classList.remove("active");
+        setLanguage(option.dataset.value);
+      });
     });
 
-    languageDisplayUi.value = 'plaintext';
   } catch (err) {
     print(`An error ocurred reading the file :${err.message}`, INFO_LEVEL.err);
     return;
@@ -1002,6 +1017,8 @@ async function _initialize() {
 
   if (settings.filePathsToOpen.length) {
     openFile(settings.filePathsToOpen);
+  } else {
+    setLanguage("plaintext");
   }
 }
 
