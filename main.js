@@ -284,19 +284,11 @@ ipcMain.on('can-close-response', (event, canClose) => {
 
 
 
-// TEMPFIX: Linux transparency hack
-// from https://github.com/electron/electron/issues/25153
-let delay = 0;
-if (process.platform === 'linux' && userPrefStore.get('window_config').rounded_window) {
-  delay = 200;
-  app.commandLine.appendSwitch('use-gl', 'desktop');
-}
+
 
 app.whenReady().then(() => {
-  setTimeout(() => {
-    let num = app.isPackaged ? 1 : 2;
-    createWindow(null, process.argv.slice(num));
-  }, delay);
+  let num = app.isPackaged ? 1 : 2;
+  createWindow(null, process.argv.slice(num));
 
   app.on('activate', () => {
     // On macOS it's common to re-create a window in the app when the

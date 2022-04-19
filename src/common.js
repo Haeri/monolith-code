@@ -29,6 +29,24 @@ function requireLazy(func) {
 }
 
 
+class StandaloneEvent {
+  constructor() {
+    this.handlers = {};
+  }
+
+  registerHandler = (event, callback) => {
+    this.handlers[event] = callback;
+  }
+
+  dispatch = (event, data) => {
+    let callback = this.handlers[event];
+    if (callback) {
+      callback(data);
+    }
+  };
+}
+
+
 
 const getExeExtension = (platform) => (Object.prototype.hasOwnProperty.call(EXE_EXTENSION, platform) ? EXE_EXTENSION[platform] : '');
 
@@ -66,4 +84,5 @@ if (typeof module !== 'undefined' && module.exports) {
   module.exports.isObject = isObject;
   module.exports.mergeDeep = mergeDeep;
   module.exports.requireLazy = requireLazy;
+  module.exports.StandaloneEvent = StandaloneEvent;
 }
