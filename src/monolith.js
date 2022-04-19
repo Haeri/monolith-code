@@ -392,7 +392,7 @@ function openLanguageSettings() {
 async function killProcess() {
   //return new Promise((resolve, reject) => {
   if (runningProcess != null) {
-    await window.api.treeKill(runningProcess.pid, 'SIGKILL');
+    await runningProcess.dispatch("kill");
   }
   /*  
     , (err) => {
@@ -480,34 +480,28 @@ function commandRunner(command, args, callback) {
   notifyLoadStart();
   print(`> ${command}`, INFO_LEVEL.user);
 
-  runningProcess = window.api.spawnProcess(command, args, {
-    encoding: 'utf8',
-    shell: true,
-    ...file.path && { cwd: file.path },
-  });
 
-  runningProcess.on('error', (err) => {
+  runningProcess = window.api.spawnProcess(command, args, file.path);
+
+  runningProcess.registerHandler('error', (err) => {
     print(err, INFO_LEVEL.err);
   });
 
-  runningProcess.stdout.setEncoding('utf8');
-  runningProcess.stdout.on('data', (data) => {
+  runningProcess.registerHandler('stdout', (data) => {
     print(data.toString());
   });
 
-  runningProcess.stderr.setEncoding('utf8');
-  runningProcess.stderr.on('data', (data) => {
-    let dataString = data.toString();
+  runningProcess.registerHandler('stderr', (data) => {
     if (file.lang !== undefined && langInfo[file.lang].linere != null) {
       const line = langInfo[file.lang].linere.replaceAll('<name>', file.name);
       const re = new RegExp(line, 'gi');
-      dataString = dataString.replaceAll(re, '<a class="jump-to-line" href="#$2">$1</a>');
+      data = data.replaceAll(re, '<a class="jump-to-line" href="#$2">$1</a>');
     }
-    print(dataString, INFO_LEVEL.error);
+    print(data, INFO_LEVEL.error);
   });
   processIndicatorUi.classList.add('active');
 
-  runningProcess.on('close', (code) => {
+  runningProcess.registerHandler('close', (code) => {
     // Here you can get the exit code of the script
     switch (code) {
       case 0:
@@ -861,7 +855,7 @@ async function _initialize() {
         print(pre, INFO_LEVEL.user);
         print('Command not recognized. Try !help.', INFO_LEVEL.warn);
       } else if (runningProcess != null) {
-        runningProcess.stdin.write(`${cmd}\n`);
+        runningProcess.dispatch("stdin", `${cmd}\n`);
       } else {
         runCommand(cmd);
       }
