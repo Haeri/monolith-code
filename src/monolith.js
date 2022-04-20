@@ -112,9 +112,9 @@ const commandList = {
     desc: 'Kills the currently running process',
     func: () => {
       if (runningProcess) {
-        killProcess();
+        killProcess().then(() => print("Process Killed", INFO_LEVEL.info));
       } else {
-        print('No Process to kill.', INFO_LEVEL.warn);
+        print('No nunning process to kill.', INFO_LEVEL.warn);
       }
     },
   },
@@ -730,7 +730,7 @@ async function _initialize() {
     });
   });
 
-  if (windowConfig.rounded_window) {
+  if (!windowConfig.native_frame) {
     document.body.classList.add('rounded');
   }
   if (localWindowConfig.maximized) {
@@ -891,9 +891,22 @@ async function _initialize() {
   });
 
 
-  let optionsContainer = document.getElementsByClassName("options-container")[0];
+  var optionsContainer = document.getElementsByClassName("options-container")[0];
   languageDisplaySelectedUi.addEventListener("click", () => {
-    optionsContainer.classList.toggle("active");
+    //console.log("click", optionsContainer.classList);
+    if(optionsContainer.classList.contains("active")){
+      //console.log("click to close");
+      optionsContainer.classList.remove("active");
+    }else{
+      //console.log("click to open");
+      optionsContainer.classList.add("active");
+      document.addEventListener("click", (e) => {
+        //console.log(e.target, languageDisplaySelectedUi.contains(e.target))
+        if(languageDisplaySelectedUi.contains(e.target)) return;
+        //console.log("click outside to close");
+        optionsContainer.classList.remove("active");
+      }, {once: true});
+    }
   });
 
   try {
