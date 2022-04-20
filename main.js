@@ -117,6 +117,11 @@ function createWindow(caller = undefined, filePaths = []) {
   let { x, y, width, height, maximized } = localStore.get('window_config');
   let { rounded_window } = userPrefStore.get('window_config');
 
+  if(process.platform === 'darwin'){
+    rounded_window = false;
+  }
+  
+
   if (caller) {
     x = caller.getPosition()[0] + 30;
     y = caller.getPosition()[1] + 30;
@@ -127,7 +132,7 @@ function createWindow(caller = undefined, filePaths = []) {
     ...y && { y },
     width,
     height,
-    frame: false,
+    ... (process.platform !== 'darwin') && {frame: false},
     hasShadow: true,
     transparent: rounded_window,
     backgroundColor: rounded_window ? '#00000000' : '#212121',
