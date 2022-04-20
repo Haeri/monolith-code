@@ -38,7 +38,7 @@ const userPrefStore = new Store({
   configName: 'user-preferences',
   defaults: {
     window_config: {
-      rounded_window: true,
+      native_frame: false,
     },
     editor_config: {
       theme: 'ace/theme/monokai',
@@ -115,10 +115,26 @@ function doUpdate() {
 function createWindow(caller = undefined, filePaths = []) {
   filePathsToOpen = filePaths;
   let { x, y, width, height, maximized } = localStore.get('window_config');
-  let { rounded_window } = userPrefStore.get('window_config');
+  let { native_frame } = userPrefStore.get('window_config');
 
+  // Force custom frame to remove traficlights
   if(process.platform === 'darwin'){
-    rounded_window = false;
+    native_frame = false;
+  }
+
+  let windowConfig = {}
+  if(native_frame){
+    windowConfig = {
+      frame: false,
+      hasShadow: true,
+      backgroundColor: '#212121',
+    }
+  }else{
+    windowConfig = {
+      frame: false,
+      transparent: true,
+      backgroundColor: '#00000000'
+    }
   }
   
 
@@ -132,11 +148,7 @@ function createWindow(caller = undefined, filePaths = []) {
     ...y && { y },
     width,
     height,
-    ... (process.platform !== 'darwin') && {frame: false},
-    hasShadow: true,
-    transparent: rounded_window,
-    backgroundColor: rounded_window ? '#00000000' : '#212121',
-    titleBarStyle: 'hidden',
+    ...windowConfig,
     show: false,
     minWidth: 220,
     minHeight: 300,
