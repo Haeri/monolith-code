@@ -1,12 +1,10 @@
 {
   "name": "monolithcode2",
-  "version": "2.2.0",
+  "version": "2.3.0",
   "description": "minimalistic coder editor",
   "homepage": "https://haeri.github.io/MonolithCode2/",
-  "main": "main.js",
   "scripts": {
-    "start": "electron .",
-    "package": "node package.js"
+    "tauri": "tauri"
   },
   "keywords": [
     "code",
@@ -14,18 +12,10 @@
   ],
   "author": "Haeri",
   "license": "MIT",
-  "devDependencies": {
-    "electron": "^17.3.0",
-    "electron-packager": "^15.3.0",
-    "eslint": "^7.2.0",
-    "eslint-config-airbnb-base": "^14.2.1",
-    "eslint-plugin-import": "^2.22.1"
-  },
   "dependencies": {
-    "axios": "^0.21.1",
-    "highlight.js": "^10.6.0",
-    "katex": "^0.15.2",
-    "marked": "^4.0.10",
-    "tree-kill": "^1.2.2"
+    "@tauri-apps/api": "^1.0.0-rc.4"
+  },
+  "devDependencies": {
+    "@tauri-apps/cli": "^1.0.0-rc.9"
   }
 }
