@@ -5,8 +5,8 @@
   },
   "build": {
     "withGlobalTauri": true,
-    "distDir": "../dist",
-    "devPath": "../dist",
+    "distDir": "../src-front",
+    "devPath": "../src-front",
     "beforeDevCommand": "",
     "beforeBuildCommand": ""
   },
