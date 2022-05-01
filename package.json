@@ -4,7 +4,8 @@
   "description": "minimalistic coder editor",
   "homepage": "https://haeri.github.io/MonolithCode2/",
   "scripts": {
-    "tauri": "tauri"
+    "tauri": "tauri",
+    "build": "tauri build"
   },
   "keywords": [
     "code",
