@@ -4,11 +4,10 @@
     "version": "2.3.0"
   },
   "build": {
-    "withGlobalTauri": true,
-    "distDir": "../src-front",
-    "devPath": "../src-front",
-    "beforeDevCommand": "",
-    "beforeBuildCommand": ""
+    "distDir": "../dist",
+    "devPath": "http://localhost:3000",
+    "beforeDevCommand": "npm run dev",
+    "beforeBuildCommand": "npm run build"
   },
   "tauri": {
     "bundle": {
@@ -45,7 +44,7 @@
     "updater": {
       "active": false
     },
-    "allowlist": {      
+    "allowlist": {
       "window": {
         "all": true
       },
@@ -66,7 +65,7 @@
       {
         "title": "monolith code",
         "width": 800,
-        "height": 601,
+        "height": 600,
         "resizable": true,
         "fullscreen": false,
         "decorations": false,

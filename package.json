@@ -3,20 +3,26 @@
   "version": "2.3.0",
   "description": "minimalistic coder editor",
   "homepage": "https://haeri.github.io/MonolithCode2/",
-  "scripts": {
-    "tauri": "tauri",
-    "build": "tauri build"
-  },
   "keywords": [
     "code",
     "editor"
   ],
   "author": "Haeri",
   "license": "MIT",
+  "scripts": {
+    "dev": "vite",
+    "build": "vite build",
+    "preview": "vite preview",
+    "tauri": "tauri"
+  },
   "dependencies": {
-    "@tauri-apps/api": "^1.0.0-rc.4"
+    "@tauri-apps/api": "^1.0.0-rc.4",
+    "vue": "^3.2.25",
+    "vue3-ace-editor": "^2.2.2"
   },
   "devDependencies": {
-    "@tauri-apps/cli": "^1.0.0-rc.9"
+    "@tauri-apps/cli": "^1.0.0-rc.9",
+    "@vitejs/plugin-vue": "^2.3.1",
+    "vite": "^2.9.5"
   }
 }

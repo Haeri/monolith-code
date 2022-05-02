@@ -3,6 +3,7 @@ on:
   push:
     branches:
     - tauri    
+    - tauri-vue
 
 jobs:
   test-tauri:
