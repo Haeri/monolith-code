@@ -1,7 +1,7 @@
 <template>
   <div ref="console" id="console">
-    <pre v-for="line in lines" id="console-out">
-      <div :class="line.class">{{line.text}}</div>
+    <pre id="console-out">
+      <div v-for="(line, i) in lines" :key="i" :class="line.mode" v-html="line.text"></div>
     </pre>
     <textarea id="console-in" spellcheck="false"></textarea>
     <span id="process-indicator"></span>

@@ -1,37 +1,55 @@
 <template>
   <MonolithHeader />
-  <MonolithBody ref="editor" />
-  <MonolithConsole :statusBar="$refs.statusBar"/>
+
+  <div id="main-divider">
+    <div id="editor-wrapper">
+      <MonolithBody ref="editor" />
+    </div>
+    <div
+      id="editor-media-div"
+      class="resizer"
+      data-direction="horizontal"
+    ></div>
+    <div id="preview-wrapper">
+      <PreviewFrame ref="preview" />
+    </div>
+  </div>
+  <MonolithConsole />
   <MonolithFooter />
   <MonolithStatusBar />
 </template>
 
 <script>
-//import { appWindow } from "@tauri-apps/api/window";
-import { dialog, fs } from "@tauri-apps/api";
+import { dialog, fs, path } from "@tauri-apps/api";
 
 import MonolithHeader from "./components/MonolithHeader.vue";
 import MonolithBody from "./components/MonolithBody.vue";
 import MonolithConsole from "./components/MonolithConsole.vue";
 import MonolithFooter from "./components/MonolithFooter.vue";
 import MonolithStatusBar from "./components/MonolithStatusBar.vue";
+import PreviewFrame from "./components/PreviewFrame.vue";
 
-import { store } from './store'
+import { store } from "./store";
 import { keyBindings } from "./assets/keybindings";
+
+import langInfo from "./assets/lang.json";
 
 export default {
   name: "App",
   data() {
-    return {};
+    return {
+      nativeFrame: false,
+      langInfo,
+    };
   },
   created() {
-    window.addEventListener("keydown", this.handleKeyEvent, false);
+    window.addEventListener("keydown", this._handleKeyEvent, false);
   },
   destroyed() {
-    window.removeEventListener("keydown", this.handleKeyEvent);
+    window.removeEventListener("keydown", this._handleKeyEvent);
   },
   methods: {
-    handleKeyEvent(event) {
+    _handleKeyEvent(event) {
       let lowerKey = event.key.toLowerCase();
       if (event.ctrlKey && !event.shiftKey) {
         if (lowerKey in keyBindings.ctrl) {
@@ -45,13 +63,57 @@ export default {
         }
       }
     },
+    _getModeFromName(filename) {
+      return Object.entries(this.langInfo).find((item) => {
+        const re = item[1].detector;
+        if (filename.toLowerCase().match(re)) {
+          return true;
+        }
+
+        return false;
+      });
+    },
+
+    async _setFileInfo(filePath) {
+      store.file.extension = await path.extname(filePath);
+      store.file.path = (await path.dirname(filePath)) + path.sep;
+      store.file.name = await path.basename(filePath, store.file.extension);
+
+      const lang = this._getModeFromName(
+        store.file.name + store.file.extension
+      );
+      if (lang == null) {
+        store.file.lang = "plaintext";
+      } else {
+        store.file.lang = lang[0];
+      }
+
+      //setLanguage(store.file.lang);
+      store.isSaved = true;
+    },
+
+    _setLanguage(langKey) {
+      if (langKey === "markdown") {
+        //editor.on('input', markdownUpdater);
+      } else {
+        //editor.off('input', markdownUpdater);
+      }
+
+      const lang = this.langInfo[langKey];
+      const { mode } = modelist.get().modesByName[lang.mode];
+      editor.session.setMode(mode);
+
+      //languageDisplaySelectedUi.innerText = lang.name;
+      //languageDisplaySelectedUi.dataset.value = langKey;
+    },
+
     async openFile(filePaths = []) {
       this.$notifyLoadStart();
 
       filePaths = Array.isArray(filePaths) ? filePaths : [filePaths];
 
       if (!filePaths.length) {
-          let ret = await dialog.open({ title: 'Open a file', multiple: true });
+        let ret = await dialog.open({ title: "Open a file", multiple: true });
         if (ret === null) {
           this.$notifyLoadEnd();
           return false;
@@ -62,11 +124,11 @@ export default {
 
       if (!store.file.path && (store.isSaved === null || store.isSaved)) {
         let fileToOpen = filePaths.shift();
-        fs.readTextFile(fileToOpen)          
+        fs.readTextFile(fileToOpen)
           .then((data) => {
             this.$refs.editor.setContent(data);
-            //_setFileInfo(fileToOpen);
-            //webviewUi.src = 'about:blank'
+            this._setFileInfo(fileToOpen);
+            this.$refs.preview.setContent(data); //webviewUi.src = 'about:blank'
             this.$consoleLog(`Opened file ${fileToOpen}`);
           })
           .catch((err) => {
@@ -126,11 +188,13 @@ export default {
     },
   },
   components: {
+    
     MonolithHeader,
     MonolithBody,
     MonolithConsole,
     MonolithFooter,
     MonolithStatusBar,
+    PreviewFrame,
   },
 };
 </script>

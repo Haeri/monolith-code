@@ -13,6 +13,7 @@
 <script>
 import { store } from '../store'
 import { appWindow } from "@tauri-apps/api/window";
+import { dialog, fs } from "@tauri-apps/api";
 
 export default {
   name: "MonolithHeader",
@@ -44,12 +45,12 @@ export default {
       if (this.isSaved === null || this.isSaved) {
         appWindow.close();
       } else {
-        let { canceled, yes } = await window.api.showAskForSaveDialog();
+        let confirm = await dialog.ask("The file contents have not been saved. Would you like to save now?","Unsaved Content");              
 
-        if (canceled) return;
-        else if (yes) {
+        if (confirm === null) return;
+        else if (confirm) {
           try {
-            let ret = null; //await saveFile();
+            let ret = this.$parent.saveFile();
             if (!ret) return;
           } catch (err) {
             return;
