@@ -1,25 +1,29 @@
 <template>
-  <v-ace-editor
-    v-model:value="content"
-    lang="json"
-    theme="monokai"
-    style="height: 100%"
-    :options="options"
-  />
+  <div id="editor-wrapper">
+    <v-ace-editor
+    id="main-text-area"
+      v-model:value="content"
+      lang="json"
+      theme="monokai"
+      style="height: 100%"
+      minLines="10"
+      :options="options"
+    />
+  </div>
 </template>
 
 <script>
 import { VAceEditor } from "vue3-ace-editor";
-import 'ace-builds/src-noconflict/mode-json';
-import 'ace-builds/src-noconflict/theme-monokai';
-import ace from 'ace-builds';
-import workerJsonUrl from 'ace-builds/src-noconflict/worker-json?url';
+import "ace-builds/src-noconflict/mode-json";
+import "ace-builds/src-noconflict/theme-monokai";
+import ace from "ace-builds";
+import workerJsonUrl from "ace-builds/src-noconflict/worker-json?url";
 
-ace.config.setModuleUrl('ace/mode/json_worker', workerJsonUrl);
+ace.config.setModuleUrl("ace/mode/json_worker", workerJsonUrl);
 
 export default {
   name: "MonolithBody",
-  data() {    
+  data() {
     return {
       content: "",
       options: {
@@ -33,19 +37,18 @@ export default {
         fixedWidthGutter: true,
         fadeFoldWidgets: true,
         highlightActiveLine: false,
-        useWorker: false,
         fontSize: 12,
       },
     };
   },
   props: {},
   methods: {
-    setContent(text){
+    setContent(text) {
       this.content = text;
     },
-    getContent(){
+    getContent() {
       return this.content;
-    }
+    },
   },
   components: {
     VAceEditor,
@@ -53,5 +56,97 @@ export default {
 };
 </script>
 
-<style scoped>
+<style>
+#editor-wrapper {
+  width: 100%;
+  height: 100%;
+  position: relative;
+  overflow: hidden;
+
+  width: 80%;
+}
+
+#main-text-area {
+  margin: 0;
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  font-family: "Source Code Pro", monospace;
+  font-weight: 400;
+  cursor: text;
+  margin-right: 4px;
+  padding-right: 4px;
+  background-color: transparent;
+}
+
+.ace_gutter {
+  background-color: transparent !important;
+}
+
+.ace_gutter-active-line {
+  color: white;
+  background-color: transparent !important;
+}
+
+.ace_cursor{
+  color: #ffcc00 !important;
+}
+
+.ace_dark.ace_editor.ace_autocomplete,
+.ace_search {
+  backdrop-filter: blur(8px);
+  background: rgb(30 30 30 / 55%);
+  box-shadow: 1px 1px 8px rgba(0, 0, 0, 0.2);
+  font-family: inherit;
+  border: 1px solid #2d2d2d;
+}
+
+.ace_search.right {
+  border-radius: 0px 0px 4px 4px;
+  border: 1px solid #2d2d2d;
+  border-top: 0 none;
+}
+
+.ace_dark.ace_editor.ace_autocomplete {
+  border-radius: 0px 4px 4px 0px;
+  padding: 0;
+  border-radius: 4px;
+}
+
+.ace_dark.ace_editor.ace_autocomplete .ace_marker-layer .ace_active-line {
+  background-color: #101010b5;
+}
+
+.ace_search .ace_search_form > *,
+.ace_search .ace_replace_form > * {
+  background: var(--background);
+  border-color: #2d2d2d;
+  color: var(--foreground);
+}
+
+.ace_search input {
+  color: white !important;
+}
+
+.ace_button,
+.ace_searchbtn {
+  color: var(--foreground);
+  transition: 0.3s;
+}
+
+.ace_button:hover,
+.ace_searchbtn:hover {
+  color: white;
+  background: inherit;
+}
+
+.ace_searchbtn:after {
+  transition: 0.3s;
+}
+
+.ace_searchbtn:hover:after {
+  border-color: white;
+}
 </style>

@@ -1,9 +1,12 @@
 <template>
+
   <iframe
+  id="embed-content"
     ref="frame"
     sandbox="allow-forms allow-modals allow-pointer-lock allow-popups allow-same-origin allow-scripts allow-top-navigation-by-user-activation"
     :srcdoc="srcdoc"
   />
+
 </template>
 
 <script>
@@ -35,4 +38,22 @@ export default {
 </script>
 
 <style scoped>
+
+
+#embed-content {
+min-width: 0;
+    flex: 1;
+    border: none;
+    background: #ffffff04;
+	
+}
+
+#embed-content.html-style {
+	background: #a9a9a9;
+}
+
+#embed-content-dev-view {
+	flex: 1;
+	min-height: 0;
+}
 </style>

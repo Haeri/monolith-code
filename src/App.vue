@@ -1,20 +1,17 @@
 <template>
   <MonolithHeader />
-
-  <div id="main-divider">
-    <div id="editor-wrapper">
+  <div class="content">
+    <div id="main-divider">
       <MonolithBody ref="editor" />
-    </div>
-    <div
-      id="editor-media-div"
-      class="resizer"
-      data-direction="horizontal"
-    ></div>
-    <div id="preview-wrapper">
+      <div
+        id="editor-media-div"
+        class="resizer"
+        data-direction="horizontal"
+      ></div>
       <PreviewFrame ref="preview" />
     </div>
+    <MonolithConsole />
   </div>
-  <MonolithConsole />
   <MonolithFooter />
   <MonolithStatusBar />
 </template>
@@ -188,7 +185,6 @@ export default {
     },
   },
   components: {
-    
     MonolithHeader,
     MonolithBody,
     MonolithConsole,
@@ -313,5 +309,21 @@ body.rounded:not(.fullscreen) #app {
 body.light #app {
   background-color: var(--background-light);
   border: 1px solid #bdbdbd;
+}
+
+.content {
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+
+#main-divider {
+  display: flex;
+  height: 100%;
+  box-shadow: 0px 2px 20px #0000006e;
+  z-index: 1;
+  overflow: hidden;
+
+  height: 80%;
 }
 </style>
