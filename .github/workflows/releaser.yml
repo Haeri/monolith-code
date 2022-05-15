@@ -51,7 +51,7 @@ jobs:
         GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
       with:
         upload_url: ${{ steps.create_release.outputs.upload_url }}
-        asset_path: ./monolith-code_linux.tar
+        asset_path: ./monolith-code_ubuntu-latest/monolith-code_ubuntu-latest.tar
         asset_name: monolith-code_linux.tar
         asset_content_type: application/tar
     - name: Release MacOS Artifact
@@ -60,7 +60,7 @@ jobs:
         GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
       with:
         upload_url: ${{ steps.create_release.outputs.upload_url }}
-        asset_path: ./monolith-code_mac.tar
+        asset_path: ./monolith-code_macos-latest/monolith-code_macos-latest.tar
         asset_name: monolith-code_mac.tar
         asset_content_type: application/tar
     - name: Release Checksum
