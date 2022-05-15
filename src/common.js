@@ -6,8 +6,8 @@ const EXE_EXTENSION = Object.freeze({
 
 const PLATFORM_ZIP = Object.freeze({
   linux: 'monolith-code_linux.zip',
-  darwin: 'monolith-code_mac.zip',
-  win32: 'monolith-code_win.zip',
+  darwin: 'monolith-code_mac.tar',
+  win32: 'monolith-code_win.tar',
 });
 
 class lazyRequire {
