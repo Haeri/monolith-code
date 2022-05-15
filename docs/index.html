@@ -119,10 +119,10 @@
     					<i data-feather="download"></i>
     					<span><strong>Download</strong><br>for windows</span>
     				</a>
-    				<a href="https://github.com/Haeri/MonolithCode2/releases/latest/download/monolith-code_linux.zip" class="download-btn"><i data-feather="download"></i>
+    				<a href="https://github.com/Haeri/MonolithCode2/releases/latest/download/monolith-code_linux.tar" class="download-btn"><i data-feather="download"></i>
     					<span><strong>Download</strong><br>for linux</span>
     				</a>
-    				<a href="https://github.com/Haeri/MonolithCode2/releases/latest/download/monolith-code_mac.zip" class="download-btn"><i data-feather="download"></i>
+    				<a href="https://github.com/Haeri/MonolithCode2/releases/latest/download/monolith-code_mac.tar" class="download-btn"><i data-feather="download"></i>
     					<span><strong>Download</strong><br>for macOS</span>
     				</a>		        
     	        </div>
@@ -136,7 +136,6 @@
 					.then(response => response.json())
 					.then(data => document.getElementById("version_insert").innerHTML = data.tag_name);							
             }
-            
             
 		     window.onload = function () {
 		        feather.replace();

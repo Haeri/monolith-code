@@ -324,7 +324,7 @@ function print(text, mode = INFO_LEVEL.info) {
     notify(ret);
   }
 
-  consoleUi.scrollTo({ top: consoleUi.scrollHeight, behavior: 'smooth' });
+  setTimeout(() => consoleUi.scrollTo({ top: consoleUi.scrollHeight, behavior: 'smooth' }), 0);
 }
 
 

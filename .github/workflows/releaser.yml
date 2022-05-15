@@ -62,13 +62,4 @@ jobs:
         upload_url: ${{ steps.create_release.outputs.upload_url }}
         asset_path: ./monolith-code_macos-latest/monolith-code_macos-latest.tar
         asset_name: monolith-code_mac.tar
-        asset_content_type: application/tar
-    - name: Release Checksum
-      uses: actions/upload-release-asset@v1
-      env:
-        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-      with:
-        upload_url: ${{ steps.create_release.outputs.upload_url }}
-        asset_path: ./sha512sums.txt
-        asset_name: sha512sums.txt
-        asset_content_type: text/plain
+        asset_content_type: application/tar   
