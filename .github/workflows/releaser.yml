@@ -20,7 +20,7 @@ jobs:
     - name: Download Artifacts
       uses: dawidd6/action-download-artifact@v2
       with:
-        workflow: "Test Build"
+        workflow: tester.yml
     - name: Zip Artifacts
       run: |
         cd monolith-code_windows-latest/monolith-code-*/; zip -r ../../monolith-code_win.zip .; cd ../..
