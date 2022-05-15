@@ -1,24 +1,11 @@
 /* eslint-disable no-underscore-dangle */
 /* eslint-disable import/no-extraneous-dependencies */
 
-const { ipcRenderer, webFrame } = require('electron');
-const fs = require('fs');
-const path = require('path');
+let modelist = requireLazy(() => ace.require('ace/ext/modelist'));
+let themelist = requireLazy(() => ace.require('ace/ext/themelist'));
+let beautify = requireLazy(() => ace.require('ace/ext/beautify'));
 
-const errorSVG = '<svg version="1.1" id="Capa_1" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" x="0px" y="0px" viewBox="0 0 52 52" style="enable-background:new 0 0 52 52;" xml:space="preserve"><g>	<path d="M26,0C11.664,0,0,11.663,0,26s11.664,26,26,26s26-11.663,26-26S40.336,0,26,0z M26,50C12.767,50,2,39.233,2,26	S12.767,2,26,2s24,10.767,24,24S39.233,50,26,50z"/>	<path d="M35.707,16.293c-0.391-0.391-1.023-0.391-1.414,0L26,24.586l-8.293-8.293c-0.391-0.391-1.023-0.391-1.414,0 s-0.391,1.023,0,1.414L24.586,26l-8.293,8.293c-0.391,0.391-0.391,1.023,0,1.414C16.488,35.902,16.744,36,17,36 s0.512-0.098,0.707-0.293L26,27.414l8.293,8.293C34.488,35.902,34.744,36,35,36s0.512-0.098,0.707-0.293 c0.391-0.391,0.391-1.023,0-1.414L27.414,26l8.293-8.293C36.098,17.316,36.098,16.684,35.707,16.293z"/></g></svg>';
-
-let _remote = null;
-let _dialog = null;
-let _childProcess = null;
-let _marked = null;
-let _hljs = null;
-let _modelist = null;
-let _themelist = null;
-let _beautify = null;
-let _appInfo = null;
-let _tKill = null;
-
-let _mdTemplate = null;
+let appInfo = null;
 let editor = null;
 
 const file = {
@@ -36,23 +23,27 @@ let localWindowConfig;
 let userPrefPath;
 let langPrefPath;
 
+let commandHistory = [];
+let historyIndex;
+
+// UI Components
 let documentNameUi;
 let languageDisplayUi;
+let languageDisplaySelectedUi;
 let themeChoiceUi;
 let consoleUi;
 let consoleInUi;
 let consoleOutUi;
 let webviewUi;
+let webviewDevUi;
 let editorMediaDivUi;
+let previewDevDivUi;
 let editorConsoleDivUi;
 let processIndicatorUi;
 
-let commandList = {};
-let commandHistory = [];
-let historyIndex;
+let errorSVG = requireLazy(async () => await fetch('res/img/err.svg').then(res => res.text()));
 
-let scrollBarsCss;
-
+// Constants
 const INFO_LEVEL = Object.freeze({
   user: 0,
   info: 1,
@@ -61,118 +52,113 @@ const INFO_LEVEL = Object.freeze({
   error: 4,
 });
 
-function requireMarked() {
-  if (_marked === null) {
-    _marked = require('marked');
-    _hljs = require('highlight.js');
-    const _katex = require('katex');
-
-    const renderer = new _marked.Renderer();
-    let originParagraph = renderer.paragraph.bind(renderer)
-    renderer.paragraph = (text) => {
-      const blockRegex = /\$\$[^\$]*\$\$/g
-      const inlineRegex = /\$[^\$]*\$/g
-      let blockExprArray = text.match(blockRegex)
-      let inlineExprArray = text.match(inlineRegex)
-      for (let i in blockExprArray) {
-        const expr = blockExprArray[i]
-        const result = renderMathsExpression(expr)
-        text = text.replace(expr, result)
-      }
-      for (let i in inlineExprArray) {
-        const expr = inlineExprArray[i]
-        const result = renderMathsExpression(expr)
-        text = text.replace(expr, result)
-      }
-      return originParagraph(text)
+const keyBindings = {
+  ctrl: {
+    "o": {
+      desc: "Open a file",
+      func: openFile
+    },
+    "b": {
+      desc: "Build and run the current file",
+      func: buildRunFile
+    },
+    "s": {
+      desc: "Save the current file",
+      func: saveFile
+    },
+    "n": {
+      desc: "Open a new editor window",
+      func: newWindow
+    },
+    "i": {
+      desc: "Open settings",
+      func: openSettings
+    },
+    "p": {
+      desc: "Export the preview window as PDF",
+      func: exportPDFFromPreview
+    },
+    "t": {
+      desc: "Open a hello world tamplate for the current language",
+      func: makeLanguageTemplate
+    },
+    "m": {
+      desc: "Evaluate a mathematical equation on the selected line",
+      func: evaluateMathInline
     }
-    function renderMathsExpression(expr) {
-      if (expr[0] === '$' && expr[expr.length - 1] === '$') {
-        let displayStyle = false
-        expr = expr.substr(1, expr.length - 2)
-        if (expr[0] === '$' && expr[expr.length - 1] === '$') {
-          displayStyle = true
-          expr = expr.substr(1, expr.length - 2)
-        }
-        let html = null
-        try {
-          html = _katex.renderToString(expr)
-        } catch (e) {
-          console.error(e)
-        }
-        /*
-        if (displayStyle && html) {
-          html = html.replace(/class="katex"/g, 'class="katex katex-block" style="display: block;"')
-        }
-        */
-        return html
+  },
+  ctrlshift: {
+    "b": {
+      desc: "Beautify the document",
+      func: beautifyDocument
+    },
+    "s": {
+      desc: "Save the current document as new file",
+      func: (() => saveFile(true))
+    }
+  }
+}
+
+const commandList = {
+  '!ver': {
+    desc: 'Shows the current version of the application',
+    func: () => { print(`${appInfo.name} ${appInfo.version}`); },
+  },
+  '!cls': {
+    desc: 'Clear console',
+    func: () => { consoleOutUi.innerHTML = ''; },
+  },
+  '!kill': {
+    desc: 'Kills the currently running process',
+    func: () => {
+      if (runningProcess) {
+        killProcess().then(() => print("Process Killed", INFO_LEVEL.info));
       } else {
-        return null
+        print('No nunning process to kill.', INFO_LEVEL.warn);
       }
-    }
+    },
+  },
+  '!hello': {
+    desc: 'Hello There :D',
+    func: () => { print('Hi there :D'); },
+  },
+  '!dev': {
+    desc: 'Open Chrome Devtools for the preview window',
+    func: () => { toggleDevTool(); },
+  },
+  '!settings': {
+    desc: 'Open settings file',
+    func: () => { openSettings(); },
+  },
+  '!lang_settings': {
+    desc: 'Open language settings file',
+    func: () => { openLanguageSettings(); },
+  },
+  '!exp_pdf': {
+    desc: 'Generate and export PDF of the current preview panel',
+    func: () => { exportPDFFromPreview(); }
+  },
+  '!help': {
+    desc: 'Shows all the available commands',
+    func: () => {
+      let ret = '';
+      let longest = Object.keys(commandList).reduce((prev, curr) => curr.length > prev ? curr.length : prev, 0) + 6;
+      Object.entries(commandList).forEach(([key, value]) => {
+        ret += `${key}${" ".repeat(longest - key.length)}${value.desc}\n`;
+      });
 
+      ret += "------------------------------------------------------------------------\n";
+      Object.entries(keyBindings.ctrl).forEach(([key, value]) => {
+        ret += `ctrl + ${key}            ${value.desc}\n`;
+      });
+      Object.entries(keyBindings.ctrlshift).forEach(([key, value]) => {
+        ret += `ctrl + shift + ${key}    ${value.desc}\n`;
+      });
 
-    _marked.setOptions({
-      renderer: renderer,
-      highlight: (code, lang) => {
-        const validLanguage = _hljs.getLanguage(lang) ? lang : 'plaintext';
-        return _hljs.highlight(code, { language: validLanguage }).value;
-      },
-    });
-  }
-
-  return _marked;
-}
-function requireRemote() {
-  if (_remote === null) {
-    _remote = require('electron').remote;
-  }
-  return _remote;
-}
-function requireDialog() {
-  if (_dialog === null) {
-    _dialog = requireRemote().dialog;
-  }
-  return _dialog;
-}
-function requireChildProcess() {
-  if (_childProcess === null) {
-    _childProcess = require('child_process');
-  }
-  return _childProcess;
-}
-function requireModeList() {
-  if (_modelist === null) {
-    _modelist = ace.require('ace/ext/modelist');
-  }
-  return _modelist;
-}
-function requireThemeList() {
-  if (_themelist === null) {
-    _themelist = ace.require('ace/ext/themelist');
-  }
-  return _themelist;
-}
-function requireBeautify() {
-  if (_beautify === null) {
-    _beautify = ace.require('ace/ext/beautify');
-  }
-  return _beautify;
-}
-function requireTreeKill() {
-  if (_tKill === null) {
-    _tKill = require('tree-kill');
-  }
-  return _tKill;
-}
-
-function requireMdTemplate() {
-  if (_mdTemplate === null) {
-    _mdTemplate = path.resolve(__dirname, 'res/embed/markdown/index.html');
-  }
-  return _mdTemplate;
-}
-
+      print(ret);
+    },
+  },
+};
 
 
 
@@ -180,15 +166,6 @@ function requireMdTemplate() {
 
 /* ------------- PUBLIC API ------------- */
 
-function getAppInfo() {
-  if (_appInfo === null) {
-    _appInfo = {
-      version: requireRemote().app.getVersion(),
-      name: 'monolith code',
-    };
-  }
-  return _appInfo;
-}
 
 function getContent() {
   return editor.getValue();
@@ -214,9 +191,11 @@ function setLanguage(langKey) {
   }
 
   const lang = langInfo[langKey];
-  const { mode } = requireModeList().modesByName[lang.mode];
+  const { mode } = modelist.get().modesByName[lang.mode];
   editor.session.setMode(mode);
-  languageDisplayUi.value = langKey;
+
+  languageDisplaySelectedUi.innerText = lang.name;
+  languageDisplaySelectedUi.dataset.value = langKey;
 }
 
 function setContent(content) {
@@ -224,89 +203,81 @@ function setContent(content) {
 }
 
 
-function newWindow(file_path = undefined) {
-  ipcRenderer.send('new-window', file_path);
+function newWindow(filePaths = []) {
+  filePaths = Array.isArray(filePaths) ? filePaths : [filePaths];
+  window.api.newWindow(filePaths);
 }
 
-function writeFile(filePath, content) {
-  return new Promise((resolve, reject) => {
-    fs.writeFile(filePath, content, (err) => {
-      if (!err) {
-        notify('confirm');
-        resolve();
-      } else {
-        print(err, INFO_LEVEL.error);
-        reject(err);
-      }
-    });
-  });
-}
-
-async function openFile(filepath = undefined) {
+async function openFile(filePaths = []) {
   notifyLoadStart();
 
-  if (filepath === undefined) {
-    const options = {
-      title: 'Open a file',
-    };
-    const window = requireRemote().getCurrentWindow();
-    let ret = await requireDialog().showOpenDialog(window, options);
-    if (!ret.canceled) {
-      filepath = ret.filePaths[0];
+  filePaths = Array.isArray(filePaths) ? filePaths : [filePaths];
+
+  if (!filePaths.length) {
+    const { canceled, filePaths: _filePaths } = await window.api.showOpenDialog()
+    if (canceled) {
+      notifyLoadEnd();
+      return;
+    } else {
+      filePaths = _filePaths;
     }
   }
 
-  if (file.path || (isSaved !== null && !isSaved)) {
-    newWindow(filepath);
-    notifyLoadEnd();
-  } else {
-    fs.readFile(filepath, { encoding: 'utf-8' }, (err, data) => {
-      if (!err) {
+  if (!file.path && (isSaved === null || isSaved)) {
+    let fileToOpen = filePaths.shift();
+    window.api.readFile(fileToOpen)
+      .then(data => {
         editor.setValue(data, -1);
-        _setFileInfo(filepath);
-        webviewUi.src = 'about:blank'
-        print(`Opened file ${filepath}`);
-      } else {
-        print(`Could not open file ${filepath}<br>${err}`, INFO_LEVEL.error);
-      }
-      notifyLoadEnd();
-    });
+        _setFileInfo(fileToOpen);
+        //webviewUi.src = 'about:blank'
+        print(`Opened file ${fileToOpen}`);
+      })
+      .catch(err => {
+        print(`Could not open file ${fileToOpen}<br>${err}`, INFO_LEVEL.error);
+      }).finally(() => {
+        notifyLoadEnd();
+      });
   }
+
+  if (filePaths.length) {
+    newWindow(filePaths);
+  }
+  notifyLoadEnd();
 }
 
-function saveFile(saveAs = false) {
-  return new Promise((resolve, reject) => {
-    if (file.path === undefined || saveAs) {
-      const lang = langInfo[languageDisplayUi.value];
-      const options = {
-        defaultPath: `~/${lang.tempname}`,
-        filters: [
-          { name: lang.name, extensions: lang.ext },
-          { name: 'All Files', extensions: ['*'] },
-        ],
-      };
-      const window = requireRemote().getCurrentWindow();
-      requireDialog().showSaveDialog(window, options).then((ret) => {
-        if (!ret.canceled) {
-          writeFile(ret.filePath, getContent()).then(() => {
-            _setFileInfo(ret.filePath);
-            print(`file saved as ${ret.filePath}`);
-            resolve();
-          }).catch(err => {
-            reject(err);
-          });
-        }
-      });
+async function saveFile(saveAs = false) {
+  notifyLoadStart();
+
+  let filePath = file.path + file.name + file.extension;
+
+  if (file.path === undefined || saveAs) {
+    const lang = langInfo[languageDisplaySelectedUi.dataset.value];
+    const options = {
+      defaultPath: `~/${lang.tempname}`,
+      filters: [
+        { name: lang.name, extensions: lang.ext },
+        { name: 'All Files', extensions: ['*'] },
+      ],
+    };
+
+    let { canceled, filePath: _filepath } = await window.api.showSaveDialog(options);
+
+    if (canceled) {
+      notifyLoadEnd();
+      return;
     } else {
-      writeFile(file.path + file.name + file.extension, getContent()).then(() => {
-        isSaved = true;
-        _updateTitle();
-        resolve();
-      }).catch(err => {
-        reject(err);
-      });
+      filePath = _filepath;
     }
-  });
+  }
+
+  await window.api.writeFile(filePath, getContent());
+
+  if (file.path === undefined || saveAs) {
+    print(`file saved as ${filePath}`);
+  }
+  _setFileInfo(filePath);
+
+  notifyLoadEnd();
 }
 
 
@@ -316,12 +287,12 @@ function saveFile(saveAs = false) {
 function setTheme(name) {
   editor.setTheme(name);
   themeChoiceUi.value = name;
-  ipcRenderer.send('store-setting', 'theme', name);
+  window.api.storeSetting('theme', name)
 }
 
 function setFontSize(size) {
   editor.setFontSize(size);
-  ipcRenderer.send('store-setting', 'font_size', size);
+  window.api.storeSetting('font_size', size)
 }
 
 
@@ -342,7 +313,10 @@ function notifyLoadEnd() {
 function print(text, mode = INFO_LEVEL.info) {
   const block = document.createElement('div');
   block.classList.add(Object.keys(INFO_LEVEL).find((key) => INFO_LEVEL[key] === mode));
-  block.innerHTML = (mode === 4 ? errorSVG : '') + text;
+
+  errorSVG.get().then((svg) => {
+    block.innerHTML = (mode === 4 ? svg : '') + text;
+  });
   consoleOutUi.appendChild(block);
 
   if (mode >= 2) {
@@ -358,14 +332,14 @@ function print(text, mode = INFO_LEVEL.info) {
 /* ------------- FEATURES ------------- */
 
 function beautifyDocument() {
-  requireBeautify().beautify(editor.session);
+  beautify.get().beautify(editor.session);
 }
 
 function makeLanguageTemplate() {
-  if ((languageDisplayUi.value in langInfo) && langInfo[languageDisplayUi.value].templ) {
-    editor.setValue(langInfo[languageDisplayUi.value].templ, -1);
+  if ((languageDisplaySelectedUi.dataset.value in langInfo) && langInfo[languageDisplaySelectedUi.dataset.value].templ) {
+    editor.setValue(langInfo[languageDisplaySelectedUi.dataset.value].templ, -1);
   } else {
-    print(`No default template exists for ${languageDisplayUi.value}`, INFO_LEVEL.warn);
+    print(`No default template exists for ${languageDisplaySelectedUi.dataset.value}`, INFO_LEVEL.warn);
   }
 }
 
@@ -385,7 +359,7 @@ function evaluateMathInline() {
   }
 }
 
-function exportPDFFromPreview() {
+async function exportPDFFromPreview() {
   if (!file.path) {
     print("Filepath not set for export", INFO_LEVEL.warn);
     return;
@@ -395,19 +369,16 @@ function exportPDFFromPreview() {
     return;
   }
 
-  const pdfPath = path.resolve(file.path, file.name + '.pdf');
+  const pdfPath = window.api.path.resolve(file.path, file.name + '.pdf');
 
-  webviewUi.printToPDF({ landscape: false, pageSize: 'A4' }).then(data => {
-    fs.writeFile(pdfPath, data, (error) => {
-      if (error) {
-        print(`Failed to write PDF to ${pdfPath}:\n${error}`, INFO_LEVEL.error);
-        return
-      }
-      print(`PDF successfully stored to ${pdfPath}`, INFO_LEVEL.confirm);
-    })
-  }).catch(error => {
+  let data = await webviewUi.printToPDF({ landscape: false, pageSize: 'A4' });
+  let error = await window.api.writeFile(pdfPath, data);
+
+  if (error) {
     print(`Failed to write PDF to ${pdfPath}:\n${error}`, INFO_LEVEL.error);
-  })
+  } else {
+    print(`PDF successfully stored to ${pdfPath}`, INFO_LEVEL.confirm);
+  }
 }
 
 function openSettings() {
@@ -417,6 +388,28 @@ function openSettings() {
 function openLanguageSettings() {
   newWindow(langPrefPath);
 }
+
+async function killProcess() {
+  //return new Promise((resolve, reject) => {
+  if (runningProcess != null) {
+    await runningProcess.dispatch("kill");
+  }
+  /*  
+    , (err) => {
+      if (err) {
+        print('Could not stop the running process.', INFO_LEVEL.error);
+        reject();
+      } else {
+        resolve();
+      }
+    });
+  } else {
+    resolve();
+  }
+});
+*/
+}
+
 
 
 
@@ -443,6 +436,8 @@ function _debounce(func, wait, immediate) {
 const markdownUpdater = _debounce(() => {
   const markedHtml = mdToHTML();
   webviewUi.send('fill_content', markedHtml);
+  //webviewUi.contentWindow.document.body.innerHTML = markedHtml;
+
 }, 200);
 
 
@@ -452,7 +447,12 @@ const markdownUpdater = _debounce(() => {
 
 
 
-
+function toggleDevTool() {
+  const targetId = webviewUi.getWebContentsId();
+  const devtoolsId = webviewDevUi.getWebContentsId();
+  window.api.openDevTool(targetId, devtoolsId);
+  togglePreviewDivider();
+}
 
 
 
@@ -460,7 +460,7 @@ function mdToHTML() {
   const basepath = file.path.replaceAll('\\', '/');
   let pre = getContent();
   pre = pre.replaceAll(/src="\.\/(.*?)"/ig, `src="${basepath}$1"`);
-  let markedHtml = requireMarked().parse(pre, { baseUrl: basepath });
+  let markedHtml = window.api.markedParse(pre, { baseUrl: basepath });
 
   let parser = new DOMParser();
   let htmlDoc = parser.parseFromString(markedHtml, 'text/html');
@@ -476,40 +476,32 @@ function mdToHTML() {
 
 
 
-
-
 function commandRunner(command, args, callback) {
   notifyLoadStart();
   print(`> ${command}`, INFO_LEVEL.user);
 
-  runningProcess = requireChildProcess().spawn(command, args, {
-    encoding: 'utf8',
-    shell: true,
-    ...file.path && { cwd: file.path },
-  });
 
-  runningProcess.on('error', (err) => {
+  runningProcess = window.api.spawnProcess(command, args, file.path);
+
+  runningProcess.registerHandler('error', (err) => {
     print(err, INFO_LEVEL.err);
   });
 
-  runningProcess.stdout.setEncoding('utf8');
-  runningProcess.stdout.on('data', (data) => {
+  runningProcess.registerHandler('stdout', (data) => {
     print(data.toString());
   });
 
-  runningProcess.stderr.setEncoding('utf8');
-  runningProcess.stderr.on('data', (data) => {
-    let dataString = data.toString();
+  runningProcess.registerHandler('stderr', (data) => {
     if (file.lang !== undefined && langInfo[file.lang].linere != null) {
       const line = langInfo[file.lang].linere.replaceAll('<name>', file.name);
       const re = new RegExp(line, 'gi');
-      dataString = dataString.replaceAll(re, '<a class="jump-to-line" href="#$2">$1</a>');
+      data = data.replaceAll(re, '<a class="jump-to-line" href="#$2">$1</a>');
     }
-    print(dataString, INFO_LEVEL.error);
+    print(data, INFO_LEVEL.error);
   });
   processIndicatorUi.classList.add('active');
 
-  runningProcess.on('close', (code) => {
+  runningProcess.registerHandler('close', (code) => {
     // Here you can get the exit code of the script
     switch (code) {
       case 0:
@@ -531,31 +523,24 @@ function commandRunner(command, args, callback) {
 }
 
 function runCommand(command, args, callback = undefined) {
-  if (runningProcess != null) {
-    requireTreeKill()(runningProcess.pid, 'SIGKILL', (err) => {
-      if (err) {
-        print('Could not stop the running process.', INFO_LEVEL.error);
-      } else {
-        commandRunner(command, args, callback);
-      }
-    });
-  } else {
-    commandRunner(command, args, callback);
-  }
+  killProcess().then(() => { commandRunner(command, args, callback); });
 }
 
-function runFile() {
+async function runFile() {
   if (file.lang in langInfo) {
     let cmdRun = langInfo[file.lang].run;
     if (cmdRun) {
       cmdRun = cmdRun.replaceAll('<name>', file.name);
       cmdRun = cmdRun.replaceAll('<path>', file.path);
-      cmdRun = cmdRun.replaceAll('<exe_extension>', getExeExtension());
+      cmdRun = cmdRun.replaceAll('<exe_extension>', getExeExtension(appInfo.os));
 
       runCommand(cmdRun);
     } else if (file.lang === 'latex') {
+      webviewUi.className = "";
+
       webviewUi.src = `${file.path + file.name}.pdf?v=${Date.now()}`;
     } else if (file.lang === 'markdown') {
+      webviewUi.className = "";
 
       const markedHtml = mdToHTML();
 
@@ -563,10 +548,18 @@ function runFile() {
         webviewUi.send('fill_content', markedHtml);
         editor.on('input', markdownUpdater);
       }, { once: true });
-      webviewUi.src = requireMdTemplate();
+
+      webviewUi.src = "./res/embed/markdown/index.html";
+
 
     } else if (file.lang === 'html') {
+      webviewUi.className = "";
+      webviewUi.classList.add("html-style");
+
       webviewUi.src = (`${file.path + file.name}.html`);
+    } else {
+      webviewUi.className = "";
+      webviewUi.src = 'about:blank';
     }
   }
 }
@@ -586,7 +579,7 @@ async function buildRunFile() {
     if (cmdComp) {
       cmdComp = cmdComp.replaceAll('<name>', file.name);
       cmdComp = cmdComp.replaceAll('<path>', file.path);
-      cmdComp = cmdComp.replaceAll('<exe_extension>', getExeExtension());
+      cmdComp = cmdComp.replaceAll('<exe_extension>', getExeExtension(appInfo.os));
 
       runCommand(cmdComp, [], (code) => {
         if (code === 0) {
@@ -609,7 +602,28 @@ async function buildRunFile() {
 }
 
 
+function togglePreviewDivider(open = undefined) {
+  const num = parseFloat(previewDevDivUi.previousElementSibling.style.height.replace('%', ''));
 
+  let targetPercent = "100%";
+  if (open === undefined) {
+    targetPercent = Math.abs(num - 60) < 1 ? '99%' : '60%';
+  } else {
+    targetPercent = open ? '99%' : '60%';
+  }
+
+  const anim = previewDevDivUi.previousElementSibling.animate([
+    { height: previewDevDivUi.previousElementSibling.style.height },
+    { height: targetPercent },
+  ], {
+    duration: 450,
+    easing: 'cubic-bezier(0.860, 0.000, 0.070, 1.000)',
+  });
+  anim.finished.then(() => {
+    previewDevDivUi.previousElementSibling.style.height = targetPercent;
+    //window.api.storeSetting('console_div_percent', targetPercent)
+  });
+}
 
 function _updateTitle() {
   const title = file.extension ? file.name + file.extension : 'new document';
@@ -621,9 +635,9 @@ function _updateTitle() {
 }
 
 function _setFileInfo(filePath) {
-  file.extension = path.extname(filePath);
-  file.path = path.dirname(filePath) + path.sep;
-  file.name = path.basename(filePath, file.extension);
+  file.extension = window.api.path.extname(filePath);
+  file.path = window.api.path.dirname(filePath) + window.api.path.sep;
+  file.name = window.api.path.basename(filePath, file.extension);
 
   const lang = getModeFromName(file.name + file.extension);
   if (lang == null) {
@@ -653,20 +667,23 @@ function _calculate(string) {
 function _assignUIVariables() {
   documentNameUi = document.getElementById('document-name');
   languageDisplayUi = document.getElementById('language-display');
+  languageDisplaySelectedUi = document.querySelector("#language-display .selected");
   themeChoiceUi = document.getElementById('theme-choice');
   charDisplayUi = document.getElementById('fchar-display');
   consoleUi = document.getElementById('console');
   consoleInUi = document.getElementById('console-in');
   consoleOutUi = document.getElementById('console-out');
   webviewUi = document.getElementById('embed-content');
+  webviewDevUi = document.getElementById('embed-content-dev-view');
   themeLink = document.getElementById('theme-link');
   editorMediaDivUi = document.getElementById('editor-media-div');
   editorConsoleDivUi = document.getElementById('editor-console-div');
+  previewDevDivUi = document.getElementById('preview-dev-div');
   processIndicatorUi = document.getElementById('process-indicator');
 }
 
 function _initializeOptions(config) {
-  requireThemeList().themes.forEach((theme) => {
+  themelist.get().themes.forEach((theme) => {
     const option = document.createElement('option');
     option.text = theme.caption;
     option.value = theme.theme;
@@ -676,18 +693,18 @@ function _initializeOptions(config) {
   themeChoiceUi.value = config.theme;
 }
 
-function _initialize() {
+async function _initialize() {
   // Initialize all ui elements
   _assignUIVariables();
 
-  const settings = ipcRenderer.sendSync('initial-settings');
+  const settings = await window.api.getInitialSettings();
+  appInfo = settings.appInfo;
   editorConfig = settings.editorConfig;
   windowConfig = settings.windowConfig;
   localWindowConfig = settings.localWindowConfig;
   userPrefPath = settings.userPrefPath;
   langPrefPath = settings.languageConfigPath;
 
-  webFrame.setVisualZoomLevelLimits(1, 3);
 
   editor = ace.edit('main-text-area', {
     enableBasicAutocompletion: true,
@@ -713,7 +730,7 @@ function _initialize() {
     });
   });
 
-  if (windowConfig.rounded_window) {
+  if (!windowConfig.native_frame) {
     document.body.classList.add('rounded');
   }
   if (localWindowConfig.maximized) {
@@ -747,100 +764,50 @@ function _initialize() {
   });
 
   document.getElementById('min-button').addEventListener('click', () => {
-    const window = requireRemote().getCurrentWindow();
-    window.minimize();
+    window.api.minimize();
   });
 
   document.getElementById('max-button').addEventListener('click', () => {
-    const window = requireRemote().getCurrentWindow();
-    if (!window.isMaximized()) {
-      window.maximize();
-      window.emit('maximize');
-    } else {
-      window.unmaximize();
-      window.emit('unmaximize');
-    }
+    window.api.toggleMaxUnmax();
   });
 
   document.getElementById('close-button').addEventListener('click', () => {
-    const window = requireRemote().getCurrentWindow();
-
-    if (runningProcess != null) {
-      requireTreeKill()(runningProcess.pid, 'SIGKILL');
-    }
-
-    window.close();
+    killProcess().then(() => window.api.close());
   });
 
   document.getElementById('pin-button').addEventListener('click', (e) => {
-    const window = requireRemote().getCurrentWindow();
-    const pinned = window.isAlwaysOnTop();
-
-    window.setAlwaysOnTop(!pinned);
-    if (!pinned) {
-      e.currentTarget.classList.add('pinned');
-    } else {
-      e.currentTarget.classList.remove('pinned');
-    }
-  });
-
-  const browserWindow = requireRemote().getCurrentWindow();
-  browserWindow.on('maximize', () => {
-    _toggleFullscreenStyle(true);
-  });
-
-  browserWindow.on('unmaximize', () => {
-    _toggleFullscreenStyle(false);
-  });
-
-
-
-  let keyBindings = {
-    ctrl: {
-      "o": {
-        desc: "Open a file",
-        func: openFile
-      },
-      "b": {
-        desc: "Build and run the current file",
-        func: buildRunFile
-      },
-      "s": {
-        desc: "Save the current file",
-        func: saveFile
-      },
-      "n": {
-        desc: "Open a new editor window",
-        func: newWindow
-      },
-      "i": {
-        desc: "Open settings",
-        func: openSettings
-      },
-      "p": {
-        desc: "Export the preview window as PDF",
-        func: exportPDFFromPreview
-      },
-      "t": {
-        desc: "Open a hello world tamplate for the current language",
-        func: makeLanguageTemplate
-      },
-      "m": {
-        desc: "Evaluate a mathematical equation on the selected line",
-        func: evaluateMathInline
+    window.api.togglePin().then(pinned => {
+      if (!pinned) {
+        e.target.classList.add('pinned');
+      } else {
+        e.target.classList.remove('pinned');
       }
-    },
-    ctrlshift: {
-      "b": {
-        desc: "Beautify the document",
-        func: beautifyDocument
-      },
-      "s": {
-        desc: "Save the current document as new file",
-        func: (() => saveFile(true))
-      }
-    }
-  }
+    });
+  });
+
+
+  window.api.updateMaxUnmax((_, value) => {
+    _toggleFullscreenStyle(value);
+  });
+
+  window.api.canClose((event) => {
+    event.sender.send('can-close-response', (isSaved === null || isSaved));
+  });
+
+  window.api.print((_, value) => {
+    print(value.text);
+  });
+
+
+  const emittedOnce = (element, eventName) => new Promise(resolve => {
+    element.addEventListener(eventName, event => resolve(event), { once: true })
+  })
+  const browserReady = emittedOnce(webviewUi, 'dom-ready');
+  const devtoolsReady = emittedOnce(webviewDevUi, 'dom-ready');
+  Promise.all([browserReady, devtoolsReady]).then(() => {
+
+  })
+
 
   window.addEventListener('keydown', (event) => {
     let lowerKey = event.key.toLowerCase();
@@ -888,7 +855,7 @@ function _initialize() {
         print(pre, INFO_LEVEL.user);
         print('Command not recognized. Try !help.', INFO_LEVEL.warn);
       } else if (runningProcess != null) {
-        runningProcess.stdin.write(`${cmd}\n`);
+        runningProcess.dispatch("stdin", `${cmd}\n`);
       } else {
         runCommand(cmd);
       }
@@ -914,111 +881,62 @@ function _initialize() {
     return true;
   }, false);
 
+  /*
   languageDisplayUi.addEventListener('change', () => {
     setLanguage(languageDisplayUi.value);
   });
-
+*/
   themeChoiceUi.addEventListener('change', () => {
     setTheme(themeChoiceUi.value);
   });
 
+
+  var optionsContainer = document.getElementsByClassName("options-container")[0];
+  languageDisplaySelectedUi.addEventListener("click", () => {
+    //console.log("click", optionsContainer.classList);
+    if(optionsContainer.classList.contains("active")){
+      //console.log("click to close");
+      optionsContainer.classList.remove("active");
+    }else{
+      //console.log("click to open");
+      optionsContainer.classList.add("active");
+      document.addEventListener("click", (e) => {
+        //console.log(e.target, languageDisplaySelectedUi.contains(e.target))
+        if(languageDisplaySelectedUi.contains(e.target)) return;
+        //console.log("click outside to close");
+        optionsContainer.classList.remove("active");
+      }, {once: true});
+    }
+  });
+
   try {
-    let data = fs.readFileSync(path.resolve(__dirname, 'res/lang.json'), { encoding: 'utf-8' });
+    const response = await fetch('res/lang.json');
+    const data = await response.text();
     langInfo = JSON.parse(data);
     mergeDeep(langInfo, settings.languageConfig);
 
     Object.entries(langInfo).forEach((el) => {
-      const option = document.createElement('option');
+      const option = document.createElement('div');
+      option.classList.add("option");
       const [name, obj] = el;
-      option.text = obj.name;
-      option.value = name;
-      languageDisplayUi.add(option);
+      option.innerText = obj.name;
+      option.dataset.value = name;
+      optionsContainer.appendChild(option);
+      option.addEventListener("click", () => {
+        optionsContainer.classList.remove("active");
+        setLanguage(option.dataset.value);
+      });
     });
 
-    languageDisplayUi.value = 'plaintext';
   } catch (err) {
     print(`An error ocurred reading the file :${err.message}`, INFO_LEVEL.err);
     return;
   }
 
-  commandList = {
-    '!ver': {
-      desc: 'Shows the current version of the application',
-      func: () => { print(`${getAppInfo().name} ${getAppInfo().version}`); },
-    },
-    '!cls': {
-      desc: 'Clear console',
-      func: () => { consoleOutUi.innerHTML = ''; },
-    },
-    '!kill': {
-      desc: 'Kills the currently running process',
-      func: () => {
-        if (runningProcess) {
-          requireTreeKill()(runningProcess.pid, 'SIGKILL', (err) => {
-            if (err) {
-              print('Could not stop the running process.', INFO_LEVEL.error);
-            }
-          });
-        } else {
-          print('No Process to kill.', INFO_LEVEL.warn);
-        }
-      },
-    },
-    '!hello': {
-      desc: 'Hello There :D',
-      func: () => { print('Hi there :D'); },
-    },
-    '!dev': {
-      desc: 'Open Chrome Devtools for the preview window',
-      func: () => { webviewUi.openDevTools(); },
-    },
-    '!settings': {
-      desc: 'Open settings file',
-      func: () => { openSettings(); },
-    },
-    '!lang_settings': {
-      desc: 'Open language settings file',
-      func: () => { openLanguageSettings(); },
-    },
-    '!exp_pdf': {
-      desc: 'Generate and export PDF of the current preview panel',
-      func: () => { exportPDFFromPreview(); }
-    },
-    '!help': {
-      desc: 'Shows all the available commands',
-      func: () => {
-        let ret = '';
-        let longest = Object.keys(commandList).reduce((prev, curr) => curr.length > prev ? curr.length : prev, 0) + 6;
-        Object.entries(commandList).forEach(([key, value]) => {
-          ret += `${key}${" ".repeat(longest - key.length)}${value.desc}\n`;
-        });
-        
-        ret += "------------------------------------------------------------------------\n";
-        Object.entries(keyBindings.ctrl).forEach(([key, value]) => {
-          ret += `ctrl + ${key}            ${value.desc}\n`;
-        });
-        Object.entries(keyBindings.ctrlshift).forEach(([key, value]) => {
-          ret += `ctrl + shift + ${key}    ${value.desc}\n`;
-        });
-        
-        print(ret);
-      },
-    },
-  };
 
-  fs.readFile(path.resolve(__dirname, 'res/style/bars.css'), 'utf-8', (err, data) => {
-    if (!err) {
-      scrollBarsCss = data;
-    }
-  });
 
-  webviewUi.addEventListener('load-commit', () => {
-  });
-  webviewUi.addEventListener('did-finish-load', () => {
-    webviewUi.insertCSS(scrollBarsCss);
-    webviewUi.insertCSS('body{background: transparent !important;}');
-    webviewUi.send('onLoad');
-  });
+
+
   webviewUi.addEventListener('console-message', (e) => {
     if (e.sourceId === 'electron/js2c/renderer_init.js') return;
 
@@ -1049,18 +967,14 @@ function _initialize() {
   });
 
 
-  webviewUi.addEventListener('ipc-message', (event) => {
-    console.log(event.channel);
-  });
-
 
   editorMediaDivUi.addEventListener('divider-move', () => {
     const val = editorMediaDivUi.previousElementSibling.style.width;
-    ipcRenderer.send('store-setting', 'media_div_percent', val);
+    window.api.storeSetting('media_div_percent', val)
   });
   editorConsoleDivUi.addEventListener('divider-move', () => {
     const val = editorConsoleDivUi.previousElementSibling.style.height;
-    ipcRenderer.send('store-setting', 'console_div_percent', val);
+    window.api.storeSetting('console_div_percent', val)
   });
 
   editorMediaDivUi.addEventListener('dblclick', () => {
@@ -1076,7 +990,7 @@ function _initialize() {
     });
     anim.finished.then(() => {
       editorMediaDivUi.previousElementSibling.style.width = targetPercent;
-      ipcRenderer.send('store-setting', 'media_div_percent', targetPercent);
+      window.api.storeSetting('media_div_percent', targetPercent)
     });
   });
   editorConsoleDivUi.addEventListener('dblclick', () => {
@@ -1092,26 +1006,26 @@ function _initialize() {
     });
     anim.finished.then(() => {
       editorConsoleDivUi.previousElementSibling.style.height = targetPercent;
-      ipcRenderer.send('store-setting', 'console_div_percent', targetPercent);
+      window.api.storeSetting('console_div_percent', targetPercent)
     });
+  });
+
+
+
+  previewDevDivUi.addEventListener('dblclick', () => {
+    togglePreviewDivider();
   });
 
   document.getElementById('editor-wrapper').style.width = editorConfig.media_div_percent;
   document.getElementById('main-divider').style.height = editorConfig.console_div_percent;
+  document.getElementById('embed-content').style.height = "100%";
 
-  ipcRenderer.on('can-close', (event) => {
-    event.sender.send('can-close-response', (isSaved === null || isSaved));
-  });
+  print(`${appInfo.name} ${appInfo.version}`);
 
-  ipcRenderer.on('print', (event, data) => {
-    print(data.text);
-  });
-
-  print(`${getAppInfo().name} ${getAppInfo().version}`);
-
-  const shouldOpen = window.process.argv.filter((s) => s.includes('--open-file='));
-  if (shouldOpen.length > 0) {
-    openFile(shouldOpen[0].replace(/--open-file="(.*)"/, '$1'));
+  if (settings.filePathsToOpen.length) {
+    openFile(settings.filePathsToOpen);
+  } else {
+    setLanguage("plaintext");
   }
 }
 

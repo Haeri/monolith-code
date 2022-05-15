@@ -1,16 +1,26 @@
-const { app, BrowserWindow, ipcMain, dialog } = require('electron');
-const path = require('path');
-const fs = require('fs');
-const common = require('./src/common');
+const { app, BrowserWindow, ipcMain, webContents } = require('electron');
+const { requireLazy, PLATFORM_ZIP } = require('./src/common');
 const Store = require('./src/store');
+const path = require('path');
 
-let _axios = null;
+const appInfo = {
+  name: 'monolith code',
+  version: app.getVersion(),
+  os: process.platform
+};
+
+let axios = requireLazy(() => require('axios').default);
+let dialog = requireLazy(() => require('electron').dialog);
+let fs = requireLazy(() => require('fs'));
+
 
 const RELEASE_VERSION_URL = 'https://api.github.com/repos/Haeri/MonolithCode2/releases/latest';
 const RELEASE_ZIP_URL = 'https://github.com/Haeri/MonolithCode2/releases/latest/download/';
 
 let newVersion = null;
 let shouldUpdate = false;
+
+let filePathsToOpen = [];
 
 const localStore = new Store({
   configName: 'local-settings',
@@ -28,7 +38,7 @@ const userPrefStore = new Store({
   configName: 'user-preferences',
   defaults: {
     window_config: {
-      rounded_window: true,
+      native_frame: false,
     },
     editor_config: {
       theme: 'ace/theme/monokai',
@@ -50,16 +60,12 @@ const langStore = new Store({
   },
 });
 
-function requireAxios() {
-  if (_axios === null) {
-    _axios = require('axios').default;
-  }
-  return _axios;
-}
+
+
 
 function downloadLatestVersion() {
-  requireAxios()
-    .get(RELEASE_ZIP_URL + common.PLATFORM_ZIP[process.platform], { responseType: 'stream' })
+  axios.get()
+    .get(RELEASE_ZIP_URL + PLATFORM_ZIP[process.platform], { responseType: 'stream' })
     .then((response) => {
       response.data.pipe(fs.createWriteStream('monolith.zip'))
         .on('close', () => {
@@ -74,13 +80,13 @@ function downloadLatestVersion() {
 function checkLatestVersion() {
   if (!app.isPackaged) return;
 
-  requireAxios()
+  axios.get()
     .get(RELEASE_VERSION_URL)
     .then((response) => {
       const info = response.data;
 
-      if (app.getVersion() !== info.tag_name) {
-        const currArr = app.getVersion().split('.');
+      if (appInfo.version !== info.tag_name) {
+        const currArr = appInfo.version.split('.');
         const latestArr = info.tag_name.split('.');
 
         if (parseInt(currArr[0], 10) < parseInt(latestArr[0], 10)
@@ -97,17 +103,40 @@ function checkLatestVersion() {
 
 function doUpdate() {
   const root = path.dirname(process.execPath);
-  let command = `${root}/${app.getVersion()}/updater${common.getExeExtension()}`;
+  let command = `${root}/${appInfo.version}/updater${getExeExtension(appInfo.os)}`;
+
   if (process.platform !== 'win32') {
-    command = `chmod +x ./${app.getVersion()}/updater${common.getExeExtension()} && ${command}`;
+    command = `chmod +x ./${appInfo.version}/updater${getExeExtension(appInfo.os)} && ${command}`;
   }
   const child = require('child_process').spawn(command, [], { detached: true, shell: true });
   child.unref();
 }
 
-function createWindow(caller = undefined, filePath = undefined) {
+function createWindow(caller = undefined, filePaths = []) {
+  filePathsToOpen = filePaths;
   let { x, y, width, height, maximized } = localStore.get('window_config');
-  let { rounded_window } = userPrefStore.get('window_config');
+  let { native_frame } = userPrefStore.get('window_config');
+
+  // Force custom frame to remove traficlights
+  if(process.platform === 'darwin'){
+    native_frame = false;
+  }
+
+  let windowConfig = {}
+  if(native_frame){
+    windowConfig = {
+      frame: false,
+      hasShadow: true,
+      backgroundColor: '#212121',
+    }
+  }else{
+    windowConfig = {
+      frame: false,
+      transparent: true,
+      backgroundColor: '#00000000'
+    }
+  }
+  
 
   if (caller) {
     x = caller.getPosition()[0] + 30;
@@ -119,20 +148,15 @@ function createWindow(caller = undefined, filePath = undefined) {
     ...y && { y },
     width,
     height,
-    frame: false,
-    hasShadow: true,
-    transparent: rounded_window,
-    backgroundColor: rounded_window ? '#00000000' : '#212121',
-    titleBarStyle: 'hidden',
+    ...windowConfig,
     show: false,
     minWidth: 220,
     minHeight: 300,
     webPreferences: {
-      nodeIntegration: true,
-      contextIsolation: false,
-      enableRemoteModule: true,
+      preload: path.join(__dirname, 'src/preload.js'),
+      nodeIntegration: false,
+      contextIsolation: true,
       webviewTag: true,
-      ...filePath && { additionalArguments: [`--open-file="${filePath}"`] },
     },
     icon: path.join(__dirname, 'res/img/icon.png'),
   });
@@ -152,10 +176,12 @@ function createWindow(caller = undefined, filePath = undefined) {
 
   win.on('maximize', () => {
     localStore.set('window_config.maximized', true);
+    win.webContents.send('update-max-unmax', true);
   });
 
   win.on('unmaximize', () => {
     localStore.set('window_config.maximized', false);
+    win.webContents.send('update-max-unmax', false);
   });
 
   win.once('ready-to-show', () => {
@@ -168,31 +194,87 @@ function createWindow(caller = undefined, filePath = undefined) {
   win.loadFile('index.html');
 }
 
-ipcMain.on('new-window', (event, filePath) => {
-  const win = BrowserWindow.fromWebContents(event.sender);
-  createWindow(win, filePath);
-});
-ipcMain.on('initial-settings', (event) => {
+
+
+
+
+ipcMain.handle('initial-settings', () => {
   const editorConfig = userPrefStore.get('editor_config');
   const windowConfig = userPrefStore.get('window_config');
   const localWindowConfig = localStore.get('window_config')
   const languageConfig = langStore.get('language_config');
   const userPrefPath = userPrefStore.getFilePath();
   const languageConfigPath = langStore.getFilePath();
-  event.returnValue = {
+  return {
+    appInfo,
+    filePathsToOpen,
     editorConfig, windowConfig,
     localWindowConfig, languageConfig,
     userPrefPath, languageConfigPath
   };
 });
-ipcMain.on('store-setting', (event, key, value) => {
+
+
+
+ipcMain.on('minimize', (event) => {
+  const win = BrowserWindow.fromWebContents(event.sender);
+  win.minimize();
+});
+ipcMain.on('maximize', (event) => {
+  const win = BrowserWindow.fromWebContents(event.sender);
+  win.maximize();
+});
+ipcMain.on('unmaximize', (event) => {
+  const win = BrowserWindow.fromWebContents(event.sender);
+  win.unmaximize();
+});
+ipcMain.on('toggle-max-unmax', (event) => {
+  const win = BrowserWindow.fromWebContents(event.sender);
+  if (!win.isMaximized()) {
+    win.maximize();
+  } else {
+    win.unmaximize();
+  }
+});
+ipcMain.handle('toggle-pin', (event) => {
+  const win = BrowserWindow.fromWebContents(event.sender);
+  const pinned = win.isAlwaysOnTop();
+  win.setAlwaysOnTop(!pinned);
+  return pinned;
+});
+
+ipcMain.on('close', (event) => {
+  const win = BrowserWindow.fromWebContents(event.sender);
+  win.close();
+});
+
+ipcMain.handle('show-open-dialog', async (event) => {
+  const win = BrowserWindow.fromWebContents(event.sender);
+  return await dialog.get().showOpenDialog(win, { title: 'Open a file' });
+});
+
+ipcMain.handle('show-save-dialog', async (event, options) => {
+  const win = BrowserWindow.fromWebContents(event.sender);
+  return await dialog.get().showSaveDialog(win, options);
+});
+
+ipcMain.on('open-devtools', (_, targetContentsId, devtoolsContentsId) => {
+  const target = webContents.fromId(targetContentsId)
+  const devtools = webContents.fromId(devtoolsContentsId)
+
+  target.setDevToolsWebContents(devtools)
+  target.openDevTools()
+  devtools.executeJavaScript("window.location.reload()");
+})
+
+ipcMain.on('new-window', (event, filePaths) => {
+  const win = BrowserWindow.fromWebContents(event.sender);
+  createWindow(win, filePaths);
+});
+ipcMain.on('store-setting', (_, key, value) => {
   const conf = userPrefStore.get('editor_config');
   conf[key] = value;
   userPrefStore.set('editor_config', conf);
-});
-ipcMain.on('get-setting', (event, key) => {
-  const conf = userPrefStore.get('editor_config');
-  event.returnValue = conf[key];
 });
 
 ipcMain.on('can-close-response', (event, canClose) => {
@@ -207,7 +289,7 @@ ipcMain.on('can-close-response', (event, canClose) => {
       detail: 'You will loose the current document',
     };
 
-    const ret = dialog.showMessageBoxSync(win, options);
+    const ret = dialog.get().showMessageBoxSync(win, options);
 
     if (ret !== 1) {
       return;
@@ -217,19 +299,13 @@ ipcMain.on('can-close-response', (event, canClose) => {
   win.destroy();
 });
 
-// TEMPFIX: Linux transparency hack
-// from https://github.com/electron/electron/issues/25153
-let delay = 0;
-if (process.platform === 'linux') {
-  delay = 200;
-  app.commandLine.appendSwitch('use-gl', 'desktop');
-}
+
+
+
 
 app.whenReady().then(() => {
-  setTimeout(() => {
-    let idx = (app.isPackaged ? 1 : 2);
-    createWindow(null, process.argv[idx]);
-  }, delay);
+  let num = app.isPackaged ? 1 : 2;
+  createWindow(null, process.argv.slice(num));
 
   app.on('activate', () => {
     // On macOS it's common to re-create a window in the app when the
@@ -251,15 +327,4 @@ app.on('window-all-closed', () => {
   if (shouldUpdate) {
     doUpdate();
   }
-});
-
-
-// TEMPFIX: Temporary workaround for CWE-668
-app.on('web-contents-created', (event, webContents) => {
-  webContents.on('select-bluetooth-device', (event, devices, callback) => {
-    // Prevent default behavior
-    event.preventDefault();
-    // Cancel the request
-    callback('');
-  });
 });
