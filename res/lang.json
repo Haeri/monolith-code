@@ -246,7 +246,7 @@
 		"comp": null,
 		"run": "python -u <name>.py",
 		"templ": "print(\"hello human\")",
-		"linere": "(File \"<name>\\.py\", line (\\d*))",
+		"linere": "(File \".*<name>\\.py\", line (\\d*))",
 		"tempname": "MyPythonScript",
 		"ext": [
 			"py"

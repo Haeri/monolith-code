@@ -10,7 +10,45 @@ const PLATFORM_ZIP = Object.freeze({
   win32: 'monolithcode_win.zip',
 });
 
-const getExeExtension = () => (Object.prototype.hasOwnProperty.call(EXE_EXTENSION, process.platform) ? EXE_EXTENSION[process.platform] : '');
+class lazyRequire {
+  #requireValue = null;
+  #requireFunk = null;
+  constructor(requireFunk) {
+    this.#requireFunk = requireFunk;
+  }
+  get() {
+    if (this.#requireValue === null) {
+      this.#requireValue = this.#requireFunk();
+    };
+    return this.#requireValue;
+  }
+};
+
+function requireLazy(func) {
+  return new lazyRequire(func);
+}
+
+
+class StandaloneEvent {
+  constructor() {
+    this.handlers = {};
+  }
+
+  registerHandler = (event, callback) => {
+    this.handlers[event] = callback;
+  }
+
+  dispatch = (event, data) => {
+    let callback = this.handlers[event];
+    if (callback) {
+      callback(data);
+    }
+  };
+}
+
+
+
+const getExeExtension = (platform) => (Object.prototype.hasOwnProperty.call(EXE_EXTENSION, platform) ? EXE_EXTENSION[platform] : '');
 
 // https://stackoverflow.com/a/34749873
 const isObject = (item) => {
@@ -45,4 +83,6 @@ if (typeof module !== 'undefined' && module.exports) {
   module.exports.getExeExtension = getExeExtension;
   module.exports.isObject = isObject;
   module.exports.mergeDeep = mergeDeep;
+  module.exports.requireLazy = requireLazy;
+  module.exports.StandaloneEvent = StandaloneEvent;
 }
