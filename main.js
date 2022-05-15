@@ -101,42 +101,31 @@ function checkLatestVersion() {
     });
 }
 
-function doUpdate() {
-  const root = path.dirname(process.execPath);
-  let command = `${root}/${appInfo.version}/updater${getExeExtension(appInfo.os)}`;
-
-  if (process.platform !== 'win32') {
-    command = `chmod +x ./${appInfo.version}/updater${getExeExtension(appInfo.os)} && ${command}`;
-  }
-  const child = require('child_process').spawn(command, [], { detached: true, shell: true });
-  child.unref();
-}
-
 function createWindow(caller = undefined, filePaths = []) {
   filePathsToOpen = filePaths;
   let { x, y, width, height, maximized } = localStore.get('window_config');
   let { native_frame } = userPrefStore.get('window_config');
 
   // Force custom frame to remove traficlights
-  if(process.platform === 'darwin'){
+  if (process.platform === 'darwin') {
     native_frame = false;
   }
 
   let windowConfig = {}
-  if(native_frame){
+  if (native_frame) {
     windowConfig = {
       frame: false,
       hasShadow: true,
       backgroundColor: '#212121',
     }
-  }else{
+  } else {
     windowConfig = {
       frame: false,
       transparent: true,
       backgroundColor: '#00000000'
     }
   }
-  
+
 
   if (caller) {
     x = caller.getPosition()[0] + 30;
@@ -236,6 +225,13 @@ ipcMain.on('toggle-max-unmax', (event) => {
     win.unmaximize();
   }
 });
+
+ipcMain.on('set-title', (event, title) => {
+  const win = BrowserWindow.fromWebContents(event.sender);
+  win.setTitle(title);
+});
+
+
 ipcMain.handle('toggle-pin', (event) => {
   const win = BrowserWindow.fromWebContents(event.sender);
   const pinned = win.isAlwaysOnTop();

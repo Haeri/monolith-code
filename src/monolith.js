@@ -626,12 +626,16 @@ function togglePreviewDivider(open = undefined) {
 }
 
 function _updateTitle() {
-  const title = file.extension ? file.name + file.extension : 'new document';
-  if (isSaved === null || isSaved) {
-    documentNameUi.textContent = title;
-  } else {
-    documentNameUi.textContent = `${title}*`;
+  let title = file.extension ? file.name + file.extension : 'new document';
+
+  if (!(isSaved === null || isSaved)) {    
+    title = `${title}*`;
   }
+
+  if(documentNameUi.textContent === title) return;
+
+  documentNameUi.textContent = title;
+  window.api.setTitle(title);
 }
 
 function _setFileInfo(filePath) {
