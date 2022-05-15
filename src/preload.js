@@ -124,6 +124,7 @@ const API = {
     close: () => ipcRenderer.send("close"),
     togglePin: () => ipcRenderer.invoke("toggle-pin"),
     newWindow: (filePaths) => ipcRenderer.send("new-window", filePaths),
+    setTitle: (title) => ipcRenderer.send("set-title", title),
 
     // Features API
     showOpenDialog: () => ipcRenderer.invoke("show-open-dialog"),
