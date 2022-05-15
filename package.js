@@ -30,7 +30,7 @@ async function main() {
 
 
 
-  if (process.platform === 'linux' || process.platform === 'darwin') {
+  if (process.platform === 'linux') {
     process.stdout.write('1.1. chmod-ing executable...');
     execSync(`chmod +x '${packageOptions.executableName}'`, {
       cwd: dir,
