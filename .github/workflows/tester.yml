@@ -3,8 +3,8 @@ name: Test Build
 on: 
   push:
     branches:
+    - master
     - dev
-    - electron17
 
 jobs:
   build-nix:
