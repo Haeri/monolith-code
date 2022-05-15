@@ -24,8 +24,6 @@ jobs:
     - name: Zip Artifacts
       run: |
         cd monolith-code_windows-latest/monolith-code-*/; zip -r ../../monolith-code_win.zip .; cd ../..
-    - name: Generate Checksum
-      run: sha512sum *.zip *.tar > sha512sums.txt
     - name: Create Release
       id: create_release
       uses: actions/create-release@v1
