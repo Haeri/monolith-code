@@ -628,11 +628,11 @@ function togglePreviewDivider(open = undefined) {
 function _updateTitle() {
   let title = file.extension ? file.name + file.extension : 'new document';
 
-  if (!(isSaved === null || isSaved)) {    
+  if (!(isSaved === null || isSaved)) {
     title = `${title}*`;
   }
 
-  if(documentNameUi.textContent === title) return;
+  if (documentNameUi.textContent === title) return;
 
   documentNameUi.textContent = title;
   window.api.setTitle(title);
@@ -898,18 +898,18 @@ async function _initialize() {
   var optionsContainer = document.getElementsByClassName("options-container")[0];
   languageDisplaySelectedUi.addEventListener("click", () => {
     //console.log("click", optionsContainer.classList);
-    if(optionsContainer.classList.contains("active")){
+    if (optionsContainer.classList.contains("active")) {
       //console.log("click to close");
       optionsContainer.classList.remove("active");
-    }else{
+    } else {
       //console.log("click to open");
       optionsContainer.classList.add("active");
       document.addEventListener("click", (e) => {
         //console.log(e.target, languageDisplaySelectedUi.contains(e.target))
-        if(languageDisplaySelectedUi.contains(e.target)) return;
+        if (languageDisplaySelectedUi.contains(e.target)) return;
         //console.log("click outside to close");
         optionsContainer.classList.remove("active");
-      }, {once: true});
+      }, { once: true });
     }
   });
 
