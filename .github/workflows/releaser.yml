@@ -18,7 +18,7 @@ jobs:
     - name: Detect Version
       run: node -p -e '`PACKAGE_VERSION=${require("./package.json").version}`' >> $GITHUB_ENV  
     - name: Download Artifacts
-      uses: actions/download-artifact@v2
+      uses: dawidd6/action-download-artifact@v2
       with:
         workflow: "Test Build"
     - name: Zip Artifacts
