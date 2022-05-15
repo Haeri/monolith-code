@@ -26,36 +26,17 @@ async function main() {
   process.stdout.write('1. Packaging main executable...');
   let dir = await packager(packageOptions);
   dir = dir[0];
-  /*
-  console.log(`Electron app bundles created:\n${dir}`)
-  fs.readdirSync(dir).forEach(file => {
-    err = false;
-    try{
-      fs.accessSync(file, fs.constants.X_OK);
-    }
-    catch(e){
-      err = true;
-    }
-    console.log(`${file} ${err ? '' : '\tx'}`);    
-  });
-  */
   process.stdout.write('\t\tOK\n');
 
 
 
-  if (process.platform === 'linux') {
+  if (process.platform === 'linux' || process.platform === 'darwin') {
     process.stdout.write('1.1. chmod-ing executable...');
     execSync(`chmod +x '${packageOptions.executableName}'`, {
       cwd: dir,
     });
     process.stdout.write('\t\tOK\n');
   }
-
-  process.stdout.write('2. Installing NPM for updater...');
-  execSync('npm install', {
-    cwd: './updater',
-  });
-  process.stdout.write('\tOK\n');
 
   console.log('------ FINISHED PACKAGING ------');
 }
