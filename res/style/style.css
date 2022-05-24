@@ -108,7 +108,7 @@ body.rounded:not(.fullscreen) #container {
 	width: 100%;
 	display: block;
 	pointer-events: none;
-	opacity: .06;
+	opacity: .05;
 }
 
 body.light #container {
@@ -174,8 +174,8 @@ header #window-buttons button#pin-button.pinned {
 }
 
 header #window-buttons button#close-button:hover {
-	background-color: #f44336;
-	border: 1px solid #f44336;
+	background-color: hsl(4, 90%, 72%);
+	/*border: 1px solid #f44336;*/
 	box-shadow: 0px 0px 30px 1px #f44336;
 }
 
@@ -185,8 +185,8 @@ header #window-buttons button#close-button {
 }
 
 header #window-buttons button#min-button:hover {
-	background-color: #4caf50;
-	border: 1px solid #4caf50;
+	background-color: hsl(122, 39%, 63%);
+	/*border: 1px solid #4caf50;*/
 	box-shadow: 0px 0px 30px 1px #4caf50;
 }
 
@@ -196,8 +196,8 @@ header #window-buttons button#min-button {
 }
 
 header #window-buttons button#max-button:hover {
-	background-color: #ffeb3b;
-	border: 1px solid #ffeb3b;
+	background-color: hsl(54, 100%, 76%);
+	/*border: 1px solid #ffeb3b;*/
 	box-shadow: 0px 0px 30px 1px #ffeb3b;
 }
 
@@ -208,7 +208,7 @@ header #window-buttons button#max-button {
 
 header,
 footer {
-	padding: 10px 16px;
+	padding: 8px 14px;
 	display: flex;
 	flex-direction: row;
 	justify-content: space-between;
@@ -251,6 +251,10 @@ footer {
 
 
 /* ---------- BODY ---------- */
+
+#content {
+	margin-top: 6px;
+}
 
 #content,
 #preview-wrapper {
@@ -483,12 +487,15 @@ footer {
 
 /* ---------- FOOTER ---------- */
 
+footer {
+	font-size: 0.9em;
+}
+
 footer select {
 	background: transparent;
 	border: none;
 	color: inherit;
 	outline: none;
-	font-size: inherit;
 	text-align-last: right;
 	-webkit-appearance: none;
 }
@@ -537,9 +544,15 @@ footer select option {
 	transition: 0.3s;
 }
 
+.select-box .option.active {
+	border-left: 2px solid #2443f0;
+	background: #ffffff03;
+}
+
 .selected {
 	padding: 0;
 	border-radius: 8px;
+	text-transform: lowercase;
 }
 
 .selected:hover {
