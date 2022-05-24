@@ -30,6 +30,7 @@ let historyIndex;
 let documentNameUi;
 let languageDisplayUi;
 let languageDisplaySelectedUi;
+let optionsContainer;
 let themeChoiceUi;
 let consoleUi;
 let consoleInUi;
@@ -184,9 +185,7 @@ function getModeFromName(filename) {
 
 
 function setLanguage(langKey) {
-  if (langKey === 'markdown') {
-    //editor.on('input', markdownUpdater);
-  } else {
+  if (langKey !== 'markdown') {
     editor.off('input', markdownUpdater);
   }
 
@@ -196,6 +195,8 @@ function setLanguage(langKey) {
 
   languageDisplaySelectedUi.innerText = lang.name;
   languageDisplaySelectedUi.dataset.value = langKey;
+  [...optionsContainer.querySelectorAll(`.option`)].forEach(el => el.classList.remove("active"));
+  optionsContainer.querySelector(`.option[data-value="${langKey}"]`).classList.add("active");
 }
 
 function setContent(content) {
@@ -672,6 +673,7 @@ function _assignUIVariables() {
   documentNameUi = document.getElementById('document-name');
   languageDisplayUi = document.getElementById('language-display');
   languageDisplaySelectedUi = document.querySelector("#language-display .selected");
+  optionsContainer = document.getElementsByClassName("options-container")[0];
   themeChoiceUi = document.getElementById('theme-choice');
   charDisplayUi = document.getElementById('fchar-display');
   consoleUi = document.getElementById('console');
@@ -894,22 +896,16 @@ async function _initialize() {
     setTheme(themeChoiceUi.value);
   });
 
-
-  var optionsContainer = document.getElementsByClassName("options-container")[0];
-  languageDisplaySelectedUi.addEventListener("click", () => {
-    //console.log("click", optionsContainer.classList);
+  languageDisplaySelectedUi.addEventListener("click", (e1) => {
     if (optionsContainer.classList.contains("active")) {
-      //console.log("click to close");
       optionsContainer.classList.remove("active");
     } else {
-      //console.log("click to open");
       optionsContainer.classList.add("active");
-      document.addEventListener("click", (e) => {
-        //console.log(e.target, languageDisplaySelectedUi.contains(e.target))
+      e1.stopImmediatePropagation()
+      document.addEventListener("click", function (e) {
         if (languageDisplaySelectedUi.contains(e.target)) return;
-        //console.log("click outside to close");
         optionsContainer.classList.remove("active");
-      }, { once: true });
+      }, { once: true })
     }
   });
 
