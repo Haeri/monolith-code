@@ -774,6 +774,7 @@ async function _initialize() {
   })
 
 
+  // Load Keybindings
   try {
     const response = await fetch('res/keybindings.json');
     const data = await response.text();
@@ -856,11 +857,6 @@ async function _initialize() {
     return true;
   }, false);
 
-  /*
-  languageDisplayUi.addEventListener('change', () => {
-    setLanguage(languageDisplayUi.value);
-  });
-*/
   themeChoiceUi.addEventListener('change', () => {
     setTheme(themeChoiceUi.value);
   });
@@ -879,7 +875,7 @@ async function _initialize() {
   });
 
 
-  // Setup Language
+  // Load Languages
   try {
     const response = await fetch('res/lang.json');
     const data = await response.text();
