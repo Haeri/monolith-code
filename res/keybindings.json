@@ -1,0 +1,46 @@
+{
+  "ctrl": {
+    "o": {
+      "description": "Open a file",
+      "func": "openFile"
+    },
+    "b": {
+      "description": "Build and run the current file",
+      "func": "buildRunFile"
+    },
+    "s": {
+      "description": "Save the current file",
+      "func": "saveFile"
+    },
+    "n": {
+      "description": "Open a new editor window",
+      "func": "newWindow"
+    },
+    "i": {
+      "description": "Open settings",
+      "func": "openSettings"
+    },
+    "p": {
+      "description": "Export the preview window as PDF",
+      "func": "exportPDFFromPreview"
+    },
+    "t": {
+      "description": "Open a hello world tamplate for the current language",
+      "func": "makeLanguageTemplate"
+    },
+    "m": {
+      "description": "Evaluate a mathematical equation on the selected line",
+      "func": "evaluateMathInline"
+    }
+  },
+  "ctrlshift": {
+    "b": {
+      "description": "Beautify the document",
+      "func": "beautifyDocument"
+    },
+    "s": {
+      "description": "Save the current document as new file",
+      "func": "saveFileAs"
+    }
+  }
+}

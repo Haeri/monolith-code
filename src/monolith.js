@@ -22,6 +22,7 @@ let windowConfig;
 let localWindowConfig;
 let userPrefPath;
 let langPrefPath;
+let keybindings;
 
 let commandHistory = [];
 let historyIndex;
@@ -53,52 +54,6 @@ const INFO_LEVEL = Object.freeze({
   error: 4,
 });
 
-const keyBindings = {
-  ctrl: {
-    "o": {
-      desc: "Open a file",
-      func: openFile
-    },
-    "b": {
-      desc: "Build and run the current file",
-      func: buildRunFile
-    },
-    "s": {
-      desc: "Save the current file",
-      func: saveFile
-    },
-    "n": {
-      desc: "Open a new editor window",
-      func: newWindow
-    },
-    "i": {
-      desc: "Open settings",
-      func: openSettings
-    },
-    "p": {
-      desc: "Export the preview window as PDF",
-      func: exportPDFFromPreview
-    },
-    "t": {
-      desc: "Open a hello world tamplate for the current language",
-      func: makeLanguageTemplate
-    },
-    "m": {
-      desc: "Evaluate a mathematical equation on the selected line",
-      func: evaluateMathInline
-    }
-  },
-  ctrlshift: {
-    "b": {
-      desc: "Beautify the document",
-      func: beautifyDocument
-    },
-    "s": {
-      desc: "Save the current document as new file",
-      func: (() => saveFile(true))
-    }
-  }
-}
 
 const commandList = {
   '!ver': {
@@ -145,15 +100,15 @@ const commandList = {
       let ret = '';
       let longest = Object.keys(commandList).reduce((prev, curr) => curr.length > prev ? curr.length : prev, 0) + 6;
       Object.entries(commandList).forEach(([key, value]) => {
-        ret += `${key}${" ".repeat(longest - key.length)}${value.desc}\n`;
+        ret += `${key}${" ".repeat(longest - key.length)}${value.description}\n`;
       });
 
       ret += "------------------------------------------------------------------------\n";
-      Object.entries(keyBindings.ctrl).forEach(([key, value]) => {
-        ret += `ctrl + ${key}            ${value.desc}\n`;
+      Object.entries(keybindings.ctrl).forEach(([key, value]) => {
+        ret += `ctrl + ${key}            ${value.description}\n`;
       });
-      Object.entries(keyBindings.ctrlshift).forEach(([key, value]) => {
-        ret += `ctrl + shift + ${key}    ${value.desc}\n`;
+      Object.entries(keybindings.ctrlshift).forEach(([key, value]) => {
+        ret += `ctrl + shift + ${key}    ${value.description}\n`;
       });
 
       print(ret);
@@ -244,6 +199,10 @@ async function openFile(filePaths = []) {
     newWindow(filePaths);
   }
   notifyLoadEnd();
+}
+
+async function saveFileAs() {
+  return saveFile(true);
 }
 
 async function saveFile(saveAs = false) {
@@ -815,17 +774,27 @@ async function _initialize() {
   })
 
 
+  try {
+    const response = await fetch('res/keybindings.json');
+    const data = await response.text();
+    keybindings = JSON.parse(data);
+  } catch (err) {
+    print(`An error ocurred reading the file :${err.message}`, INFO_LEVEL.err);
+    return;
+  }
+
+
   window.addEventListener('keydown', (event) => {
     let lowerKey = event.key.toLowerCase();
     if (event.ctrlKey && !event.shiftKey) {
-      if (lowerKey in keyBindings.ctrl) {
+      if (lowerKey in keybindings.ctrl) {
         event.preventDefault();
-        keyBindings.ctrl[lowerKey].func();
+        window[keybindings.ctrl[lowerKey].func]();
       }
     } else if (event.ctrlKey && event.shiftKey) {
-      if (lowerKey in keyBindings.ctrlshift) {
+      if (lowerKey in keybindings.ctrlshift) {
         event.preventDefault();
-        keyBindings.ctrlshift[lowerKey].func();
+        window[keybindings.ctrlshift[lowerKey].func]();
       }
     }
   }, false);
@@ -909,6 +878,8 @@ async function _initialize() {
     }
   });
 
+
+  // Setup Language
   try {
     const response = await fetch('res/lang.json');
     const data = await response.text();
