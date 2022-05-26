@@ -22,6 +22,7 @@ let windowConfig;
 let localWindowConfig;
 let userPrefPath;
 let langPrefPath;
+let keybindings;
 
 let commandHistory = [];
 let historyIndex;
@@ -30,6 +31,7 @@ let historyIndex;
 let documentNameUi;
 let languageDisplayUi;
 let languageDisplaySelectedUi;
+let optionsContainer;
 let themeChoiceUi;
 let consoleUi;
 let consoleInUi;
@@ -52,52 +54,6 @@ const INFO_LEVEL = Object.freeze({
   error: 4,
 });
 
-const keyBindings = {
-  ctrl: {
-    "o": {
-      desc: "Open a file",
-      func: openFile
-    },
-    "b": {
-      desc: "Build and run the current file",
-      func: buildRunFile
-    },
-    "s": {
-      desc: "Save the current file",
-      func: saveFile
-    },
-    "n": {
-      desc: "Open a new editor window",
-      func: newWindow
-    },
-    "i": {
-      desc: "Open settings",
-      func: openSettings
-    },
-    "p": {
-      desc: "Export the preview window as PDF",
-      func: exportPDFFromPreview
-    },
-    "t": {
-      desc: "Open a hello world tamplate for the current language",
-      func: makeLanguageTemplate
-    },
-    "m": {
-      desc: "Evaluate a mathematical equation on the selected line",
-      func: evaluateMathInline
-    }
-  },
-  ctrlshift: {
-    "b": {
-      desc: "Beautify the document",
-      func: beautifyDocument
-    },
-    "s": {
-      desc: "Save the current document as new file",
-      func: (() => saveFile(true))
-    }
-  }
-}
 
 const commandList = {
   '!ver': {
@@ -144,15 +100,15 @@ const commandList = {
       let ret = '';
       let longest = Object.keys(commandList).reduce((prev, curr) => curr.length > prev ? curr.length : prev, 0) + 6;
       Object.entries(commandList).forEach(([key, value]) => {
-        ret += `${key}${" ".repeat(longest - key.length)}${value.desc}\n`;
+        ret += `${key}${" ".repeat(longest - key.length)}${value.description}\n`;
       });
 
       ret += "------------------------------------------------------------------------\n";
-      Object.entries(keyBindings.ctrl).forEach(([key, value]) => {
-        ret += `ctrl + ${key}            ${value.desc}\n`;
+      Object.entries(keybindings.ctrl).forEach(([key, value]) => {
+        ret += `ctrl + ${key}            ${value.description}\n`;
       });
-      Object.entries(keyBindings.ctrlshift).forEach(([key, value]) => {
-        ret += `ctrl + shift + ${key}    ${value.desc}\n`;
+      Object.entries(keybindings.ctrlshift).forEach(([key, value]) => {
+        ret += `ctrl + shift + ${key}    ${value.description}\n`;
       });
 
       print(ret);
@@ -184,9 +140,7 @@ function getModeFromName(filename) {
 
 
 function setLanguage(langKey) {
-  if (langKey === 'markdown') {
-    //editor.on('input', markdownUpdater);
-  } else {
+  if (langKey !== 'markdown') {
     editor.off('input', markdownUpdater);
   }
 
@@ -196,6 +150,8 @@ function setLanguage(langKey) {
 
   languageDisplaySelectedUi.innerText = lang.name;
   languageDisplaySelectedUi.dataset.value = langKey;
+  [...optionsContainer.querySelectorAll(`.option`)].forEach(el => el.classList.remove("active"));
+  optionsContainer.querySelector(`.option[data-value="${langKey}"]`).classList.add("active");
 }
 
 function setContent(content) {
@@ -243,6 +199,10 @@ async function openFile(filePaths = []) {
     newWindow(filePaths);
   }
   notifyLoadEnd();
+}
+
+async function saveFileAs() {
+  return saveFile(true);
 }
 
 async function saveFile(saveAs = false) {
@@ -626,12 +586,16 @@ function togglePreviewDivider(open = undefined) {
 }
 
 function _updateTitle() {
-  const title = file.extension ? file.name + file.extension : 'new document';
-  if (isSaved === null || isSaved) {
-    documentNameUi.textContent = title;
-  } else {
-    documentNameUi.textContent = `${title}*`;
+  let title = file.extension ? file.name + file.extension : 'new document';
+
+  if (!(isSaved === null || isSaved)) {
+    title = `${title}*`;
   }
+
+  if (documentNameUi.textContent === title) return;
+
+  documentNameUi.textContent = title;
+  window.api.setTitle(title);
 }
 
 function _setFileInfo(filePath) {
@@ -668,6 +632,7 @@ function _assignUIVariables() {
   documentNameUi = document.getElementById('document-name');
   languageDisplayUi = document.getElementById('language-display');
   languageDisplaySelectedUi = document.querySelector("#language-display .selected");
+  optionsContainer = document.getElementsByClassName("options-container")[0];
   themeChoiceUi = document.getElementById('theme-choice');
   charDisplayUi = document.getElementById('fchar-display');
   consoleUi = document.getElementById('console');
@@ -809,17 +774,28 @@ async function _initialize() {
   })
 
 
+  // Load Keybindings
+  try {
+    const response = await fetch('res/keybindings.json');
+    const data = await response.text();
+    keybindings = JSON.parse(data);
+  } catch (err) {
+    print(`An error ocurred reading the file :${err.message}`, INFO_LEVEL.err);
+    return;
+  }
+
+
   window.addEventListener('keydown', (event) => {
     let lowerKey = event.key.toLowerCase();
     if (event.ctrlKey && !event.shiftKey) {
-      if (lowerKey in keyBindings.ctrl) {
+      if (lowerKey in keybindings.ctrl) {
         event.preventDefault();
-        keyBindings.ctrl[lowerKey].func();
+        window[keybindings.ctrl[lowerKey].func]();
       }
     } else if (event.ctrlKey && event.shiftKey) {
-      if (lowerKey in keyBindings.ctrlshift) {
+      if (lowerKey in keybindings.ctrlshift) {
         event.preventDefault();
-        keyBindings.ctrlshift[lowerKey].func();
+        window[keybindings.ctrlshift[lowerKey].func]();
       }
     }
   }, false);
@@ -881,34 +857,25 @@ async function _initialize() {
     return true;
   }, false);
 
-  /*
-  languageDisplayUi.addEventListener('change', () => {
-    setLanguage(languageDisplayUi.value);
-  });
-*/
   themeChoiceUi.addEventListener('change', () => {
     setTheme(themeChoiceUi.value);
   });
 
-
-  var optionsContainer = document.getElementsByClassName("options-container")[0];
-  languageDisplaySelectedUi.addEventListener("click", () => {
-    //console.log("click", optionsContainer.classList);
-    if(optionsContainer.classList.contains("active")){
-      //console.log("click to close");
+  languageDisplaySelectedUi.addEventListener("click", (e1) => {
+    if (optionsContainer.classList.contains("active")) {
       optionsContainer.classList.remove("active");
-    }else{
-      //console.log("click to open");
+    } else {
       optionsContainer.classList.add("active");
-      document.addEventListener("click", (e) => {
-        //console.log(e.target, languageDisplaySelectedUi.contains(e.target))
-        if(languageDisplaySelectedUi.contains(e.target)) return;
-        //console.log("click outside to close");
+      e1.stopImmediatePropagation()
+      document.addEventListener("click", function (e) {
+        if (languageDisplaySelectedUi.contains(e.target)) return;
         optionsContainer.classList.remove("active");
-      }, {once: true});
+      }, { once: true })
     }
   });
 
+
+  // Load Languages
   try {
     const response = await fetch('res/lang.json');
     const data = await response.text();
