@@ -2,7 +2,7 @@
   "name": "monolith-code",
   "version": "2.2.2",
   "description": "minimalistic coder editor",
-  "homepage": "https://haeri.github.io/MonolithCode2/",
+  "homepage": "https://haeri.github.io/monolithcode/",
   "main": "main.js",
   "scripts": {
     "start": "electron .",

@@ -14,8 +14,8 @@ let dialog = requireLazy(() => require('electron').dialog);
 let fs = requireLazy(() => require('fs'));
 
 
-const RELEASE_VERSION_URL = 'https://api.github.com/repos/Haeri/MonolithCode2/releases/latest';
-const RELEASE_ZIP_URL = 'https://github.com/Haeri/MonolithCode2/releases/latest/download/';
+const RELEASE_VERSION_URL = 'https://api.github.com/repos/Haeri/monolithcode/releases/latest';
+const RELEASE_ZIP_URL = 'https://github.com/Haeri/monolithcode/releases/latest/download/';
 
 let newVersion = null;
 let shouldUpdate = false;
