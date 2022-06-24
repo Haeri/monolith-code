@@ -1,24 +1,21 @@
-const { app, BrowserWindow, ipcMain, webContents } = require('electron');
-const { requireLazy, PLATFORM_ZIP } = require('./src/common');
-const Store = require('./src/store');
+const {
+  app, BrowserWindow, ipcMain, webContents,
+} = require('electron');
 const path = require('path');
+const { requireLazy } = require('./src/common');
+const Store = require('./src/store');
 
 const appInfo = {
   name: 'monolith code',
   version: app.getVersion(),
-  os: process.platform
+  os: process.platform,
 };
 
-let axios = requireLazy(() => require('axios').default);
-let dialog = requireLazy(() => require('electron').dialog);
-let fs = requireLazy(() => require('fs'));
-
+const axios = requireLazy(() => require('axios').default);
+const dialog = requireLazy(() => require('electron').dialog);
 
 const RELEASE_VERSION_URL = 'https://api.github.com/repos/Haeri/monolithcode/releases/latest';
-const RELEASE_ZIP_URL = 'https://github.com/Haeri/monolithcode/releases/latest/download/';
-
-let newVersion = null;
-let shouldUpdate = false;
+//const RELEASE_ZIP_URL = 'https://github.com/Haeri/monolithcode/releases/latest/download/';
 
 let filePathsToOpen = [];
 
@@ -31,7 +28,7 @@ const localStore = new Store({
       width: 800,
       height: 600,
       maximized: false,
-    }
+    },
   },
 });
 const userPrefStore = new Store({
@@ -50,33 +47,17 @@ const userPrefStore = new Store({
     },
     app_config: {
       auto_update: true,
-    }
+    },
   },
 });
 const langStore = new Store({
   configName: 'lang-settings',
   defaults: {
-    language_config: {}
+    language_config: {},
   },
 });
 
-
-
-
-function downloadLatestVersion() {
-  axios.get()
-    .get(RELEASE_ZIP_URL + PLATFORM_ZIP[process.platform], { responseType: 'stream' })
-    .then((response) => {
-      response.data.pipe(fs.createWriteStream('monolith.zip'))
-        .on('close', () => {
-          shouldUpdate = true;
-          BrowserWindow.getAllWindows().forEach((w) => {
-            w.webContents.send('print', { text: `new version ${newVersion} will be installed after restart.` });
-          });
-        });
-    });
-}
-
+// eslint-disable-next-line no-unused-vars
 function checkLatestVersion() {
   if (!app.isPackaged) return;
 
@@ -103,29 +84,30 @@ function checkLatestVersion() {
 
 function createWindow(caller = undefined, filePaths = []) {
   filePathsToOpen = filePaths;
-  let { x, y, width, height, maximized } = localStore.get('window_config');
-  let { native_frame } = userPrefStore.get('window_config');
+  let {
+    x, y, width, height, maximized,
+  } = localStore.get('window_config');
+  const { native_frame } = userPrefStore.get('window_config');
 
   // Force custom frame to remove traficlights
   if (process.platform === 'darwin') {
     native_frame = false;
   }
 
-  let windowConfig = {}
+  let windowConfig = {};
   if (native_frame) {
     windowConfig = {
       frame: false,
       hasShadow: true,
       backgroundColor: '#212121',
-    }
+    };
   } else {
     windowConfig = {
       frame: false,
       transparent: true,
-      backgroundColor: '#00000000'
-    }
+      backgroundColor: '#00000000',
+    };
   }
-
 
   if (caller) {
     x = caller.getPosition()[0] + 30;
@@ -158,9 +140,16 @@ function createWindow(caller = undefined, filePaths = []) {
   });
 
   win.on('resized', () => {
-    const { x, y, width, height } = win.getBounds();
+    const {
+      x, y, width, height,
+    } = win.getBounds();
     const prev = localStore.get('window_config');
-    localStore.set('window_config', { ...prev, ...{ x, y, width, height } });
+    localStore.set('window_config', {
+      ...prev,
+      ...{
+        x, y, width, height,
+      },
+    });
   });
 
   win.on('maximize', () => {
@@ -183,27 +172,24 @@ function createWindow(caller = undefined, filePaths = []) {
   win.loadFile('index.html');
 }
 
-
-
-
-
 ipcMain.handle('initial-settings', () => {
   const editorConfig = userPrefStore.get('editor_config');
   const windowConfig = userPrefStore.get('window_config');
-  const localWindowConfig = localStore.get('window_config')
+  const localWindowConfig = localStore.get('window_config');
   const languageConfig = langStore.get('language_config');
   const userPrefPath = userPrefStore.getFilePath();
   const languageConfigPath = langStore.getFilePath();
   return {
     appInfo,
     filePathsToOpen,
-    editorConfig, windowConfig,
-    localWindowConfig, languageConfig,
-    userPrefPath, languageConfigPath
+    editorConfig,
+    windowConfig,
+    localWindowConfig,
+    languageConfig,
+    userPrefPath,
+    languageConfigPath,
   };
 });
-
-
 
 ipcMain.on('minimize', (event) => {
   const win = BrowserWindow.fromWebContents(event.sender);
@@ -231,7 +217,6 @@ ipcMain.on('set-title', (event, title) => {
   win.setTitle(title);
 });
 
-
 ipcMain.handle('toggle-pin', (event) => {
   const win = BrowserWindow.fromWebContents(event.sender);
   const pinned = win.isAlwaysOnTop();
@@ -255,13 +240,13 @@ ipcMain.handle('show-save-dialog', async (event, options) => {
 });
 
 ipcMain.on('open-devtools', (_, targetContentsId, devtoolsContentsId) => {
-  const target = webContents.fromId(targetContentsId)
-  const devtools = webContents.fromId(devtoolsContentsId)
+  const target = webContents.fromId(targetContentsId);
+  const devtools = webContents.fromId(devtoolsContentsId);
 
-  target.setDevToolsWebContents(devtools)
-  target.openDevTools()
-  devtools.executeJavaScript("window.location.reload()");
-})
+  target.setDevToolsWebContents(devtools);
+  target.openDevTools();
+  devtools.executeJavaScript('window.location.reload()');
+});
 
 ipcMain.on('new-window', (event, filePaths) => {
   const win = BrowserWindow.fromWebContents(event.sender);
@@ -295,12 +280,8 @@ ipcMain.on('can-close-response', (event, canClose) => {
   win.destroy();
 });
 
-
-
-
-
 app.whenReady().then(() => {
-  let num = app.isPackaged ? 1 : 2;
+  const num = app.isPackaged ? 1 : 2;
   createWindow(null, process.argv.slice(num));
 
   app.on('activate', () => {
@@ -312,15 +293,11 @@ app.whenReady().then(() => {
   if (userPrefStore.get('app_config').auto_update) {
     setTimeout(() => {
       // TODO: There are a lot of issues with the updater so lets not bother
-      //checkLatestVersion();
+      // checkLatestVersion();
     }, 8000);
   }
 });
 
 app.on('window-all-closed', () => {
   if (process.platform !== 'darwin') app.quit();
-
-  if (shouldUpdate) {
-    doUpdate();
-  }
 });

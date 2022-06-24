@@ -5,8 +5,8 @@ const common = require('./common');
 
 function parseDataFile(filePath, defaults) {
   try {
-    let stored = JSON.parse(fs.readFileSync(filePath));
-    let tmp = {};
+    const stored = JSON.parse(fs.readFileSync(filePath));
+    const tmp = {};
     common.mergeDeep(tmp, defaults);
     common.mergeDeep(tmp, stored);
     return tmp;
@@ -16,16 +16,11 @@ function parseDataFile(filePath, defaults) {
 }
 
 function setDescendantProp(obj, desc, value) {
-  if (typeof desc == 'string')
-    return setDescendantProp(obj, desc.split('.'), value);
-  else if (desc.length == 1 && value !== undefined)
-    return obj[desc[0]] = value;
-  else if (desc.length == 0)
-    return obj;
-  else
-    return setDescendantProp(obj[desc[0]], desc.slice(1), value);
+  if (typeof desc === 'string') return setDescendantProp(obj, desc.split('.'), value);
+  if (desc.length == 1 && value !== undefined) return obj[desc[0]] = value;
+  if (desc.length == 0) return obj;
+  return setDescendantProp(obj[desc[0]], desc.slice(1), value);
 }
-
 
 class Store {
   constructor(opts) {
