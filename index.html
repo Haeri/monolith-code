@@ -16,6 +16,12 @@
     <link rel="stylesheet" href="res/style/bars.css">
 
     <meta http-equiv="Content-Security-Policy" content="script-src 'self' 'unsafe-eval';">
+
+    <script  src="./src/components/status-panel.js"></script>
+    <script type="module" src="./src/components/console.js"></script>
+
+    <link rel="import" href="foo.html">
+
 </head>
 
 <body>
@@ -42,11 +48,7 @@
                 </div>
             </div>
             <div id="editor-console-div" class="resizer" data-direction="vertical"></div>
-            <div id="console">
-                <pre id="console-out"></pre>
-                <textarea id="console-in" spellcheck="false"></textarea>
-                <span id="process-indicator"></span>
-            </div>
+            <mc-console />
         </div>
         <footer>
             <span id="char-display"></span>
@@ -55,9 +57,8 @@
                 <div class="panel options-container"></div>
             </div>
         </footer>
-        <div id="status-display">
-            <spam id="status-bar"></spam>
-        </div>
+
+        <mc-status-panel />
 
         <div class="overlay">
             <div class="panel">

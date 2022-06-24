@@ -24,9 +24,6 @@ let userPrefPath;
 let langPrefPath;
 let keybindings;
 
-let commandHistory = [];
-let historyIndex;
-
 // UI Components
 let documentNameUi;
 let languageDisplaySelectedUi;
@@ -40,7 +37,8 @@ let previewDevDivUi;
 let editorConsoleDivUi;
 let processIndicatorUi;
 
-let errorSVG = requireLazy(async () => await fetch('res/img/err.svg').then(res => res.text()));
+let consoleComponent;
+let statusPanelComponent;
 
 // Constants
 const INFO_LEVEL = Object.freeze({
@@ -54,25 +52,25 @@ const INFO_LEVEL = Object.freeze({
 const commandList = {
   '!ver': {
     desc: 'Shows the current version of the application',
-    func: () => { print(`${appInfo.name} ${appInfo.version}`); },
+    func: () => { consoleComponent.print(`${appInfo.name} ${appInfo.version}`); },
   },
   '!cls': {
     desc: 'Clear console',
-    func: () => { consoleOutUi.innerHTML = ''; },
+    func: () => { consoleComponent.clear(); },
   },
   '!kill': {
     desc: 'Kills the currently running process',
     func: () => {
       if (runningProcess) {
-        killProcess().then(() => print("Process Killed", INFO_LEVEL.info));
+        killProcess().then(() => consoleComponent.print('Process Killed', INFO_LEVEL.info));
       } else {
-        print('No nunning process to kill.', INFO_LEVEL.warn);
+        consoleComponent.print('No nunning process to kill.', INFO_LEVEL.warn);
       }
     },
   },
   '!hello': {
     desc: 'Hello There :D',
-    func: () => { print('Hi there :D'); },
+    func: () => { consoleComponent.print('Hi there :D'); },
   },
   '!dev': {
     desc: 'Open Chrome Devtools for the preview window',
@@ -107,7 +105,7 @@ const commandList = {
         ret += `ctrl + shift + ${key}    ${value.description}\n`;
       });
 
-      print(ret);
+      consoleComponent.print(ret);
     },
   },
 };
@@ -154,14 +152,14 @@ function newWindow(filePaths = []) {
 }
 
 async function openFile(filePaths = []) {
-  notifyLoadStart();
+  statusPanelComponent.notifyLoadStart();
 
   let filePathsArray = Array.isArray(filePaths) ? filePaths : [filePaths];
 
   if (!filePathsArray.length) {
     const { canceled, filePaths: _filePaths } = await window.api.showOpenDialog();
     if (canceled) {
-      notifyLoadEnd();
+      statusPanelComponent.notifyLoadEnd();
       return;
     }
     filePathsArray = _filePaths;
@@ -173,28 +171,24 @@ async function openFile(filePaths = []) {
       .then((data) => {
         editor.setValue(data, -1);
         _setFileInfo(fileToOpen);
-        print(`Opened file ${fileToOpen}`);
         // webviewUi.src = 'about:blank'
+        consoleComponent.print(`Opened file ${fileToOpen}`);
       })
-      .catch(err => {
-        print(`Could not open file ${fileToOpen}<br>${err}`, INFO_LEVEL.error);
+      .catch((err) => {
+        consoleComponent.print(`Could not open file ${fileToOpen}<br>${err}`, INFO_LEVEL.error);
       }).finally(() => {
-        notifyLoadEnd();
+        statusPanelComponent.notifyLoadEnd();
       });
   }
 
   if (filePathsArray.length) {
     newWindow(filePathsArray);
   }
-  notifyLoadEnd();
-}
-
-async function saveFileAs() {
-  return saveFile(true);
+  statusPanelComponent.notifyLoadEnd();
 }
 
 async function saveFile(saveAs = false) {
-  notifyLoadStart();
+  statusPanelComponent.notifyLoadStart();
 
   let filePath = file.path + file.name + file.extension;
 
@@ -211,7 +205,7 @@ async function saveFile(saveAs = false) {
     const { canceled, filePath: _filepath } = await window.api.showSaveDialog(options);
 
     if (canceled) {
-      notifyLoadEnd();
+      statusPanelComponent.notifyLoadEnd();
       return;
     }
     filePath = _filepath;
@@ -220,11 +214,11 @@ async function saveFile(saveAs = false) {
   await window.api.writeFile(filePath, getContent());
 
   if (file.path === undefined || saveAs) {
-    print(`file saved as ${filePath}`);
+    consoleComponent.print(`file saved as ${filePath}`);
   }
   _setFileInfo(filePath);
 
-  notifyLoadEnd();
+  statusPanelComponent.notifyLoadEnd();
 }
 
 async function saveFileAs() {
@@ -241,42 +235,8 @@ function setTheme(name) {
 
 function setFontSize(size) {
   editor.setFontSize(size);
-  window.api.storeSetting('font_size', size)
+  window.api.storeSetting('font_size', size);
 }
-
-
-function notify(type) {
-  document.getElementById('status-display').className = '';
-  // document.getElementById('status-display').offsetWidth;
-  document.getElementById('status-display').classList.add(type);
-}
-
-function notifyLoadStart() {
-  document.getElementById('status-bar').classList.add('load');
-}
-
-function notifyLoadEnd() {
-  document.getElementById('status-bar').className = '';
-}
-
-function print(text, mode = INFO_LEVEL.info) {
-  const block = document.createElement('div');
-  block.classList.add(Object.keys(INFO_LEVEL).find((key) => INFO_LEVEL[key] === mode));
-
-  errorSVG.get().then((svg) => {
-    block.innerHTML = (mode === 4 ? svg : '') + text;
-  });
-  consoleOutUi.appendChild(block);
-
-  if (mode >= 2) {
-    const ret = Object.keys(INFO_LEVEL).find((key) => INFO_LEVEL[key] === mode);
-    notify(ret);
-  }
-
-  setTimeout(() => consoleUi.scrollTo({ top: consoleUi.scrollHeight, behavior: 'smooth' }), 0);
-}
-
-
 
 /* ------------- FEATURES ------------- */
 
@@ -288,7 +248,7 @@ function makeLanguageTemplate() {
   if ((languageDisplaySelectedUi.dataset.value in langInfo) && langInfo[languageDisplaySelectedUi.dataset.value].templ) {
     editor.setValue(langInfo[languageDisplaySelectedUi.dataset.value].templ, -1);
   } else {
-    print(`No default template exists for ${languageDisplaySelectedUi.dataset.value}`, INFO_LEVEL.warn);
+    consoleComponent.print(`No default template exists for ${languageDisplaySelectedUi.dataset.value}`, INFO_LEVEL.warn);
   }
 }
 
@@ -302,19 +262,19 @@ function evaluateMathInline() {
   try {
     const result = _calculate(func);
     editor.session.insert(editor.selection.getRange().end, ` = ${result}`);
-    notify('confirm');
+    statusPanelComponent.notify('confirm');
   } catch (error) {
-    print(`Unable to calculate '${func}'`, INFO_LEVEL.error);
+    consoleComponent.print(`Unable to calculate '${func}'`, INFO_LEVEL.error);
   }
 }
 
 async function exportPDFFromPreview() {
   if (!file.path) {
-    print("Filepath not set for export", INFO_LEVEL.warn);
+    consoleComponent.print('Filepath not set for export', INFO_LEVEL.warn);
     return;
   }
-  if (webviewUi.src === "" || webviewUi.src === "about:blank") {
-    print("Document not suitable for PDF export.", INFO_LEVEL.warn);
+  if (webviewUi.src === '' || webviewUi.src === 'about:blank') {
+    consoleComponent.print('Document not suitable for PDF export.', INFO_LEVEL.warn);
     return;
   }
 
@@ -324,9 +284,9 @@ async function exportPDFFromPreview() {
   const error = await window.api.writeFile(pdfPath, data);
 
   if (error) {
-    print(`Failed to write PDF to ${pdfPath}:\n${error}`, INFO_LEVEL.error);
+    consoleComponent.print(`Failed to write PDF to ${pdfPath}:\n${error}`, INFO_LEVEL.error);
   } else {
-    print(`PDF successfully stored to ${pdfPath}`, INFO_LEVEL.confirm);
+    consoleComponent.print(`PDF successfully stored to ${pdfPath}`, INFO_LEVEL.confirm);
   }
 }
 
@@ -346,7 +306,7 @@ async function killProcess() {
   /*
     , (err) => {
       if (err) {
-        print('Could not stop the running process.', INFO_LEVEL.error);
+        consoleComponent.print('Could not stop the running process.', INFO_LEVEL.error);
         reject();
       } else {
         resolve();
@@ -409,18 +369,17 @@ function mdToHTML() {
 }
 
 function commandRunner(command, args, callback) {
-  notifyLoadStart();
-  print(`> ${command}`, INFO_LEVEL.user);
-
+  statusPanelComponent.notifyLoadStart();
+  consoleComponent.print(`> ${command}`, INFO_LEVEL.user);
 
   runningProcess = window.api.spawnProcess(command, args, file.path);
 
   runningProcess.registerHandler('error', (err) => {
-    print(err, INFO_LEVEL.err);
+    consoleComponent.print(err, INFO_LEVEL.err);
   });
 
   runningProcess.registerHandler('stdout', (data) => {
-    print(data.toString());
+    consoleComponent.print(data.toString());
   });
 
   runningProcess.registerHandler('stderr', (data) => {
@@ -429,7 +388,7 @@ function commandRunner(command, args, callback) {
       const re = new RegExp(line, 'gi');
       data = data.replaceAll(re, '<a class="jump-to-line" href="#$2">$1</a>');
     }
-    print(data, INFO_LEVEL.error);
+    consoleComponent.print(data, INFO_LEVEL.error);
   });
   processIndicatorUi.classList.add('active');
 
@@ -437,15 +396,15 @@ function commandRunner(command, args, callback) {
     // Here you can get the exit code of the script
     switch (code) {
       case 0:
-        notify('confirm');
+        statusPanelComponent.notify('confirm');
         break;
       default:
-        notify('error');
+        statusPanelComponent.notify('error');
         break;
     }
 
     processIndicatorUi.classList.remove('active');
-    notifyLoadEnd();
+    statusPanelComponent.notifyLoadEnd();
     runningProcess = null;
 
     if (callback !== undefined) {
@@ -525,7 +484,7 @@ async function buildRunFile() {
     console.log(webviewUi.src);
     // }else{
     // notify("warn");
-    // print("No action defined for " + language_display_ui.value);
+    // consoleComponent.print("No action defined for " + language_display_ui.value);
     // }
   }
 }
@@ -598,21 +557,19 @@ function _calculate(string) {
 
 function _assignUIVariables() {
   documentNameUi = document.getElementById('document-name');
-  languageDisplayUi = document.getElementById('language-display');
-  languageDisplaySelectedUi = document.querySelector("#language-display .selected");
-  optionsContainer = document.getElementsByClassName("options-container")[0];
+  languageDisplaySelectedUi = document.querySelector('#language-display .selected');
+  optionsContainer = document.getElementsByClassName('options-container')[0];
   themeChoiceUi = document.getElementById('theme-choice');
-  charDisplayUi = document.getElementById('fchar-display');
-  consoleUi = document.getElementById('console');
-  consoleInUi = document.getElementById('console-in');
-  consoleOutUi = document.getElementById('console-out');
+
   webviewUi = document.getElementById('embed-content');
   webviewDevUi = document.getElementById('embed-content-dev-view');
-  themeLink = document.getElementById('theme-link');
   editorMediaDivUi = document.getElementById('editor-media-div');
   editorConsoleDivUi = document.getElementById('editor-console-div');
   previewDevDivUi = document.getElementById('preview-dev-div');
   processIndicatorUi = document.getElementById('process-indicator');
+
+  statusPanelComponent = document.getElementsByTagName('mc-status-panel')[0];
+  consoleComponent = document.getElementsByTagName('mc-console')[0];
 }
 
 function _initializeOptions(config) {
@@ -726,7 +683,7 @@ async function _initialize() {
   });
 
   window.api.print((_, value) => {
-    print(value.text);
+    consoleComponent.print(value.text);
   });
 
   const emittedOnce = (element, eventName) => new Promise((resolve) => {
@@ -744,7 +701,7 @@ async function _initialize() {
     const data = await response.text();
     keybindings = JSON.parse(data);
   } catch (err) {
-    print(`An error ocurred reading the file :${err.message}`, INFO_LEVEL.err);
+    consoleComponent.print(`An error ocurred reading the file :${err.message}`, INFO_LEVEL.err);
     return;
   }
 
@@ -772,53 +729,6 @@ async function _initialize() {
       editor.scrollToLine(line - 1, true, true);
     }
   });
-
-  consoleInUi.addEventListener('keydown', (event) => {
-    if (!event.shiftKey && event.key === 'Enter') {
-      event.preventDefault();
-      const cmd = consoleInUi.value.replace(/\n$/, '');
-      consoleInUi.value = '';
-
-      if (historyIndex !== undefined) {
-        commandHistory.pop();
-        historyIndex = undefined;
-      }
-      commandHistory.push(cmd);
-
-      const pre = cmd.split(' ')[0];
-
-      if (pre in commandList) {
-        print(pre, INFO_LEVEL.user);
-        commandList[pre].func();
-      } else if (cmd.startsWith('!')) {
-        print(pre, INFO_LEVEL.user);
-        print('Command not recognized. Try !help.', INFO_LEVEL.warn);
-      } else if (runningProcess != null) {
-        runningProcess.dispatch("stdin", `${cmd}\n`);
-      } else {
-        runCommand(cmd);
-      }
-
-      return false;
-    } if (!event.ctrlKey && event.key === 'ArrowUp') {
-      event.preventDefault();
-      const currCmd = consoleInUi.value;
-
-      if (historyIndex === undefined) {
-        commandHistory.push(currCmd);
-        historyIndex = commandHistory.length - 2;
-      } else {
-        if (historyIndex - 1 < 0) {
-          historyIndex = commandHistory.length;
-        }
-        historyIndex -= 1;
-      }
-
-      consoleInUi.value = commandHistory[historyIndex];
-      return false;
-    }
-    return true;
-  }, false);
 
   themeChoiceUi.addEventListener('change', () => {
     setTheme(themeChoiceUi.value);
@@ -857,7 +767,7 @@ async function _initialize() {
       });
     });
   } catch (err) {
-    print(`An error ocurred reading the file :${err.message}`, INFO_LEVEL.err);
+    consoleComponent.print(`An error ocurred reading the file :${err.message}`, INFO_LEVEL.err);
     return;
   }
 
@@ -887,7 +797,7 @@ async function _initialize() {
       fileSource = `<a class="jump-to-line" href="#${e.line}">${fileSource}</a>`;
     }
 
-    print(`Message from ${fileSource}\n${e.message}`, mode);
+    consoleComponent.print(`Message from ${fileSource}\n${e.message}`, mode);
   });
 
   editorMediaDivUi.addEventListener('divider-move', () => {
@@ -940,7 +850,7 @@ async function _initialize() {
   document.getElementById('main-divider').style.height = editorConfig.console_div_percent;
   document.getElementById('embed-content').style.height = '100%';
 
-  print(`${appInfo.name} ${appInfo.version}`);
+  consoleComponent.print(`${appInfo.name} ${appInfo.version}`);
 
   if (settings.filePathsToOpen.length) {
     openFile(settings.filePathsToOpen);
