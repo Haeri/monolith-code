@@ -1,9 +1,9 @@
 /* eslint-disable no-underscore-dangle */
 /* eslint-disable import/no-extraneous-dependencies */
 
-let modelist = requireLazy(() => ace.require('ace/ext/modelist'));
-let themelist = requireLazy(() => ace.require('ace/ext/themelist'));
-let beautify = requireLazy(() => ace.require('ace/ext/beautify'));
+const modelist = requireLazy(() => ace.require('ace/ext/modelist'));
+const themelist = requireLazy(() => ace.require('ace/ext/themelist'));
+const beautify = requireLazy(() => ace.require('ace/ext/beautify'));
 
 let appInfo = null;
 let editor = null;
@@ -29,13 +29,10 @@ let historyIndex;
 
 // UI Components
 let documentNameUi;
-let languageDisplayUi;
 let languageDisplaySelectedUi;
 let optionsContainer;
 let themeChoiceUi;
-let consoleUi;
-let consoleInUi;
-let consoleOutUi;
+
 let webviewUi;
 let webviewDevUi;
 let editorMediaDivUi;
@@ -53,7 +50,6 @@ const INFO_LEVEL = Object.freeze({
   warn: 3,
   error: 4,
 });
-
 
 const commandList = {
   '!ver': {
@@ -92,18 +88,18 @@ const commandList = {
   },
   '!exp_pdf': {
     desc: 'Generate and export PDF of the current preview panel',
-    func: () => { exportPDFFromPreview(); }
+    func: () => { exportPDFFromPreview(); },
   },
   '!help': {
     desc: 'Shows all the available commands',
     func: () => {
       let ret = '';
-      let longest = Object.keys(commandList).reduce((prev, curr) => curr.length > prev ? curr.length : prev, 0) + 6;
+      const longest = Object.keys(commandList).reduce((prev, curr) => (curr.length > prev ? curr.length : prev), 0) + 6;
       Object.entries(commandList).forEach(([key, value]) => {
-        ret += `${key}${" ".repeat(longest - key.length)}${value.description}\n`;
+        ret += `${key}${' '.repeat(longest - key.length)}${value.description}\n`;
       });
 
-      ret += "------------------------------------------------------------------------\n";
+      ret += '------------------------------------------------------------------------\n';
       Object.entries(keybindings.ctrl).forEach(([key, value]) => {
         ret += `ctrl + ${key}            ${value.description}\n`;
       });
@@ -116,12 +112,7 @@ const commandList = {
   },
 };
 
-
-
-
-
 /* ------------- PUBLIC API ------------- */
-
 
 function getContent() {
   return editor.getValue();
@@ -138,7 +129,6 @@ function getModeFromName(filename) {
   });
 }
 
-
 function setLanguage(langKey) {
   if (langKey !== 'markdown') {
     editor.off('input', markdownUpdater);
@@ -150,43 +140,41 @@ function setLanguage(langKey) {
 
   languageDisplaySelectedUi.innerText = lang.name;
   languageDisplaySelectedUi.dataset.value = langKey;
-  [...optionsContainer.querySelectorAll(`.option`)].forEach(el => el.classList.remove("active"));
-  optionsContainer.querySelector(`.option[data-value="${langKey}"]`).classList.add("active");
+  [...optionsContainer.querySelectorAll('.option')].forEach((el) => el.classList.remove('active'));
+  optionsContainer.querySelector(`.option[data-value="${langKey}"]`).classList.add('active');
 }
 
 function setContent(content) {
   editor.setValue(content, -1);
 }
 
-
 function newWindow(filePaths = []) {
-  filePaths = Array.isArray(filePaths) ? filePaths : [filePaths];
-  window.api.newWindow(filePaths);
+  const filePathsArray = Array.isArray(filePaths) ? filePaths : [filePaths];
+  window.api.newWindow(filePathsArray);
 }
 
 async function openFile(filePaths = []) {
   notifyLoadStart();
 
-  filePaths = Array.isArray(filePaths) ? filePaths : [filePaths];
+  let filePathsArray = Array.isArray(filePaths) ? filePaths : [filePaths];
 
-  if (!filePaths.length) {
-    const { canceled, filePaths: _filePaths } = await window.api.showOpenDialog()
+  if (!filePathsArray.length) {
+    const { canceled, filePaths: _filePaths } = await window.api.showOpenDialog();
     if (canceled) {
       notifyLoadEnd();
       return;
-    } else {
-      filePaths = _filePaths;
     }
+    filePathsArray = _filePaths;
   }
 
   if (!file.path && (isSaved === null || isSaved)) {
-    let fileToOpen = filePaths.shift();
+    const fileToOpen = filePathsArray.shift();
     window.api.readFile(fileToOpen)
-      .then(data => {
+      .then((data) => {
         editor.setValue(data, -1);
         _setFileInfo(fileToOpen);
-        //webviewUi.src = 'about:blank'
         print(`Opened file ${fileToOpen}`);
+        // webviewUi.src = 'about:blank'
       })
       .catch(err => {
         print(`Could not open file ${fileToOpen}<br>${err}`, INFO_LEVEL.error);
@@ -195,8 +183,8 @@ async function openFile(filePaths = []) {
       });
   }
 
-  if (filePaths.length) {
-    newWindow(filePaths);
+  if (filePathsArray.length) {
+    newWindow(filePathsArray);
   }
   notifyLoadEnd();
 }
@@ -220,14 +208,13 @@ async function saveFile(saveAs = false) {
       ],
     };
 
-    let { canceled, filePath: _filepath } = await window.api.showSaveDialog(options);
+    const { canceled, filePath: _filepath } = await window.api.showSaveDialog(options);
 
     if (canceled) {
       notifyLoadEnd();
       return;
-    } else {
-      filePath = _filepath;
     }
+    filePath = _filepath;
   }
 
   await window.api.writeFile(filePath, getContent());
@@ -240,14 +227,16 @@ async function saveFile(saveAs = false) {
   notifyLoadEnd();
 }
 
-
+async function saveFileAs() {
+  return saveFile(true);
+}
 
 /* ------------- UI ------------- */
 
 function setTheme(name) {
   editor.setTheme(name);
   themeChoiceUi.value = name;
-  window.api.storeSetting('theme', name)
+  window.api.storeSetting('theme', name);
 }
 
 function setFontSize(size) {
@@ -329,10 +318,10 @@ async function exportPDFFromPreview() {
     return;
   }
 
-  const pdfPath = window.api.path.resolve(file.path, file.name + '.pdf');
+  const pdfPath = window.api.path.resolve(file.path, `${file.name}.pdf`);
 
-  let data = await webviewUi.printToPDF({ landscape: false, pageSize: 'A4' });
-  let error = await window.api.writeFile(pdfPath, data);
+  const data = await webviewUi.printToPDF({ landscape: false, pageSize: 'A4' });
+  const error = await window.api.writeFile(pdfPath, data);
 
   if (error) {
     print(`Failed to write PDF to ${pdfPath}:\n${error}`, INFO_LEVEL.error);
@@ -350,11 +339,11 @@ function openLanguageSettings() {
 }
 
 async function killProcess() {
-  //return new Promise((resolve, reject) => {
+  // return new Promise((resolve, reject) => {
   if (runningProcess != null) {
-    await runningProcess.dispatch("kill");
+    await runningProcess.dispatch('kill');
   }
-  /*  
+  /*
     , (err) => {
       if (err) {
         print('Could not stop the running process.', INFO_LEVEL.error);
@@ -369,9 +358,6 @@ async function killProcess() {
 });
 */
 }
-
-
-
 
 /* ------------- PRIVATE HELPERS ------------- */
 
@@ -391,21 +377,11 @@ function _debounce(func, wait, immediate) {
   };
 }
 
-
-
 const markdownUpdater = _debounce(() => {
   const markedHtml = mdToHTML();
   webviewUi.send('fill_content', markedHtml);
-  //webviewUi.contentWindow.document.body.innerHTML = markedHtml;
-
+  // webviewUi.contentWindow.document.body.innerHTML = markedHtml;
 }, 200);
-
-
-
-
-
-
-
 
 function toggleDevTool() {
   const targetId = webviewUi.getWebContentsId();
@@ -414,27 +390,23 @@ function toggleDevTool() {
   togglePreviewDivider();
 }
 
-
-
 function mdToHTML() {
   const basepath = file.path.replaceAll('\\', '/');
   let pre = getContent();
   pre = pre.replaceAll(/src="\.\/(.*?)"/ig, `src="${basepath}$1"`);
   let markedHtml = window.api.markedParse(pre, { baseUrl: basepath });
 
-  let parser = new DOMParser();
-  let htmlDoc = parser.parseFromString(markedHtml, 'text/html');
-  let sections = [...htmlDoc.querySelectorAll('h1[id], h2[id], h3[id], h4[id], h5[id], h6[id]')];
+  const parser = new DOMParser();
+  const htmlDoc = parser.parseFromString(markedHtml, 'text/html');
+  const sections = [...htmlDoc.querySelectorAll('h1[id], h2[id], h3[id], h4[id], h5[id], h6[id]')];
 
-  let toc = sections.map(el => `<li><a href="#${el.id}">${el.nodeName} - ${el.innerText}</a></li>`).join("");
+  let toc = sections.map((el) => `<li><a href="#${el.id}">${el.nodeName} - ${el.innerText}</a></li>`).join('');
   toc = `<ul>${toc}</ul>`;
 
   markedHtml = markedHtml.replace(/\[TOC\]/, toc);
 
   return markedHtml;
 }
-
-
 
 function commandRunner(command, args, callback) {
   notifyLoadStart();
@@ -496,11 +468,11 @@ async function runFile() {
 
       runCommand(cmdRun);
     } else if (file.lang === 'latex') {
-      webviewUi.className = "";
+      webviewUi.className = '';
 
       webviewUi.src = `${file.path + file.name}.pdf?v=${Date.now()}`;
     } else if (file.lang === 'markdown') {
-      webviewUi.className = "";
+      webviewUi.className = '';
 
       const markedHtml = mdToHTML();
 
@@ -509,16 +481,14 @@ async function runFile() {
         editor.on('input', markdownUpdater);
       }, { once: true });
 
-      webviewUi.src = "./res/embed/markdown/index.html";
-
-
+      webviewUi.src = './res/embed/markdown/index.html';
     } else if (file.lang === 'html') {
-      webviewUi.className = "";
-      webviewUi.classList.add("html-style");
+      webviewUi.className = '';
+      webviewUi.classList.add('html-style');
 
       webviewUi.src = (`${file.path + file.name}.html`);
     } else {
-      webviewUi.className = "";
+      webviewUi.className = '';
       webviewUi.src = 'about:blank';
     }
   }
@@ -532,7 +502,6 @@ async function buildRunFile() {
       return;
     }
   }
-
 
   if (file.lang in langInfo) {
     let cmdComp = langInfo[file.lang].comp;
@@ -561,11 +530,10 @@ async function buildRunFile() {
   }
 }
 
-
 function togglePreviewDivider(open = undefined) {
   const num = parseFloat(previewDevDivUi.previousElementSibling.style.height.replace('%', ''));
 
-  let targetPercent = "100%";
+  let targetPercent = '100%';
   if (open === undefined) {
     targetPercent = Math.abs(num - 60) < 1 ? '99%' : '60%';
   } else {
@@ -581,7 +549,7 @@ function togglePreviewDivider(open = undefined) {
   });
   anim.finished.then(() => {
     previewDevDivUi.previousElementSibling.style.height = targetPercent;
-    //window.api.storeSetting('console_div_percent', targetPercent)
+    // window.api.storeSetting('console_div_percent', targetPercent)
   });
 }
 
@@ -670,7 +638,6 @@ async function _initialize() {
   userPrefPath = settings.userPrefPath;
   langPrefPath = settings.languageConfigPath;
 
-
   editor = ace.edit('main-text-area', {
     enableBasicAutocompletion: true,
     showPrintMargin: false,
@@ -741,7 +708,7 @@ async function _initialize() {
   });
 
   document.getElementById('pin-button').addEventListener('click', (e) => {
-    window.api.togglePin().then(pinned => {
+    window.api.togglePin().then((pinned) => {
       if (!pinned) {
         e.target.classList.add('pinned');
       } else {
@@ -749,7 +716,6 @@ async function _initialize() {
       }
     });
   });
-
 
   window.api.updateMaxUnmax((_, value) => {
     _toggleFullscreenStyle(value);
@@ -763,16 +729,14 @@ async function _initialize() {
     print(value.text);
   });
 
-
-  const emittedOnce = (element, eventName) => new Promise(resolve => {
-    element.addEventListener(eventName, event => resolve(event), { once: true })
-  })
+  const emittedOnce = (element, eventName) => new Promise((resolve) => {
+    element.addEventListener(eventName, (event) => resolve(event), { once: true });
+  });
   const browserReady = emittedOnce(webviewUi, 'dom-ready');
   const devtoolsReady = emittedOnce(webviewDevUi, 'dom-ready');
   Promise.all([browserReady, devtoolsReady]).then(() => {
 
-  })
-
+  });
 
   // Load Keybindings
   try {
@@ -784,9 +748,8 @@ async function _initialize() {
     return;
   }
 
-
   window.addEventListener('keydown', (event) => {
-    let lowerKey = event.key.toLowerCase();
+    const lowerKey = event.key.toLowerCase();
     if (event.ctrlKey && !event.shiftKey) {
       if (lowerKey in keybindings.ctrl) {
         event.preventDefault();
@@ -861,19 +824,18 @@ async function _initialize() {
     setTheme(themeChoiceUi.value);
   });
 
-  languageDisplaySelectedUi.addEventListener("click", (e1) => {
-    if (optionsContainer.classList.contains("active")) {
-      optionsContainer.classList.remove("active");
+  languageDisplaySelectedUi.addEventListener('click', (e1) => {
+    if (optionsContainer.classList.contains('active')) {
+      optionsContainer.classList.remove('active');
     } else {
-      optionsContainer.classList.add("active");
-      e1.stopImmediatePropagation()
-      document.addEventListener("click", function (e) {
+      optionsContainer.classList.add('active');
+      e1.stopImmediatePropagation();
+      document.addEventListener('click', (e) => {
         if (languageDisplaySelectedUi.contains(e.target)) return;
-        optionsContainer.classList.remove("active");
-      }, { once: true })
+        optionsContainer.classList.remove('active');
+      }, { once: true });
     }
   });
-
 
   // Load Languages
   try {
@@ -884,25 +846,20 @@ async function _initialize() {
 
     Object.entries(langInfo).forEach((el) => {
       const option = document.createElement('div');
-      option.classList.add("option");
+      option.classList.add('option');
       const [name, obj] = el;
       option.innerText = obj.name;
       option.dataset.value = name;
       optionsContainer.appendChild(option);
-      option.addEventListener("click", () => {
-        optionsContainer.classList.remove("active");
+      option.addEventListener('click', () => {
+        optionsContainer.classList.remove('active');
         setLanguage(option.dataset.value);
       });
     });
-
   } catch (err) {
     print(`An error ocurred reading the file :${err.message}`, INFO_LEVEL.err);
     return;
   }
-
-
-
-
 
   webviewUi.addEventListener('console-message', (e) => {
     if (e.sourceId === 'electron/js2c/renderer_init.js') return;
@@ -933,15 +890,13 @@ async function _initialize() {
     print(`Message from ${fileSource}\n${e.message}`, mode);
   });
 
-
-
   editorMediaDivUi.addEventListener('divider-move', () => {
     const val = editorMediaDivUi.previousElementSibling.style.width;
-    window.api.storeSetting('media_div_percent', val)
+    window.api.storeSetting('media_div_percent', val);
   });
   editorConsoleDivUi.addEventListener('divider-move', () => {
     const val = editorConsoleDivUi.previousElementSibling.style.height;
-    window.api.storeSetting('console_div_percent', val)
+    window.api.storeSetting('console_div_percent', val);
   });
 
   editorMediaDivUi.addEventListener('dblclick', () => {
@@ -957,7 +912,7 @@ async function _initialize() {
     });
     anim.finished.then(() => {
       editorMediaDivUi.previousElementSibling.style.width = targetPercent;
-      window.api.storeSetting('media_div_percent', targetPercent)
+      window.api.storeSetting('media_div_percent', targetPercent);
     });
   });
   editorConsoleDivUi.addEventListener('dblclick', () => {
@@ -973,11 +928,9 @@ async function _initialize() {
     });
     anim.finished.then(() => {
       editorConsoleDivUi.previousElementSibling.style.height = targetPercent;
-      window.api.storeSetting('console_div_percent', targetPercent)
+      window.api.storeSetting('console_div_percent', targetPercent);
     });
   });
-
-
 
   previewDevDivUi.addEventListener('dblclick', () => {
     togglePreviewDivider();
@@ -985,18 +938,16 @@ async function _initialize() {
 
   document.getElementById('editor-wrapper').style.width = editorConfig.media_div_percent;
   document.getElementById('main-divider').style.height = editorConfig.console_div_percent;
-  document.getElementById('embed-content').style.height = "100%";
+  document.getElementById('embed-content').style.height = '100%';
 
   print(`${appInfo.name} ${appInfo.version}`);
 
   if (settings.filePathsToOpen.length) {
     openFile(settings.filePathsToOpen);
   } else {
-    setLanguage("plaintext");
+    setLanguage('plaintext');
   }
 }
-
-
 
 document.addEventListener('DOMContentLoaded', () => {
   const resizable = (resizer) => {
