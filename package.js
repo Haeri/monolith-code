@@ -1,6 +1,6 @@
+// eslint-disable-next-line import/no-extraneous-dependencies
 const packager = require('electron-packager');
 const { execSync } = require('child_process');
-const fs = require('fs');
 const pjson = require('./package.json');
 
 const packageOptions = {
@@ -24,11 +24,8 @@ async function main() {
   console.log('------ STARTING PACKAGING ------');
 
   process.stdout.write('1. Packaging main executable...');
-  let dir = await packager(packageOptions);
-  dir = dir[0];
+  const [dir] = await packager(packageOptions);
   process.stdout.write('\t\tOK\n');
-
-
 
   if (process.platform === 'linux') {
     process.stdout.write('1.1. chmod-ing executable...');

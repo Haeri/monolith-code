@@ -1,6 +1,6 @@
 {
   "name": "monolith-code",
-  "version": "2.2.2",
+  "version": "2.2.3",
   "description": "minimalistic coder editor",
   "homepage": "https://haeri.github.io/monolithcode/",
   "main": "main.js",
@@ -15,8 +15,8 @@
   "author": "Haeri",
   "license": "MIT",
   "devDependencies": {
-    "electron": "^17.3.0",
-    "electron-packager": "^15.3.0",
+    "electron": "^19.0.6",
+    "electron-packager": "^13.1.1",
     "eslint": "^7.2.0",
     "eslint-config-airbnb-base": "^14.2.1",
     "eslint-plugin-import": "^2.22.1"
