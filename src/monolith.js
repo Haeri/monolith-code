@@ -24,7 +24,7 @@ let userPrefPath;
 let langPrefPath;
 let keybindings;
 
-let commandHistory = [];
+const commandHistory = [];
 let historyIndex;
 
 // UI Components
@@ -40,7 +40,7 @@ let previewDevDivUi;
 let editorConsoleDivUi;
 let processIndicatorUi;
 
-let errorSVG = requireLazy(async () => await fetch('res/img/err.svg').then(res => res.text()));
+const errorSVG = requireLazy(async () => await fetch('res/img/err.svg').then((res) => res.text()));
 
 // Constants
 const INFO_LEVEL = Object.freeze({
@@ -64,7 +64,7 @@ const commandList = {
     desc: 'Kills the currently running process',
     func: () => {
       if (runningProcess) {
-        killProcess().then(() => print("Process Killed", INFO_LEVEL.info));
+        killProcess().then(() => print('Process Killed', INFO_LEVEL.info));
       } else {
         print('No nunning process to kill.', INFO_LEVEL.warn);
       }
@@ -176,7 +176,7 @@ async function openFile(filePaths = []) {
         print(`Opened file ${fileToOpen}`);
         // webviewUi.src = 'about:blank'
       })
-      .catch(err => {
+      .catch((err) => {
         print(`Could not open file ${fileToOpen}<br>${err}`, INFO_LEVEL.error);
       }).finally(() => {
         notifyLoadEnd();
@@ -227,10 +227,6 @@ async function saveFile(saveAs = false) {
   notifyLoadEnd();
 }
 
-async function saveFileAs() {
-  return saveFile(true);
-}
-
 /* ------------- UI ------------- */
 
 function setTheme(name) {
@@ -241,9 +237,8 @@ function setTheme(name) {
 
 function setFontSize(size) {
   editor.setFontSize(size);
-  window.api.storeSetting('font_size', size)
+  window.api.storeSetting('font_size', size);
 }
-
 
 function notify(type) {
   document.getElementById('status-display').className = '';
@@ -275,8 +270,6 @@ function print(text, mode = INFO_LEVEL.info) {
 
   setTimeout(() => consoleUi.scrollTo({ top: consoleUi.scrollHeight, behavior: 'smooth' }), 0);
 }
-
-
 
 /* ------------- FEATURES ------------- */
 
@@ -310,11 +303,11 @@ function evaluateMathInline() {
 
 async function exportPDFFromPreview() {
   if (!file.path) {
-    print("Filepath not set for export", INFO_LEVEL.warn);
+    print('Filepath not set for export', INFO_LEVEL.warn);
     return;
   }
-  if (webviewUi.src === "" || webviewUi.src === "about:blank") {
-    print("Document not suitable for PDF export.", INFO_LEVEL.warn);
+  if (webviewUi.src === '' || webviewUi.src === 'about:blank') {
+    print('Document not suitable for PDF export.', INFO_LEVEL.warn);
     return;
   }
 
@@ -411,7 +404,6 @@ function mdToHTML() {
 function commandRunner(command, args, callback) {
   notifyLoadStart();
   print(`> ${command}`, INFO_LEVEL.user);
-
 
   runningProcess = window.api.spawnProcess(command, args, file.path);
 
@@ -599,8 +591,8 @@ function _calculate(string) {
 function _assignUIVariables() {
   documentNameUi = document.getElementById('document-name');
   languageDisplayUi = document.getElementById('language-display');
-  languageDisplaySelectedUi = document.querySelector("#language-display .selected");
-  optionsContainer = document.getElementsByClassName("options-container")[0];
+  languageDisplaySelectedUi = document.querySelector('#language-display .selected');
+  optionsContainer = document.getElementsByClassName('options-container')[0];
   themeChoiceUi = document.getElementById('theme-choice');
   charDisplayUi = document.getElementById('fchar-display');
   consoleUi = document.getElementById('console');
@@ -794,7 +786,7 @@ async function _initialize() {
         print(pre, INFO_LEVEL.user);
         print('Command not recognized. Try !help.', INFO_LEVEL.warn);
       } else if (runningProcess != null) {
-        runningProcess.dispatch("stdin", `${cmd}\n`);
+        runningProcess.dispatch('stdin', `${cmd}\n`);
       } else {
         runCommand(cmd);
       }

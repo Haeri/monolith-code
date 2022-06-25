@@ -17,8 +17,8 @@ function parseDataFile(filePath, defaults) {
 
 function setDescendantProp(obj, desc, value) {
   if (typeof desc === 'string') return setDescendantProp(obj, desc.split('.'), value);
-  if (desc.length == 1 && value !== undefined) return obj[desc[0]] = value;
-  if (desc.length == 0) return obj;
+  if (desc.length === 1 && value !== undefined) return obj[desc[0]] = value;
+  if (desc.length === 0) return obj;
   return setDescendantProp(obj[desc[0]], desc.slice(1), value);
 }
 
