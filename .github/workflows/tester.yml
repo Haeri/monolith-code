@@ -7,33 +7,12 @@ on:
     - dev
 
 jobs:
-  build-nix:
+  build:  
    name: Test Build ${{ matrix.os }}
-   runs-on: ${{ matrix.os }}   
+   runs-on: ${{ matrix.os }}    
    strategy:
       matrix:
-        os: [macos-latest, ubuntu-latest]
-   steps:
-    - name: Download Repository
-      uses: actions/checkout@v2    
-    - name: Install Modules
-      run: npm install    
-    - name: Package
-      run: npm run package    
-    - name: Tar files
-      run: tar -cvf monolith-code_${{ matrix.os }}.tar monolith-code-*/
-    - name: Upload
-      uses: actions/upload-artifact@v3
-      with:
-        name: monolith-code_${{ matrix.os }}
-        path: monolith-code_${{ matrix.os }}.tar
-  
-  build-win:
-   name: Test Build ${{ matrix.os }}
-   runs-on: ${{ matrix.os }}   
-   strategy:
-      matrix:
-        os: [windows-latest]
+        os: [windows-latest, macos-latest, ubuntu-latest]
    steps:
     - name: Download Repository
       uses: actions/checkout@v2    
@@ -44,5 +23,4 @@ jobs:
     - name: Upload
       uses: actions/upload-artifact@v3
       with:
-        name: monolith-code_${{ matrix.os }}
-        path: monolith-code-*/
+        path: dist/monolith-code*
