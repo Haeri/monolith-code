@@ -1,6 +1,7 @@
 const {
   app, BrowserWindow, ipcMain, webContents,
 } = require('electron');
+const { autoUpdater } = require("electron-updater");
 const path = require('path');
 const { requireLazy } = require('./src/common');
 const Store = require('./src/store');
@@ -57,30 +58,11 @@ const langStore = new Store({
   },
 });
 
-// eslint-disable-next-line no-unused-vars
-function checkLatestVersion() {
-  if (!app.isPackaged) return;
-
-  axios.get()
-    .get(RELEASE_VERSION_URL)
-    .then((response) => {
-      const info = response.data;
-
-      if (appInfo.version !== info.tag_name) {
-        const currArr = appInfo.version.split('.');
-        const latestArr = info.tag_name.split('.');
-
-        if (parseInt(currArr[0], 10) < parseInt(latestArr[0], 10)
-          || parseInt(currArr[1], 10) < parseInt(latestArr[1], 10)
-          || parseInt(currArr[2], 10) < parseInt(latestArr[2], 10)) {
-          newVersion = info.tag_name;
-          downloadLatestVersion();
-        }
-      }
-    }).catch((error) => {
-      console.log(error);
-    });
-}
+autoUpdater.on('update-downloaded', (info) => {
+  BrowserWindow.getAllWindows().forEach((w) => {
+    w.webContents.send('print', { text: `new version ${info} will be installed after restart.` });
+  });
+});
 
 function createWindow(caller = undefined, filePaths = []) {
   filePathsToOpen = filePaths;
@@ -294,6 +276,7 @@ app.whenReady().then(() => {
     setTimeout(() => {
       // TODO: There are a lot of issues with the updater so lets not bother
       // checkLatestVersion();
+      autoUpdater.checkForUpdatesAndNotify();
     }, 8000);
   }
 });

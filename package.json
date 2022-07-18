@@ -6,7 +6,7 @@
   "main": "main.js",
   "scripts": {
     "start": "electron .",
-    "package": "node package.js"
+    "package": "electron-builder"
   },
   "keywords": [
     "code",
@@ -16,16 +16,37 @@
   "license": "MIT",
   "devDependencies": {
     "electron": "^19.0.6",
-    "electron-packager": "^13.1.1",
+    "electron-builder": "^23.1.0",
     "eslint": "^7.2.0",
     "eslint-config-airbnb-base": "^14.2.1",
     "eslint-plugin-import": "^2.22.1"
   },
   "dependencies": {
     "axios": "^0.21.1",
+    "electron-updater": "^5.0.5",
     "highlight.js": "^10.6.0",
     "katex": "^0.15.2",
     "marked": "^4.0.10",
     "tree-kill": "^1.2.2"
+  },
+  "build": {
+    "appId": "monolith-code",
+    "win": {
+      "target": [
+        "zip",
+        "msi"
+      ],
+      "icon": "build/icon.ico"
+    },
+    "linux": {
+      "target": [
+        "AppImage",
+        "flatpak"
+      ],
+      "category": "Development"
+    },
+    "mac": {
+      "target": "default"
+    }
   }
 }
