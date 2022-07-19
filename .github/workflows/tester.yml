@@ -23,6 +23,6 @@ jobs:
     - name: Upload
       uses: actions/upload-artifact@v3
       with:
-        path: 
-        - dist/monolith-code*
-        - dist/latest.yml
+        path: |
+          dist/monolith-code*
+          dist/latest.yml
