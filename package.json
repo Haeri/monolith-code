@@ -32,20 +32,170 @@
   "build": {
     "appId": "monolith-code",
     "win": {
-      "target": [
-        "zip",
+      "target": [        
         "msi"
       ],
       "icon": "build/icon.ico"
     },
-    "linux": {
-      "target": [
-        "AppImage"
-      ],
-      "category": "Development"
+    "nsis": {
+      "oneClick": false,
+      "perMachine": true
     },
-    "mac": {
-      "target": "default"
-    }
+    "fileAssociations": [
+      {
+        "ext": [
+          "bat",
+          "cmd"
+        ],
+        "name": "Batch",
+        "role": "Editor"
+      },
+      {
+        "ext": [
+          "c",
+          "h"
+        ],
+        "name": "C",
+        "role": "Editor"
+      },
+      {
+        "ext": [
+          "cpp",
+          "hpp"
+        ],
+        "name": "C++",
+        "role": "Editor"
+      },
+      {
+        "ext": [
+          "cs"
+        ],
+        "name": "C#",
+        "role": "Editor"
+      },
+      {
+        "ext": [
+          "css"
+        ],
+        "name": "CSS",
+        "role": "Editor"
+      },
+      {
+        "ext": [
+          "dart"
+        ],
+        "name": "DART",
+        "role": "Editor"
+      },      
+      {
+        "ext": [
+          "go"
+        ],
+        "name": "Go",
+        "role": "Editor"
+      },
+      {
+        "ext": [
+          "html"
+        ],
+        "name": "HTML",
+        "role": "Editor"
+      },
+      {
+        "ext": [
+          "java"
+        ],
+        "name": "Java",
+        "role": "Editor"
+      },
+      {
+        "ext": [
+          "js"
+        ],
+        "name": "JavaScript",
+        "role": "Editor"
+      },
+      {
+        "ext": [
+          "json"
+        ],
+        "name": "JSON",
+        "role": "Editor"
+      },
+      {
+        "ext": [
+          "tex",
+          "latex",
+          "bib"
+        ],
+        "name": "LaTeX",
+        "role": "Editor"
+      },
+      {
+        "ext": [
+          "md",
+          "markdown"
+        ],
+        "name": "Markdown",
+        "role": "Editor"
+      },
+      {
+        "ext": [
+          "php"
+        ],
+        "name": "PHP",
+        "role": "Editor"
+      },
+      {
+        "ext": [
+          "txt"
+        ],
+        "name": "Plain Text",
+        "role": "Editor"
+      },
+      {
+        "ext": [
+          "ps1"
+        ],
+        "name": "PowerShell",
+        "role": "Editor"
+      },
+      {
+        "ext": [
+          "py"
+        ],
+        "name": "Python",
+        "role": "Editor"
+      },
+      {
+        "ext": [
+          "sql"
+        ],
+        "name": "SQL",
+        "role": "Editor"
+      },
+      {
+        "ext": [
+          "ts"
+        ],
+        "name": "TypeScript",
+        "role": "Editor"
+      },
+      {
+        "ext": [
+          "xml"
+        ],
+        "name": "XML",
+        "role": "Editor"
+      },
+      {
+        "ext": [
+          "yml",
+          "yaml"
+        ],
+        "name": "YAML",
+        "role": "Editor"
+      }
+    ]
   }
 }
