@@ -1,12 +1,12 @@
 {
   "name": "monolith-code",
-  "version": "2.2.2",
+  "version": "2.2.3",
   "description": "minimalistic coder editor",
-  "homepage": "https://haeri.github.io/MonolithCode2/",
+  "homepage": "https://haeri.github.io/monolithcode/",
   "main": "main.js",
   "scripts": {
     "start": "electron .",
-    "package": "node package.js"
+    "package": "electron-builder"
   },
   "keywords": [
     "code",
@@ -15,17 +15,194 @@
   "author": "Haeri",
   "license": "MIT",
   "devDependencies": {
-    "electron": "^17.3.0",
-    "electron-packager": "^15.3.0",
+    "electron": "^19.0.6",
+    "electron-builder": "^23.1.0",
     "eslint": "^7.2.0",
     "eslint-config-airbnb-base": "^14.2.1",
     "eslint-plugin-import": "^2.22.1"
   },
   "dependencies": {
     "axios": "^0.21.1",
+    "electron-updater": "^5.0.5",
     "highlight.js": "^10.6.0",
     "katex": "^0.15.2",
     "marked": "^4.0.10",
     "tree-kill": "^1.2.2"
+  },
+  "build": {
+    "appId": "monolith-code",
+    "win": {
+      "target": [        
+        "zip",
+        "nsis"
+      ],
+      "icon": "build/icon.ico"
+    },
+    "linux": {
+      "target": "tar.gz"
+    },
+    "mac": {
+      "target": "tar.gz"
+    },
+    "nsis": {
+      "oneClick": false,
+      "perMachine": true
+    },
+    "fileAssociations": [
+      {
+        "ext": [
+          "bat",
+          "cmd"
+        ],
+        "name": "Batch",
+        "role": "Editor"
+      },
+      {
+        "ext": [
+          "c",
+          "h"
+        ],
+        "name": "C",
+        "role": "Editor"
+      },
+      {
+        "ext": [
+          "cpp",
+          "hpp"
+        ],
+        "name": "C++",
+        "role": "Editor"
+      },
+      {
+        "ext": [
+          "cs"
+        ],
+        "name": "C#",
+        "role": "Editor"
+      },
+      {
+        "ext": [
+          "css"
+        ],
+        "name": "CSS",
+        "role": "Editor"
+      },
+      {
+        "ext": [
+          "dart"
+        ],
+        "name": "DART",
+        "role": "Editor"
+      },      
+      {
+        "ext": [
+          "go"
+        ],
+        "name": "Go",
+        "role": "Editor"
+      },
+      {
+        "ext": [
+          "html"
+        ],
+        "name": "HTML",
+        "role": "Editor"
+      },
+      {
+        "ext": [
+          "java"
+        ],
+        "name": "Java",
+        "role": "Editor"
+      },
+      {
+        "ext": [
+          "js"
+        ],
+        "name": "JavaScript",
+        "role": "Editor"
+      },
+      {
+        "ext": [
+          "json"
+        ],
+        "name": "JSON",
+        "role": "Editor"
+      },
+      {
+        "ext": [
+          "tex",
+          "latex",
+          "bib"
+        ],
+        "name": "LaTeX",
+        "role": "Editor"
+      },
+      {
+        "ext": [
+          "md",
+          "markdown"
+        ],
+        "name": "Markdown",
+        "role": "Editor"
+      },
+      {
+        "ext": [
+          "php"
+        ],
+        "name": "PHP",
+        "role": "Editor"
+      },
+      {
+        "ext": [
+          "txt"
+        ],
+        "name": "Plain Text",
+        "role": "Editor"
+      },
+      {
+        "ext": [
+          "ps1"
+        ],
+        "name": "PowerShell",
+        "role": "Editor"
+      },
+      {
+        "ext": [
+          "py"
+        ],
+        "name": "Python",
+        "role": "Editor"
+      },
+      {
+        "ext": [
+          "sql"
+        ],
+        "name": "SQL",
+        "role": "Editor"
+      },
+      {
+        "ext": [
+          "ts"
+        ],
+        "name": "TypeScript",
+        "role": "Editor"
+      },
+      {
+        "ext": [
+          "xml"
+        ],
+        "name": "XML",
+        "role": "Editor"
+      },
+      {
+        "ext": [
+          "yml",
+          "yaml"
+        ],
+        "name": "YAML",
+        "role": "Editor"
+      }
+    ]
   }
 }
