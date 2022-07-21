@@ -39,14 +39,16 @@
       "icon": "build/icon.ico"
     },
     "linux": {
-      "target": "tar.gz"
+      "target": "tar.gz",
+      "artifactName": "${productName}-${version}-linux.${ext}"
     },
     "mac": {
       "target": "tar.gz"
     },
     "nsis": {
       "oneClick": false,
-      "perMachine": true
+      "perMachine": true,
+      "deleteAppDataOnUninstall": true
     },
     "fileAssociations": [
       {
