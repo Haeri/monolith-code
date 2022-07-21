@@ -6,9 +6,6 @@ on:
     - master
     - dev
 
-env:
-  GH_TOKEN: {secret.GITHUB_TOKEN}
-
 jobs:
   build:  
    name: Test Build ${{ matrix.os }}
