@@ -6,6 +6,9 @@ on:
     - master
     - dev
 
+env:
+  GH_TOKEN: {secret.GITHUB_TOKEN}
+
 jobs:
   build:  
    name: Test Build ${{ matrix.os }}
@@ -19,7 +22,9 @@ jobs:
     - name: Install Modules
       run: npm install    
     - name: Package
-      run: npm run package
+      run: npm run package      
+      env:
+        GITHUB_TOKEN: ${{secrets.GITHUB_TOKEN}}
     - name: Upload
       uses: actions/upload-artifact@v3
       with:
