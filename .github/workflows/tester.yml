@@ -12,14 +12,14 @@ jobs:
    runs-on: ${{ matrix.os }}    
    strategy:
       matrix:
-        os: [ubuntu-latest]
+        os: [macos-latest, ubuntu-latest, windows-latest]
    steps:
     - name: Download Repository
       uses: actions/checkout@v2    
     - name: Install Modules
       run: npm install    
     - name: Package
-      run: npm run package-all
+      run: npm run package
     - name: Upload
       uses: actions/upload-artifact@v3
       with:
