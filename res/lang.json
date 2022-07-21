@@ -97,9 +97,9 @@
 	"go": {
 		"name": "Go",
 		"mode": "golang",
-		"comp": null,
-		"run": null,
-		"templ": null,
+		"comp": "go build <path><name>.go",
+		"run": "<path><name><exe_extension>",
+		"templ": "package main\n\nimport \"fmt\"\n\nfunc main() {\n\tfmt.Println(\"hello world\")\n}",
 		"linere": null,
 		"tempname": "MyGoScript",
 		"ext": [
