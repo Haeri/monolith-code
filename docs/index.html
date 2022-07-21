@@ -115,14 +115,14 @@
     				<span>latest version <span id="version_insert"></span></span>
     			</div>
     			<div class="dl-panel">
-    				<a href="https://github.com/Haeri/monolithcode/releases/latest/download/monolith-code_win.zip" class="download-btn">
+    				<a id="download-win" href="" class="download-btn">
     					<i data-feather="download"></i>
     					<span><strong>Download</strong><br>for windows</span>
     				</a>
-    				<a href="https://github.com/Haeri/monolithcode/releases/latest/download/monolith-code_linux.tar" class="download-btn"><i data-feather="download"></i>
+    				<a id="download-linux" href="" class="download-btn"><i data-feather="download"></i>
     					<span><strong>Download</strong><br>for linux</span>
     				</a>
-    				<a href="https://github.com/Haeri/monolithcode/releases/latest/download/monolith-code_mac.tar" class="download-btn"><i data-feather="download"></i>
+    				<a id="download-mac" href="" class="download-btn"><i data-feather="download"></i>
     					<span><strong>Download</strong><br>for macOS</span>
     				</a>		        
     	        </div>
@@ -134,7 +134,16 @@
             function initLatestVersion(){
 				fetch('https://api.github.com/repos/Haeri/monolithcode/releases/latest')
 					.then(response => response.json())
-					.then(data => document.getElementById("version_insert").innerHTML = data.tag_name);							
+					.then(data => {
+						document.getElementById("version_insert").innerHTML = data.tag_name;
+
+						const version = data.tag_name.replace("v", "");
+						const root_url = "https://github.com/Haeri/monolithcode/releases/latest/download";
+
+						document.getElementById("download-win").href = `${root_url}/monolith-code-Setup-${version}.exe`;
+						document.getElementById("download-mac").href = `${root_url}/monolith-code-${version}-mac.tar.gz`;
+						document.getElementById("download-linux").href = `${root_url}/monolith-code-${version}-linux.tar.gz`;
+					});							
             }
             
 		     window.onload = function () {
