@@ -1,210 +1,58 @@
 {
-  "name": "monolith-code",
-  "version": "2.2.3",
-  "description": "minimalistic coder editor",
-  "homepage": "https://haeri.github.io/monolith-code/",
-  "main": "main.js",
-  "scripts": {
-    "start": "electron .",
-    "package": "electron-builder"
-  },
-  "keywords": [
-    "code",
-    "editor"
-  ],
-  "author": "Haeri",
-  "license": "MIT",
-  "devDependencies": {
-    "electron": "^19.0.6",
-    "electron-builder": "^23.1.0",
-    "eslint": "^7.2.0",
-    "eslint-config-airbnb-base": "^14.2.1",
-    "eslint-plugin-import": "^2.22.1"
-  },
-  "dependencies": {
-    "axios": "^0.21.1",
-    "electron-updater": "^5.0.5",
-    "highlight.js": "^10.6.0",
-    "katex": "^0.15.2",
-    "marked": "^4.0.10",
-    "tree-kill": "^1.2.2"
-  },
-  "build": {
-    "appId": "monolith-code",
-    "win": {
-      "target": [        
-        "zip",
-        "nsis"
-      ],
-      "icon": "build/icon.ico"
+    "name": "monolith-code",
+    "version": "2.2.4",
+    "description": "minimalistic coder editor",
+    "homepage": "https://haeri.github.io/monolith-code",
+    "author": "Haeri",
+    "license": "MIT",
+    "keywords": [
+        "code",
+        "editor"
+    ],
+    "main": "src-electron/main.js",
+    "scripts": {
+        "dev": "vite",
+        "build": "vite build && electron-builder"
     },
-    "linux": {
-      "target": "tar.gz",
-      "artifactName": "${productName}-${version}-linux.${ext}"
+    "devDependencies": {
+        "@vitejs/plugin-vue": "^2.3.3",
+        "electron": "^19.0.8",
+        "electron-builder": "^23.1.0",
+        "vite": "^2.9.13",
+        "vite-plugin-electron": "^0.8.0",
+        "vue": "^3.2.37"
     },
-    "mac": {
-      "target": "tar.gz"
+    "env": {
+        "VITE_DEV_SERVER_HOST": "127.0.0.1",
+        "VITE_DEV_SERVER_PORT": 3344
     },
-    "nsis": {
-      "oneClick": false,
-      "perMachine": true,
-      "deleteAppDataOnUninstall": true
-    },
-    "fileAssociations": [
-      {
-        "ext": [
-          "bat",
-          "cmd"
+    "build": {
+        "appId": "monolith-code",
+        "directories": {
+            "output": "release/${version}"
+        },
+        "files": [
+            "dist"
         ],
-        "name": "Batch",
-        "role": "Editor"
-      },
-      {
-        "ext": [
-          "c",
-          "h"
-        ],
-        "name": "C",
-        "role": "Editor"
-      },
-      {
-        "ext": [
-          "cpp",
-          "hpp"
-        ],
-        "name": "C++",
-        "role": "Editor"
-      },
-      {
-        "ext": [
-          "cs"
-        ],
-        "name": "C#",
-        "role": "Editor"
-      },
-      {
-        "ext": [
-          "css"
-        ],
-        "name": "CSS",
-        "role": "Editor"
-      },
-      {
-        "ext": [
-          "dart"
-        ],
-        "name": "DART",
-        "role": "Editor"
-      },      
-      {
-        "ext": [
-          "go"
-        ],
-        "name": "Go",
-        "role": "Editor"
-      },
-      {
-        "ext": [
-          "html"
-        ],
-        "name": "HTML",
-        "role": "Editor"
-      },
-      {
-        "ext": [
-          "java"
-        ],
-        "name": "Java",
-        "role": "Editor"
-      },
-      {
-        "ext": [
-          "js"
-        ],
-        "name": "JavaScript",
-        "role": "Editor"
-      },
-      {
-        "ext": [
-          "json"
-        ],
-        "name": "JSON",
-        "role": "Editor"
-      },
-      {
-        "ext": [
-          "tex",
-          "latex",
-          "bib"
-        ],
-        "name": "LaTeX",
-        "role": "Editor"
-      },
-      {
-        "ext": [
-          "md",
-          "markdown"
-        ],
-        "name": "Markdown",
-        "role": "Editor"
-      },
-      {
-        "ext": [
-          "php"
-        ],
-        "name": "PHP",
-        "role": "Editor"
-      },
-      {
-        "ext": [
-          "txt"
-        ],
-        "name": "Plain Text",
-        "role": "Editor"
-      },
-      {
-        "ext": [
-          "ps1"
-        ],
-        "name": "PowerShell",
-        "role": "Editor"
-      },
-      {
-        "ext": [
-          "py"
-        ],
-        "name": "Python",
-        "role": "Editor"
-      },
-      {
-        "ext": [
-          "sql"
-        ],
-        "name": "SQL",
-        "role": "Editor"
-      },
-      {
-        "ext": [
-          "ts"
-        ],
-        "name": "TypeScript",
-        "role": "Editor"
-      },
-      {
-        "ext": [
-          "xml"
-        ],
-        "name": "XML",
-        "role": "Editor"
-      },
-      {
-        "ext": [
-          "yml",
-          "yaml"
-        ],
-        "name": "YAML",
-        "role": "Editor"
-      }
-    ]
-  }
+        "win": {
+            "target": [
+                "zip",
+                "nsis"
+            ],
+            "icon": "build/icon.ico"
+        },
+        "linux": {
+            "target": "tar.gz",
+            "artifactName": "${productName}-${version}-linux.${ext}"
+        },
+        "mac": {
+            "target": "tar.gz"
+        },
+        "nsis": {
+            "oneClick": false,
+            "perMachine": true,
+            "deleteAppDataOnUninstall": true,
+            "allowToChangeInstallationDirectory": true
+        }
+    }
 }
