@@ -15,8 +15,7 @@ const appInfo = {
 const axios = requireLazy(() => require('axios').default);
 const dialog = requireLazy(() => require('electron').dialog);
 
-const RELEASE_VERSION_URL = 'https://api.github.com/repos/Haeri/monolithcode/releases/latest';
-//const RELEASE_ZIP_URL = 'https://github.com/Haeri/monolithcode/releases/latest/download/';
+const RELEASE_VERSION_URL = 'https://api.github.com/repos/Haeri/monolith-code/releases/latest';
 
 let filePathsToOpen = [];
 

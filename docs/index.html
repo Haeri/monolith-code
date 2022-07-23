@@ -132,13 +132,13 @@
 		<script src="res/js/feather.min.js"></script>
 		<script>
             function initLatestVersion(){
-				fetch('https://api.github.com/repos/Haeri/monolithcode/releases/latest')
+				fetch('https://api.github.com/repos/Haeri/monolith-code/releases/latest')
 					.then(response => response.json())
 					.then(data => {
 						document.getElementById("version_insert").innerHTML = data.tag_name;
 
 						const version = data.tag_name.replace("v", "");
-						const root_url = "https://github.com/Haeri/monolithcode/releases/latest/download";
+						const root_url = "https://github.com/Haeri/monolith-code/releases/latest/download";
 
 						document.getElementById("download-win").href = `${root_url}/monolith-code-Setup-${version}.exe`;
 						document.getElementById("download-mac").href = `${root_url}/monolith-code-${version}-mac.tar.gz`;
