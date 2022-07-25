@@ -1,31 +1,83 @@
 <script setup>
-// This starter template is using Vue 3 <script setup> SFCs
-// Check out https://vuejs.org/api/sfc-script-setup.html#script-setup
-import HelloWorld from './components/HelloWorld.vue'
+import Header from "./components/Header.vue";
+import Editor from "./components/Editor.vue";
+import Console from "./components/Console.vue";
+import Footer from "./components/Footer.vue";
+import Statusbar from "./components/Statusbar.vue";
+
+import keybindings from "./assets/keybindings.json";
+import langInfo from "./assets/lang.json";
+
+import { store } from "./store";
+
 </script>
 
 <template>
-  <div>
-    <a href="https://vitejs.dev" target="_blank">
-      <img src="/vite.svg" class="logo" alt="Vite logo" />
-    </a>
-    <a href="https://vuejs.org/" target="_blank">
-      <img src="./assets/vue.svg" class="logo vue" alt="Vue logo" />
-    </a>
+  <Header />
+  <div id="content">
+    <div id="main-divider">
+      <Editor />
+    </div>
+    <div
+      id="editor-console-div"
+      class="resizer"
+      data-direction="vertical"
+    ></div>
+    <Console />
   </div>
-  <HelloWorld msg="Vite + Vue" />
+  <Footer />
+  <Statusbar />
 </template>
 
-<style scoped>
-.logo {
-  height: 6em;
-  padding: 1.5em;
-  will-change: filter;
+<style>
+#app {
+  background-color: var(--background);
+  max-height: calc(100vh - 2px);
+  height: calc(100vh - 2px);
+  overflow: hidden;
+  display: grid;
+  grid-template-rows: min-content auto min-content min-content;
+  border: 1px solid #2d2d2d;
+  position: relative;
 }
-.logo:hover {
-  filter: drop-shadow(0 0 2em #646cffaa);
+
+#app:before {
+  content: "";
+  background-image: url(../img/texture.jpg);
+  background-size: 91px;
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  border: 0;
+  z-index: 100;
+  height: 100%;
+  width: 100%;
+  display: block;
+  pointer-events: none;
+  opacity: 0.05;
 }
-.logo.vue:hover {
-  filter: drop-shadow(0 0 2em #42b883aa);
+
+body.rounded #app {
+  border-radius: 8px;
+}
+
+body.rounded:not(.fullscreen) #app {
+  max-height: calc(100vh - 16px);
+  height: calc(100vh - 16px);
+}
+
+body.light #app {
+  background-color: var(--background-light);
+  border: 1px solid #bdbdbd;
+}
+
+header,
+footer {
+	padding: 10px 16px;
+	display: flex;
+	flex-direction: row;
+	justify-content: space-between;
+	background-color: inherit;
 }
 </style>
