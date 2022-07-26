@@ -43,10 +43,6 @@
 
 /* ---------- DOCUMENT ---------- */
 
-html {
-	/*padding: 1px;*/
-}
-
 body {
 	color: var(--foreground);
 	font-family: 'Open Sans', sans-serif;
@@ -73,49 +69,7 @@ body.fullscreen {
 body.light {
 	color: var(--foreground-light);
 }
-/*
-#container {
-	background-color: var(--background);
-	max-height: calc(100vh - 2px);
-	height: calc(100vh - 2px);
-	overflow: hidden;
-	display: grid;
-	grid-template-rows: min-content auto min-content min-content;
-	border: 1px solid #2d2d2d;
-	position: relative;
-}
 
-body.rounded #container {
-	border-radius: 8px;
-}
-
-body.rounded:not(.fullscreen) #container {
-	max-height: calc(100vh - 16px);
-	height: calc(100vh - 16px);
-}
-
-#container:before {
-	content: "";
-	background-image: url(../img/texture.jpg);
-	background-size: 91px;
-	position: absolute;
-	top: 0;
-	left: 0;
-	right: 0;
-	border: 0;
-	z-index: 100;
-	height: 100%;
-	width: 100%;
-	display: block;
-	pointer-events: none;
-	opacity: .05;
-}
-
-body.light #container {
-	background-color: var(--background-light);
-	border: 1px solid #bdbdbd;
-}
-*/
 
 /* ---------- HEADER ---------- */
 
@@ -200,193 +154,11 @@ body.light #container {
 }
 
 
-#editor-wrapper {
-	width: 100%;
-	height: 100%;
-	position: relative;
-	overflow: hidden;
-}
 
-#main-text-area {
-	margin: 0;
-	position: absolute;
-	top: 0;
-	bottom: 0;
-	left: 0;
-	right: 0;
-	font-family: 'Source Code Pro', monospace;
-	font-weight: 400;
-	cursor: text;
-	margin-right: 4px;
-	padding-right: 4px;
-	background-color: transparent;
-}
-
-.ace_gutter {
-	background-color: transparent !important;
-}
-
-.ace_gutter-active-line {
-	color: white;
-	background-color: transparent !important;
-}
-
-.ace_dark.ace_editor.ace_autocomplete,
-.ace_search {
-	backdrop-filter: blur(8px);
-	background: rgb(30 30 30 / 55%);
-	box-shadow: 1px 1px 8px rgba(0, 0, 0, 0.2);
-	font-family: inherit;
-	border: 1px solid #2d2d2d;
-}
-
-.ace_search.right {
-	border-radius: 0px 0px 4px 4px;
-	border: 1px solid #2d2d2d;
-	border-top: 0 none;
-}
-
-.ace_dark.ace_editor.ace_autocomplete {
-	border-radius: 0px 4px 4px 0px;
-	padding: 0;
-	border-radius: 4px;
-}
-
-.ace_dark.ace_editor.ace_autocomplete .ace_marker-layer .ace_active-line {
-	background-color: #101010b5;
-}
-
-
-.ace_search .ace_search_form>*,
-.ace_search .ace_replace_form>* {
-	background: var(--background);
-	border-color: #2d2d2d;
-	color: var(--foreground);
-}
-
-.ace_search input {
-	color: white !important;
-}
-
-.ace_button,
-.ace_searchbtn {
-	color: var(--foreground);
-	transition: 0.3s;
-}
-
-.ace_button:hover,
-.ace_searchbtn:hover {
-	color: white;
-	background: inherit;
-}
-
-.ace_searchbtn:after {
-	transition: 0.3s;
-}
-
-.ace_searchbtn:hover:after {
-	border-color: white;
-}
 
 
 
 /* ---------- CONSOLE ---------- */
-#console {
-	flex: 1;
-	height: 0;
-	overflow-y: auto;
-	background: #191919;
-	display: flex;
-	flex-direction: column;
-	position: relative;
-}
-
-#console #console-in,
-#console #console-out {
-	white-space: pre-wrap;
-	box-sizing: border-box;
-	display: block;
-	width: 100%;
-	border: none;
-	outline: none;
-	margin: 0;
-	background: transparent;
-	font-size: var(--font-size);
-	font-family: 'Source Code Pro', monospace;
-}
-
-#console #console-out {
-	background: #1b1b1b;
-	color: #a9a9a9;
-	padding: 10px 0px;
-}
-
-#console #console-in {
-	color: #ffffff;
-	flex: 1;
-	resize: none;
-	display: inline-table;
-	padding: 4px 8px;
-}
-
-#console #process-indicator {
-	position: fixed;
-	display: block;
-	right: 24px;
-	bottom: 54px;
-	width: 6px;
-	height: 6px;
-	border-radius: 100%;
-	background: #f44336;
-	opacity: 0;
-	transition: 0.3s;
-	box-shadow: 0 0 0 0 rgba(244, 67, 54, 0.1);
-	transform: scale(1);
-	animation: pulse 2s infinite;
-}
-
-#console #process-indicator.active {
-	opacity: 1;
-}
-
-#console #console-out>div {
-	padding: 0px 8px;
-}
-
-#console #console-out .user {
-	color: #f1f1f1;
-	margin: 10px 0px;
-	padding: 4px 8px;
-	background: #1d1d1d;
-}
-
-#console #console-out .info {
-	color: #838383;
-}
-
-#console #console-out .confirm {
-	color: #4caf50;
-}
-
-#console #console-out .warn {
-	color: #ffeb3b;
-}
-
-#console #console-out .error {
-	color: #f44336;
-}
-
-#console #console-out .error svg {
-	width: 10px;
-	height: 10px;
-	fill: #f44336;
-	margin-right: 5px;
-	vertical-align: -1px;
-}
-
-.jump-to-line {
-	color: inherit;
-}
 
 
 /* ---------- FOOTER ---------- */

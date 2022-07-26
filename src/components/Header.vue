@@ -29,8 +29,8 @@ const isPinned = ref(false);
 
 
 function togglePin() {
-  isPinned = !isPinned;
-  window.api.setAlwaysOnTop(isPinned);
+  isPinned.value = !isPinned;
+  window.api.setAlwaysOnTop(isPinned.value);
 }
 
 function minimize() {
@@ -41,7 +41,10 @@ function toggleMaximize() {
   window.api.toggleMaxUnmax();
 }
 
-function requestClose() {}
+function requestClose() {
+     window.api.close();
+    //killProcess().then(() => window.api.close());
+}
 </script>
 
 <template>

@@ -19,20 +19,7 @@ export default defineConfig({
             outDir: 'dist/electron',
           },
         },
-      },
-      preload: {
-        input: {
-          // You can configure multiple preload here
-          index: join(__dirname, 'src-electron/preload.js'),
-        },
-        vite: {
-          build: {
-            // For debug
-            sourcemap: 'inline',
-            outDir: 'dist/electron',
-          },
-        },
-      },
+      }
     }),
   ],
   server: {

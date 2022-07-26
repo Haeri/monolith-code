@@ -5,6 +5,7 @@ on:
     branches:
     - master
     - dev
+    - electron-vite-vue
 
 jobs:
   build:  
