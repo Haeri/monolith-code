@@ -33,7 +33,7 @@
     },
     "build": {
         "appId": "monolith-code",
-        "productName": "monolith code",
+        "productName": "monolith-code",
         "directories": {
             "output": "release"
         },
