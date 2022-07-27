@@ -1,5 +1,5 @@
 import { rmSync } from 'fs'
-import { join } from 'path'
+import path from 'path'
 import { defineConfig } from 'vite'
 import vue from '@vitejs/plugin-vue'
 import electron from 'vite-plugin-electron'
@@ -14,12 +14,13 @@ export default defineConfig({
     electron({
       main: {
         entry: 'src-electron/main.js',
-        vite: {
-          build: {
-            outDir: 'dist/electron',
-          },
+      },
+      preload: {
+        input: {
+          // Must be use absolute path, this is the restrict of Rollup
+          preload: path.join(__dirname, 'src-electron/preload.js'),
         },
-      }
+      },
     }),
   ],
   server: {

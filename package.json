@@ -15,6 +15,10 @@
         "build": "vite build",
         "package": "vite build && electron-builder"
     },
+    "dependencies": {
+        "electron-updater": "^5.0.5",
+        "vue3-ace-editor": "^2.2.2"
+    },
     "devDependencies": {
         "@vitejs/plugin-vue": "^2.3.3",
         "electron": "^19.0.8",
@@ -29,11 +33,13 @@
     },
     "build": {
         "appId": "monolith-code",
+        "productName": "monolith code",
         "directories": {
             "output": "release/${version}"
         },
         "files": [
-            "dist"
+            "dist/**/*",
+            "src-electron/**/*"
         ],
         "win": {
             "target": [
@@ -47,7 +53,8 @@
             "artifactName": "${productName}-${version}-linux.${ext}"
         },
         "mac": {
-            "target": "tar.gz"
+            "target": "tar.gz",
+            "category": "public.app-category.utilities"
         },
         "nsis": {
             "oneClick": false,
@@ -55,9 +62,5 @@
             "deleteAppDataOnUninstall": true,
             "allowToChangeInstallationDirectory": true
         }
-    },
-    "dependencies": {
-        "electron-updater": "^5.0.5",
-        "vue3-ace-editor": "^2.2.2"
     }
 }
