@@ -28,5 +28,5 @@ jobs:
       with:
         name: ${{ matrix.os }}_artifacts
         path: |
-          dist/monolith-code*
-          dist/latest.yml
+          release/monolith-code*
+          release/latest.yml

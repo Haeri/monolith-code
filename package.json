@@ -35,7 +35,7 @@
         "appId": "monolith-code",
         "productName": "monolith code",
         "directories": {
-            "output": "release/${version}"
+            "output": "release"
         },
         "files": [
             "dist/**/*",
