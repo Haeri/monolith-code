@@ -240,19 +240,7 @@ function setFontSize(size) {
   window.api.storeSetting('font_size', size);
 }
 
-function notify(type) {
-  document.getElementById('status-display').className = '';
-  // document.getElementById('status-display').offsetWidth;
-  document.getElementById('status-display').classList.add(type);
-}
 
-function notifyLoadStart() {
-  document.getElementById('status-bar').classList.add('load');
-}
-
-function notifyLoadEnd() {
-  document.getElementById('status-bar').className = '';
-}
 
 function print(text, mode = INFO_LEVEL.info) {
   const block = document.createElement('div');
@@ -713,9 +701,7 @@ async function _initialize() {
     _toggleFullscreenStyle(value);
   });
 
-  window.api.canClose((event) => {
-    event.sender.send('can-close-response', (isSaved === null || isSaved));
-  });
+
 
   window.api.print((_, value) => {
     print(value.text);

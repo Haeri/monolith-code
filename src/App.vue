@@ -4,29 +4,35 @@ import Editor from "./components/Editor.vue";
 import Console from "./components/Console.vue";
 import Footer from "./components/Footer.vue";
 import Statusbar from "./components/Statusbar.vue";
+import Divider from "./components/Divider.vue";
 
 import keybindings from "./assets/keybindings.json";
 import langInfo from "./assets/lang.json";
 
 import { store } from "./store";
+import { ref } from "@vue/reactivity";
+
+const statusbarRef = ref(null);
+
+
+window.api.canClose((event) => {
+  event.sender.send('can-close-response', (store.isSaved === null || store.isSaved));
+});
 
 </script>
 
 <template>
   <Header />
-  <div id="content">
-    <div id="main-divider">
+  <Divider>
+    <template #primary>
       <Editor />
-    </div>
-    <div
-      id="editor-console-div"
-      class="resizer"
-      data-direction="vertical"
-    ></div>
-    <Console />
-  </div>
+    </template>
+    <template #secondary>
+      <Console />
+    </template>
+  </Divider>
   <Footer />
-  <Statusbar />
+  <Statusbar ref="statusbarRef" />
 </template>
 
 <style>
@@ -74,10 +80,10 @@ body.light #app {
 
 header,
 footer {
-	padding: 10px 16px;
-	display: flex;
-	flex-direction: row;
-	justify-content: space-between;
-	background-color: inherit;
+  padding: 10px 16px;
+  display: flex;
+  flex-direction: row;
+  justify-content: space-between;
+  background-color: inherit;
 }
 </style>
