@@ -91,7 +91,6 @@ onMounted(() => {
 
     resizer.value.addEventListener('dblclick', () => {
         const targetPercent = Math.abs(divisionPercentage.value - 50) < 1 ? 100 : 50;
-        console.log(targetPercent)
 
         const anim = resizer.value.previousElementSibling.animate([
             { height: divisionPercentage.value + "%" },
@@ -101,10 +100,7 @@ onMounted(() => {
             easing: 'cubic-bezier(0.860, 0.000, 0.070, 1.000)',
         });
         anim.finished.then(() => {
-            console.log("finished", divisionPercentage.value, targetPercent)
             divisionPercentage.value = targetPercent;
-            console.log("->", divisionPercentage.value, targetPercent)
-            //window.api.storeSetting('media_div_percent', targetPercent);
             emit('resized', divisionPercentage.value);
         });
     });

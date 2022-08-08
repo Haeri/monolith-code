@@ -1,15 +1,3 @@
-const EXE_EXTENSION = Object.freeze({
-  linux: '',
-  darwin: '',
-  win32: '.exe',
-});
-
-const PLATFORM_ZIP = Object.freeze({
-  linux: 'monolith-code_linux.zip',
-  darwin: 'monolith-code_mac.tar',
-  win32: 'monolith-code_win.tar',
-});
-
 class lazyRequire {
   #requireValue = null;
   #requireFunk = null;
@@ -47,9 +35,6 @@ class StandaloneEvent {
 }
 
 
-
-const getExeExtension = (platform) => (Object.prototype.hasOwnProperty.call(EXE_EXTENSION, platform) ? EXE_EXTENSION[platform] : '');
-
 // https://stackoverflow.com/a/34749873
 const isObject = (item) => {
   return (item && typeof item === 'object' && !Array.isArray(item));
@@ -79,8 +64,6 @@ const mergeDeep = (target, ...sources) => {
 }
 
 if (typeof module !== 'undefined' && module.exports) {
-  module.exports.PLATFORM_ZIP = PLATFORM_ZIP;
-  module.exports.getExeExtension = getExeExtension;
   module.exports.isObject = isObject;
   module.exports.mergeDeep = mergeDeep;
   module.exports.requireLazy = requireLazy;

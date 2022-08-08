@@ -37,7 +37,6 @@ defineExpose({
 </script>
 
 <template>
-{{lang}}
   <div id="editor-wrapper">
     <v-ace-editor
       id="main-text-area"

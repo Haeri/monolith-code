@@ -13,6 +13,9 @@ import { store } from "./store";
 import { ref } from "@vue/reactivity";
 
 
+store.lang.options = langInfo;
+store.lang.selected = langInfo["plaintext"];
+
 const editorRef = ref(null);
 const statusbarRef = ref(null);
 const consoleRef = ref(null);
@@ -72,7 +75,7 @@ async function openFile(filePaths = []) {
     <template #primary>
       <button @click="openFile()">open</button>
       <button @click="consoleRef.print('helloooooo')">print</button>
-      <Editor ref="editorRef" />
+      <Editor ref="editorRef" />      
     </template>
     <template #secondary>
       <Console ref="consoleRef" :status-bar-ref="statusbarRef" />

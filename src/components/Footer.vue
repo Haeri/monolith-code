@@ -1,13 +1,16 @@
 <script setup>
+import Dropdown from './Dropdown.vue';
+
+import { store } from "../store";
+
+
+
 </script>
 
 <template>
   <footer>
     <span id="char-display"></span>
-    <div class="select-box" id="language-display">
-      <div class="selected"></div>
-      <div class="panel options-container"></div>
-    </div>
+    <Dropdown :options="store.lang.options" default="plaintext" @selected="(e) => store.lang.selected = e" />
   </footer>
 </template>
 

@@ -7,5 +7,9 @@ export const store = reactive({
     extension: undefined,
     path: undefined,
     lang: undefined,
+  },
+  lang: {
+    options: null,
+    selected: null
   }
 })
