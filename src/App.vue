@@ -12,23 +12,70 @@ import langInfo from "./assets/lang.json";
 import { store } from "./store";
 import { ref } from "@vue/reactivity";
 
+
+const editorRef = ref(null);
 const statusbarRef = ref(null);
+const consoleRef = ref(null);
 
 
 window.api.canClose((event) => {
   event.sender.send('can-close-response', (store.isSaved === null || store.isSaved));
 });
 
+
+
+
+
+async function openFile(filePaths = []) {
+  statusbarRef.value.notifyLoadStart();
+
+  let filePathsArray = Array.isArray(filePaths) ? filePaths : [filePaths];
+  if (!filePathsArray.length) {
+    const { canceled, filePaths: _filePaths } = await window.api.showOpenDialog();
+    if (canceled) {
+      statusbarRef.value.notifyLoadEnd();
+      return;
+    }
+    filePathsArray = _filePaths;
+  }
+
+  if (!store.file.path && (store.isSaved === null || store.isSaved)) {
+    const fileToOpen = filePathsArray.shift();
+    window.api.readFile(fileToOpen)
+      .then((data) => {        
+        editorRef.value.setContent(data);
+        //editor.setValue(data, -1);
+        _setFileInfo(fileToOpen);
+        consoleRef.value.print(`Opened file ${fileToOpen}`);
+        // webviewUi.src = 'about:blank'
+      })
+      .catch((err) => {
+        consoleRef.value.print(`Could not open file ${fileToOpen}<br>${err}`, INFO_LEVEL.error);
+      }).finally(() => {
+        statusbarRef.value.notifyLoadEnd();
+      });
+  }
+
+  if (filePathsArray.length) {
+    newWindow(filePathsArray);
+  }
+  statusbarRef.value.notifyLoadEnd();
+}
+
+
+
 </script>
 
 <template>
-  <Header />
-  <Divider>
+  <Header />  
+  <Divider direction="vertical" :dbclick-percentage="60">
     <template #primary>
-      <Editor />
+      <button @click="openFile()">open</button>
+      <button @click="consoleRef.print('helloooooo')">print</button>
+      <Editor ref="editorRef" />
     </template>
     <template #secondary>
-      <Console />
+      <Console ref="consoleRef" :status-bar-ref="statusbarRef" />
     </template>
   </Divider>
   <Footer />

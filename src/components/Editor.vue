@@ -7,6 +7,9 @@ import ace from "ace-builds";
 import { ref } from "@vue/reactivity";
 //ace.config.setModuleUrl("ace/mode/json_worker", workerJsonUrl);
 
+
+const content = ref("");
+const lang = ref("text");
 const options = ref({
   useWorker: false,
   //enableBasicAutocompletion: true,
@@ -20,20 +23,30 @@ const options = ref({
   highlightActiveLine: false,
   fontSize: 12,
 });
-const content = ref("");
+
+
+function setContent(text, language = "text") {
+  content.value = text;
+  lang.value = language;
+}
+
+defineExpose({
+  setContent
+});
 
 </script>
 
 <template>
+{{lang}}
   <div id="editor-wrapper">
     <v-ace-editor
       id="main-text-area"
       v-model:value="content"
-      lang="json"
+      :lang="lang"
       theme="monokai"
       style="height: 100%"
       :minLines="10"
-      :options="options"
+      :options="options"      
     />
   </div>
 </template>

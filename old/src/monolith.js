@@ -43,13 +43,13 @@ let processIndicatorUi;
 const errorSVG = requireLazy(async () => await fetch('res/img/err.svg').then((res) => res.text()));
 
 // Constants
-const INFO_LEVEL = Object.freeze({
-  user: 0,
-  info: 1,
-  confirm: 2,
-  warn: 3,
-  error: 4,
-});
+// const INFO_LEVEL = Object.freeze({
+//   user: 0,
+//   info: 1,
+//   confirm: 2,
+//   warn: 3,
+//   error: 4,
+// });
 
 const commandList = {
   '!ver': {
@@ -153,41 +153,41 @@ function newWindow(filePaths = []) {
   window.api.newWindow(filePathsArray);
 }
 
-async function openFile(filePaths = []) {
-  notifyLoadStart();
+// async function openFile(filePaths = []) {
+//   notifyLoadStart();
 
-  let filePathsArray = Array.isArray(filePaths) ? filePaths : [filePaths];
+//   let filePathsArray = Array.isArray(filePaths) ? filePaths : [filePaths];
 
-  if (!filePathsArray.length) {
-    const { canceled, filePaths: _filePaths } = await window.api.showOpenDialog();
-    if (canceled) {
-      notifyLoadEnd();
-      return;
-    }
-    filePathsArray = _filePaths;
-  }
+//   if (!filePathsArray.length) {
+//     const { canceled, filePaths: _filePaths } = await window.api.showOpenDialog();
+//     if (canceled) {
+//       notifyLoadEnd();
+//       return;
+//     }
+//     filePathsArray = _filePaths;
+//   }
 
-  if (!file.path && (isSaved === null || isSaved)) {
-    const fileToOpen = filePathsArray.shift();
-    window.api.readFile(fileToOpen)
-      .then((data) => {
-        editor.setValue(data, -1);
-        _setFileInfo(fileToOpen);
-        print(`Opened file ${fileToOpen}`);
-        // webviewUi.src = 'about:blank'
-      })
-      .catch((err) => {
-        print(`Could not open file ${fileToOpen}<br>${err}`, INFO_LEVEL.error);
-      }).finally(() => {
-        notifyLoadEnd();
-      });
-  }
+//   if (!file.path && (isSaved === null || isSaved)) {
+//     const fileToOpen = filePathsArray.shift();
+//     window.api.readFile(fileToOpen)
+//       .then((data) => {
+//         editor.setValue(data, -1);
+//         _setFileInfo(fileToOpen);
+//         print(`Opened file ${fileToOpen}`);
+//         // webviewUi.src = 'about:blank'
+//       })
+//       .catch((err) => {
+//         print(`Could not open file ${fileToOpen}<br>${err}`, INFO_LEVEL.error);
+//       }).finally(() => {
+//         notifyLoadEnd();
+//       });
+//   }
 
-  if (filePathsArray.length) {
-    newWindow(filePathsArray);
-  }
-  notifyLoadEnd();
-}
+//   if (filePathsArray.length) {
+//     newWindow(filePathsArray);
+//   }
+//   notifyLoadEnd();
+// }
 
 async function saveFileAs() {
   return saveFile(true);
@@ -242,22 +242,22 @@ function setFontSize(size) {
 
 
 
-function print(text, mode = INFO_LEVEL.info) {
-  const block = document.createElement('div');
-  block.classList.add(Object.keys(INFO_LEVEL).find((key) => INFO_LEVEL[key] === mode));
+// function print(text, mode = INFO_LEVEL.info) {
+//   const block = document.createElement('div');
+//   block.classList.add(Object.keys(INFO_LEVEL).find((key) => INFO_LEVEL[key] === mode));
 
-  errorSVG.get().then((svg) => {
-    block.innerHTML = (mode === 4 ? svg : '') + text;
-  });
-  consoleOutUi.appendChild(block);
+//   errorSVG.get().then((svg) => {
+//     block.innerHTML = (mode === 4 ? svg : '') + text;
+//   });
+//   consoleOutUi.appendChild(block);
 
-  if (mode >= 2) {
-    const ret = Object.keys(INFO_LEVEL).find((key) => INFO_LEVEL[key] === mode);
-    notify(ret);
-  }
+//   if (mode >= 2) {
+//     const ret = Object.keys(INFO_LEVEL).find((key) => INFO_LEVEL[key] === mode);
+//     notify(ret);
+//   }
 
-  setTimeout(() => consoleUi.scrollTo({ top: consoleUi.scrollHeight, behavior: 'smooth' }), 0);
-}
+//   setTimeout(() => consoleUi.scrollTo({ top: consoleUi.scrollHeight, behavior: 'smooth' }), 0);
+// }
 
 /* ------------- FEATURES ------------- */
 
@@ -927,87 +927,7 @@ async function _initialize() {
   }
 }
 
-document.addEventListener('DOMContentLoaded', () => {
-  const resizable = (resizer) => {
-    const direction = resizer.getAttribute('data-direction') || 'horizontal';
-    const prevSibling = resizer.previousElementSibling;
-    const nextSibling = resizer.nextElementSibling;
 
-    // The current position of mouse
-    let x = 0;
-    let y = 0;
-    let prevSiblingHeight = 0;
-    let prevSiblingWidth = 0;
-
-    const mouseMoveHandler = (e) => {
-      // How far the mouse has been moved
-      const dx = e.clientX - x;
-      const dy = e.clientY - y;
-
-      switch (direction) {
-        case 'vertical': {
-          const h = (prevSiblingHeight + dy) * 100 / resizer.parentNode.getBoundingClientRect().height;
-          prevSibling.style.height = `${h}% `;
-          break;
-        }
-        case 'horizontal':
-        default: {
-          const w = (prevSiblingWidth + dx) * 100 / resizer.parentNode.getBoundingClientRect().width;
-          prevSibling.style.width = `${w}% `;
-          break;
-        }
-      }
-
-      prevSibling.style.userSelect = 'none';
-      prevSibling.style.pointerEvents = 'none';
-
-      nextSibling.style.userSelect = 'none';
-      nextSibling.style.pointerEvents = 'none';
-    };
-
-    const mouseUpHandler = () => {
-      resizer.style.removeProperty('cursor');
-      document.body.style.removeProperty('cursor');
-
-      prevSibling.style.removeProperty('user-select');
-      prevSibling.style.removeProperty('pointer-events');
-
-      nextSibling.style.removeProperty('user-select');
-      nextSibling.style.removeProperty('pointer-events');
-
-      // Remove the handlers of `mousemove` and `mouseup`
-      document.removeEventListener('mousemove', mouseMoveHandler);
-      document.removeEventListener('mouseup', mouseUpHandler);
-
-      // Dispatch the event
-      const event = new CustomEvent('divider-move');
-      resizer.dispatchEvent(event);
-    };
-
-    // Handle the mousedown event
-    // that's triggered when user drags the resizer
-    const mouseDownHandler = (e) => {
-      // Get the current mouse position
-      x = e.clientX;
-      y = e.clientY;
-      const rect = prevSibling.getBoundingClientRect();
-      prevSiblingHeight = rect.height;
-      prevSiblingWidth = rect.width;
-
-      // Attach the listeners to `document`
-      document.addEventListener('mousemove', mouseMoveHandler);
-      document.addEventListener('mouseup', mouseUpHandler);
-    };
-
-    // Attach the handler
-    resizer.addEventListener('mousedown', mouseDownHandler);
-  };
-
-  // Query all resizers
-  document.querySelectorAll('.resizer').forEach((ele) => {
-    resizable(ele);
-  });
-});
 
 /* ---- DOCUMENT READY ---- */
 document.addEventListener('DOMContentLoaded', _initialize);

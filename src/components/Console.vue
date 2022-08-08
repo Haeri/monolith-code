@@ -1,23 +1,66 @@
 <script setup>
+import { ref } from "@vue/reactivity";
+
+const props = defineProps({
+	statusBarRef: Object
+})
+
+const logs = ref([]);
+
+const consoleRef = ref(null);
+
+function getModeName(mode){
+	return Object.keys(INFO_LEVEL).find((key) => INFO_LEVEL[key] === mode);
+}
+
+function print(text, mode = INFO_LEVEL.info) {
+	const block = document.createElement('div');
+	//block.classList.add(Object.keys(INFO_LEVEL).find((key) => INFO_LEVEL[key] === mode));
+
+	//errorSVG.get().then((svg) => {
+	//    block.innerHTML = (mode === 4 ? svg : '') + text;
+	//  });
+	//consoleOutUi.appendChild(block);
+
+	logs.value.push({ mode, text });
+
+	if (mode >= 2) {
+		const ret = Object.keys(INFO_LEVEL).find((key) => INFO_LEVEL[key] === mode);
+		props.statusBarRef.notify(ret);
+	}
+
+	setTimeout(() => consoleRef.value.scrollTo({ top: consoleRef.value.scrollHeight, behavior: 'smooth' }), 0);
+}
+
+
+defineExpose({
+	print
+});
+
 </script>
 
 <template>
-  <div id="console">
-    <pre id="console-out"></pre>
-    <textarea id="console-in" spellcheck="false"></textarea>
-    <span id="process-indicator"></span>
-  </div>
+	<div ref="consoleRef" id="console">
+		<pre id="console-out" >
+			<div v-for="(log, i) in logs" :key="i" :class="getModeName(log.mode)" v-html="log.text"></div>
+		</pre>
+		<textarea id="console-in" spellcheck="false"></textarea>
+		<span id="process-indicator"></span>
+	</div>
 </template>
 
 <style scoped>
 #console {
 	flex: 1;
+	min-height: 0;
 	height: 0;
 	overflow-y: auto;
 	background: #191919;
 	display: flex;
 	flex-direction: column;
 	position: relative;
+
+	box-shadow: inset 0 16px 17px -10px black;
 }
 
 #console #console-in,
@@ -106,5 +149,4 @@
 .jump-to-line {
 	color: inherit;
 }
-
 </style>
