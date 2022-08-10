@@ -1,15 +1,24 @@
 <script setup>
 import { VAceEditor } from "vue3-ace-editor";
 import "ace-builds/src-noconflict/mode-json";
+import "ace-builds/src-noconflict/mode-plain_text";
 import "ace-builds/src-noconflict/theme-monokai";
 import ace from "ace-builds";
+import modelist from "ace-builds/src-noconflict/ext-modelist";
+import langInfo from "../assets/lang.json";
+
 //import workerJsonUrl from "ace-builds/src-noconflict/worker-json?url";
 import { ref } from "@vue/reactivity";
+import { computed } from "@vue/runtime-core";
 //ace.config.setModuleUrl("ace/mode/json_worker", workerJsonUrl);
 
+const props = defineProps({
+  lang: String
+})
 
+const mode = computed(() => langInfo[props.lang].mode);
 const content = ref("");
-const lang = ref("text");
+
 const options = ref({
   useWorker: false,
   //enableBasicAutocompletion: true,
@@ -25,9 +34,8 @@ const options = ref({
 });
 
 
-function setContent(text, language = "text") {
+function setContent(text) {
   content.value = text;
-  lang.value = language;
 }
 
 defineExpose({
@@ -37,11 +45,12 @@ defineExpose({
 </script>
 
 <template>
+mode: {{mode}}
   <div id="editor-wrapper">
     <v-ace-editor
       id="main-text-area"
       v-model:value="content"
-      :lang="lang"
+      :lang="mode"
       theme="monokai"
       style="height: 100%"
       :minLines="10"

@@ -22,8 +22,17 @@ import { store } from '../store'
 const props = defineProps({
   documentName: String,
 });
+
+
 const title = computed(() => {
-    return store.file.extension ? store.file.name + store.file.extension : 'new document';
+  let t = store.file.extension ? store.file.name + store.file.extension : 'new document';
+
+  if (!(store.isSaved === null || store.isSaved)) {
+    t = `${t}*`;
+  }
+
+  window.api.setTitle(t);
+  return t;
 });
 const isPinned = ref(false);
 
@@ -42,20 +51,16 @@ function toggleMaximize() {
 }
 
 function requestClose() {
-     window.api.close();
-    //killProcess().then(() => window.api.close());
+  window.api.close();
+  //killProcess().then(() => window.api.close());
 }
 </script>
 
 <template>
   <header>
-    <span id="document-name">{{title}}</span>
+    <span id="document-name">{{ title }}</span>
     <div id="window-buttons">
-      <button
-        @click="togglePin"
-        :class="{ pinned: isPinned }"
-        id="pin-button"
-      ></button>
+      <button @click="togglePin" :class="{ pinned: isPinned }" id="pin-button"></button>
       <button @click="minimize" id="min-button"></button>
       <button @click="toggleMaximize" id="max-button"></button>
       <button @click="requestClose" id="close-button"></button>

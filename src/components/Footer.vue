@@ -10,7 +10,7 @@ import { store } from "../store";
 <template>
   <footer>
     <span id="char-display"></span>
-    <Dropdown :options="store.lang.options" default="plaintext" @selected="(e) => store.lang.selected = e" />
+    <Dropdown :options="store.lang.options" :default="store.lang.selectedLang" @selected="(e) => store.lang.selectedLang = e" />
   </footer>
 </template>
 

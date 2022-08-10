@@ -118,31 +118,31 @@ function getContent() {
   return editor.getValue();
 }
 
-function getModeFromName(filename) {
-  return Object.entries(langInfo).find((item) => {
-    const re = item[1].detector;
-    if (filename.toLowerCase().match(re)) {
-      return true;
-    }
+// function getModeFromName(filename) {
+//   return Object.entries(langInfo).find((item) => {
+//     const re = item[1].detector;
+//     if (filename.toLowerCase().match(re)) {
+//       return true;
+//     }
 
-    return false;
-  });
-}
+//     return false;
+//   });
+// }
 
-function setLanguage(langKey) {
-  if (langKey !== 'markdown') {
-    editor.off('input', markdownUpdater);
-  }
+// function setLanguage(langKey) {
+//   if (langKey !== 'markdown') {
+//     editor.off('input', markdownUpdater);
+//   }
 
-  const lang = langInfo[langKey];
-  const { mode } = modelist.get().modesByName[lang.mode];
-  editor.session.setMode(mode);
+//   const lang = langInfo[langKey];
+//   const { mode } = modelist.get().modesByName[lang.mode];
+//   editor.session.setMode(mode);
 
-  languageDisplaySelectedUi.innerText = lang.name;
-  languageDisplaySelectedUi.dataset.value = langKey;
-  [...optionsContainer.querySelectorAll('.option')].forEach((el) => el.classList.remove('active'));
-  optionsContainer.querySelector(`.option[data-value="${langKey}"]`).classList.add('active');
-}
+//   languageDisplaySelectedUi.innerText = lang.name;
+//   languageDisplaySelectedUi.dataset.value = langKey;
+//   [...optionsContainer.querySelectorAll('.option')].forEach((el) => el.classList.remove('active'));
+//   optionsContainer.querySelector(`.option[data-value="${langKey}"]`).classList.add('active');
+// }
 
 function setContent(content) {
   editor.setValue(content, -1);
@@ -533,35 +533,35 @@ function togglePreviewDivider(open = undefined) {
   });
 }
 
-function _updateTitle() {
-  let title = file.extension ? file.name + file.extension : 'new document';
+// function _updateTitle() {
+//   let title = file.extension ? file.name + file.extension : 'new document';
 
-  if (!(isSaved === null || isSaved)) {
-    title = `${title}*`;
-  }
+//   if (!(isSaved === null || isSaved)) {
+//     title = `${title}*`;
+//   }
 
-  if (documentNameUi.textContent === title) return;
+//   if (documentNameUi.textContent === title) return;
 
-  documentNameUi.textContent = title;
-  window.api.setTitle(title);
-}
+//   documentNameUi.textContent = title;
+//   window.api.setTitle(title);
+// }
 
-function _setFileInfo(filePath) {
-  file.extension = window.api.path.extname(filePath);
-  file.path = window.api.path.dirname(filePath) + window.api.path.sep;
-  file.name = window.api.path.basename(filePath, file.extension);
+// function _setFileInfo(filePath) {
+//   file.extension = window.api.path.extname(filePath);
+//   file.path = window.api.path.dirname(filePath) + window.api.path.sep;
+//   file.name = window.api.path.basename(filePath, file.extension);
 
-  const lang = getModeFromName(file.name + file.extension);
-  if (lang == null) {
-    file.lang = 'plaintext';
-  } else {
-    file.lang = lang[0];
-  }
+//   const lang = getModeFromName(file.name + file.extension);
+//   if (lang == null) {
+//     file.lang = 'plaintext';
+//   } else {
+//     file.lang = lang[0];
+//   }
 
-  setLanguage(file.lang);
-  isSaved = true;
-  _updateTitle();
-}
+//   setLanguage(file.lang);
+//   isSaved = true;
+//   _updateTitle();
+// }
 
 function _toggleFullscreenStyle(isFullscreen) {
   if (isFullscreen) {

@@ -1,4 +1,4 @@
-import { reactive } from 'vue'
+import { computed, reactive } from 'vue'
 
 export const store = reactive({
   isSaved: null,
@@ -10,6 +10,7 @@ export const store = reactive({
   },
   lang: {
     options: null,
-    selected: null
+    selectedLang: null
   }
 })
+export const selectedMode = computed(() => store.lang.options[selectedLang].mode);

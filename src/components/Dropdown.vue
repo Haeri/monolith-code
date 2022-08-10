@@ -22,7 +22,7 @@ function select(key) {
     };
     isOpen.value = false;
 
-    emit("selected", selected.value);
+    emit("selected", selected.value.key);
 }
 </script>
 

@@ -9,12 +9,15 @@ import Divider from "./components/Divider.vue";
 import keybindings from "./assets/keybindings.json";
 import langInfo from "./assets/lang.json";
 
+import modelist from "ace-builds/src-noconflict/ext-modelist";
+
 import { store } from "./store";
 import { ref } from "@vue/reactivity";
+import { onMounted } from "@vue/runtime-core";
 
 
 store.lang.options = langInfo;
-store.lang.selected = langInfo["plaintext"];
+store.lang.selectedLang = "plaintext";
 
 const editorRef = ref(null);
 const statusbarRef = ref(null);
@@ -26,8 +29,26 @@ window.api.canClose((event) => {
 });
 
 
+/* ------------- PUBLIC API ------------- */
 
+function getModeFromName(filename) {
+  return Object.entries(langInfo).find((item) => {
+    const re = item[1].detector;
+    if (filename.toLowerCase().match(re)) {
+      return true;
+    }
 
+    return false;
+  });
+}
+
+function setLanguage(langKey) {
+  if (langKey !== 'markdown') {
+    //editor.off('input', markdownUpdater);
+  }
+
+  store.lang.selectedLang = langKey;
+}
 
 async function openFile(filePaths = []) {
   statusbarRef.value.notifyLoadStart();
@@ -54,6 +75,7 @@ async function openFile(filePaths = []) {
       })
       .catch((err) => {
         consoleRef.value.print(`Could not open file ${fileToOpen}<br>${err}`, INFO_LEVEL.error);
+        console.log(err)
       }).finally(() => {
         statusbarRef.value.notifyLoadEnd();
       });
@@ -67,6 +89,51 @@ async function openFile(filePaths = []) {
 
 
 
+
+
+
+function _setFileInfo(filePath) {
+  store.file.extension = window.api.path.extname(filePath);
+  store.file.path = window.api.path.dirname(filePath) + window.api.path.sep;
+  store.file.name = window.api.path.basename(filePath, store.file.extension);
+
+  const lang = getModeFromName(store.file.name + store.file.extension);
+  console.log("Lang detected", lang[0])
+  if (lang == null) {
+    store.file.lang = 'plaintext';
+  } else {
+    store.file.lang = lang[0];
+  }
+
+  setLanguage(store.file.lang);
+  store.isSaved = true;
+  //_updateTitle();
+}
+
+
+
+onMounted(() => {
+    window.addEventListener('keydown', (event) => {
+    const lowerKey = event.key.toLowerCase();
+    if (event.ctrlKey && !event.shiftKey) {
+      if (lowerKey in keybindings.ctrl) {
+        event.preventDefault();
+        console.log(keybindings.ctrl)
+        console.log(lowerKey)
+        console.log(keybindings.ctrl[lowerKey].func)
+        window[keybindings.ctrl[lowerKey].func]();
+
+      }
+    } else if (event.ctrlKey && event.shiftKey) {
+      if (lowerKey in keybindings.ctrlshift) {
+        event.preventDefault();
+        window[keybindings.ctrlshift[lowerKey].func]();
+      }
+    }
+  }, false);
+})
+
+
 </script>
 
 <template>
@@ -75,7 +142,7 @@ async function openFile(filePaths = []) {
     <template #primary>
       <button @click="openFile()">open</button>
       <button @click="consoleRef.print('helloooooo')">print</button>
-      <Editor ref="editorRef" />      
+      <Editor ref="editorRef" :lang="store.lang.selectedLang" />      
     </template>
     <template #secondary>
       <Console ref="consoleRef" :status-bar-ref="statusbarRef" />
