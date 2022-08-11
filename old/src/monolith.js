@@ -633,14 +633,14 @@ async function _initialize() {
     fontSize: editorConfig.font_size,
   });
 
-  document.addEventListener('drop', (event) => {
-    event.preventDefault();
-    event.stopPropagation();
+  // document.addEventListener('drop', (event) => {
+  //   event.preventDefault();
+  //   event.stopPropagation();
 
-    Array.from(event.dataTransfer.files).forEach((f) => {
-      openFile(f.path);
-    });
-  });
+  //   Array.from(event.dataTransfer.files).forEach((f) => {
+  //     openFile(f.path);
+  //   });
+  // });
 
   if (!windowConfig.native_frame) {
     document.body.classList.add('rounded');
@@ -726,20 +726,20 @@ async function _initialize() {
     return;
   }
 
-  window.addEventListener('keydown', (event) => {
-    const lowerKey = event.key.toLowerCase();
-    if (event.ctrlKey && !event.shiftKey) {
-      if (lowerKey in keybindings.ctrl) {
-        event.preventDefault();
-        window[keybindings.ctrl[lowerKey].func]();
-      }
-    } else if (event.ctrlKey && event.shiftKey) {
-      if (lowerKey in keybindings.ctrlshift) {
-        event.preventDefault();
-        window[keybindings.ctrlshift[lowerKey].func]();
-      }
-    }
-  }, false);
+  // window.addEventListener('keydown', (event) => {
+  //   const lowerKey = event.key.toLowerCase();
+  //   if (event.ctrlKey && !event.shiftKey) {
+  //     if (lowerKey in keybindings.ctrl) {
+  //       event.preventDefault();
+  //       window[keybindings.ctrl[lowerKey].func]();
+  //     }
+  //   } else if (event.ctrlKey && event.shiftKey) {
+  //     if (lowerKey in keybindings.ctrlshift) {
+  //       event.preventDefault();
+  //       window[keybindings.ctrlshift[lowerKey].func]();
+  //     }
+  //   }
+  // }, false);
 
   document.addEventListener('click', (e) => {
     if (e.target && e.target.classList.contains('jump-to-line')) {

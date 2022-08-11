@@ -9,8 +9,6 @@ import Divider from "./components/Divider.vue";
 import keybindings from "./assets/keybindings.json";
 import langInfo from "./assets/lang.json";
 
-import modelist from "ace-builds/src-noconflict/ext-modelist";
-
 import { store } from "./store";
 import { ref } from "@vue/reactivity";
 import { onMounted } from "@vue/runtime-core";
@@ -50,7 +48,7 @@ function setLanguage(langKey) {
   store.lang.selectedLang = langKey;
 }
 
-async function openFile(filePaths = []) {
+const openFile = async (filePaths = []) => {
   statusbarRef.value.notifyLoadStart();
 
   let filePathsArray = Array.isArray(filePaths) ? filePaths : [filePaths];
@@ -112,22 +110,23 @@ function _setFileInfo(filePath) {
 
 
 
+
+const exposedFunctions = {
+  openFile
+};
+
 onMounted(() => {
     window.addEventListener('keydown', (event) => {
     const lowerKey = event.key.toLowerCase();
     if (event.ctrlKey && !event.shiftKey) {
       if (lowerKey in keybindings.ctrl) {
         event.preventDefault();
-        console.log(keybindings.ctrl)
-        console.log(lowerKey)
-        console.log(keybindings.ctrl[lowerKey].func)
-        window[keybindings.ctrl[lowerKey].func]();
-
+        exposedFunctions[keybindings.ctrl[lowerKey].func]()
       }
     } else if (event.ctrlKey && event.shiftKey) {
       if (lowerKey in keybindings.ctrlshift) {
         event.preventDefault();
-        window[keybindings.ctrlshift[lowerKey].func]();
+        exposedFunctions[keybindings.ctrlshift[lowerKey].func]()
       }
     }
   }, false);
@@ -140,8 +139,6 @@ onMounted(() => {
   <Header />  
   <Divider direction="vertical" :dbclick-percentage="60">
     <template #primary>
-      <button @click="openFile()">open</button>
-      <button @click="consoleRef.print('helloooooo')">print</button>
       <Editor ref="editorRef" :lang="store.lang.selectedLang" />      
     </template>
     <template #secondary>
