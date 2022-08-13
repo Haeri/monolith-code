@@ -576,6 +576,7 @@ function _calculate(string) {
   return Function(`return (${string})`)();
 }
 
+/*
 function _assignUIVariables() {
   documentNameUi = document.getElementById('document-name');
   languageDisplayUi = document.getElementById('language-display');
@@ -594,6 +595,7 @@ function _assignUIVariables() {
   previewDevDivUi = document.getElementById('preview-dev-div');
   processIndicatorUi = document.getElementById('process-indicator');
 }
+*/
 
 function _initializeOptions(config) {
   themelist.get().themes.forEach((theme) => {
@@ -608,7 +610,7 @@ function _initializeOptions(config) {
 
 async function _initialize() {
   // Initialize all ui elements
-  _assignUIVariables();
+//  _assignUIVariables();
 
   const settings = await window.api.getInitialSettings();
   appInfo = settings.appInfo;
@@ -618,6 +620,7 @@ async function _initialize() {
   userPrefPath = settings.userPrefPath;
   langPrefPath = settings.languageConfigPath;
 
+  /*
   editor = ace.edit('main-text-area', {
     enableBasicAutocompletion: true,
     showPrintMargin: false,
@@ -632,6 +635,7 @@ async function _initialize() {
     theme: editorConfig.theme,
     fontSize: editorConfig.font_size,
   });
+  */
 
   // document.addEventListener('drop', (event) => {
   //   event.preventDefault();
