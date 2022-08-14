@@ -120,7 +120,11 @@ async function saveFile(saveAs = false) {
     filePath = _filepath;
   }
 
-  await window.api.writeFile(filePath, getContent());
+  try{
+    await window.api.writeFile(filePath, getContent());
+  }catch(err){
+    consoleRef.value.print(`an error occred while saving the file ${filePath}; ${err}`, INFO_LEVEL.err);
+  }
 
   if (store.file.path === undefined || saveAs) {
     consoleRef.value.print(`file saved as ${filePath}`);
@@ -156,6 +160,8 @@ function _setFileInfo(filePath) {
 
 
 const exposedFunctions = {
+  getContent,
+  setContent,
   openFile,
   saveFile,
   saveFileAs

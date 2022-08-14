@@ -114,9 +114,9 @@ const commandList = {
 
 /* ------------- PUBLIC API ------------- */
 
-function getContent() {
-  return editor.getValue();
-}
+// function getContent() {
+//   return editor.getValue();
+// }
 
 // function getModeFromName(filename) {
 //   return Object.entries(langInfo).find((item) => {
@@ -144,9 +144,9 @@ function getContent() {
 //   optionsContainer.querySelector(`.option[data-value="${langKey}"]`).classList.add('active');
 // }
 
-function setContent(content) {
-  editor.setValue(content, -1);
-}
+// function setContent(content) {
+//   editor.setValue(content, -1);
+// }
 
 function newWindow(filePaths = []) {
   const filePathsArray = Array.isArray(filePaths) ? filePaths : [filePaths];

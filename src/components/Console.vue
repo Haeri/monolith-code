@@ -40,6 +40,7 @@ defineExpose({
 </script>
 
 <template>
+<div class="shadow-caster">
 	<div ref="consoleRef" id="console">
 		<pre id="console-out" >
 			<div v-for="(log, i) in logs" :key="i" :class="getModeName(log.mode)" v-html="log.text"></div>
@@ -47,27 +48,41 @@ defineExpose({
 		<textarea id="console-in" spellcheck="false"></textarea>
 		<span id="process-indicator"></span>
 	</div>
+	</div>
 </template>
 
 <style scoped>
 #console {
 	flex: 1;
-	min-height: 0;
-	height: 0;
 	overflow-y: auto;
 	background: #191919;
 	display: flex;
 	flex-direction: column;
 	position: relative;
+}
 
-	box-shadow: inset 0 16px 17px -10px black;
+.shadow-caster{
+	flex: 1;
+	height: 0;
+	display: flex;
+	position: relative;
+}
+.shadow-caster:before{
+	content: "";
+	background: linear-gradient(180deg, rgba(0,0,0,0.26) 0%, rgba(0,0,0,0) 100%);
+	position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    height: 30px;
+	z-index: 1;
 }
 
 #console #console-in,
 #console #console-out {
 	white-space: pre-wrap;
 	box-sizing: border-box;
-	display: block;
+	display: flex;
 	width: 100%;
 	border: none;
 	outline: none;
