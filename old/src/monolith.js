@@ -40,7 +40,7 @@ let previewDevDivUi;
 let editorConsoleDivUi;
 let processIndicatorUi;
 
-const errorSVG = requireLazy(async () => await fetch('res/img/err.svg').then((res) => res.text()));
+//const errorSVG = requireLazy(async () => await fetch('res/img/err.svg').then((res) => res.text()));
 
 // Constants
 // const INFO_LEVEL = Object.freeze({
@@ -189,43 +189,43 @@ function newWindow(filePaths = []) {
 //   notifyLoadEnd();
 // }
 
-async function saveFileAs() {
-  return saveFile(true);
-}
+// async function saveFileAs() {
+//   return saveFile(true);
+// }
 
-async function saveFile(saveAs = false) {
-  notifyLoadStart();
+// async function saveFile(saveAs = false) {
+//   notifyLoadStart();
 
-  let filePath = file.path + file.name + file.extension;
+//   let filePath = file.path + file.name + file.extension;
 
-  if (file.path === undefined || saveAs) {
-    const lang = langInfo[languageDisplaySelectedUi.dataset.value];
-    const options = {
-      defaultPath: `~/${lang.tempname}`,
-      filters: [
-        { name: lang.name, extensions: lang.ext },
-        { name: 'All Files', extensions: ['*'] },
-      ],
-    };
+//   if (file.path === undefined || saveAs) {
+//     const lang = langInfo[languageDisplaySelectedUi.dataset.value];
+//     const options = {
+//       defaultPath: `~/${lang.tempname}`,
+//       filters: [
+//         { name: lang.name, extensions: lang.ext },
+//         { name: 'All Files', extensions: ['*'] },
+//       ],
+//     };
 
-    const { canceled, filePath: _filepath } = await window.api.showSaveDialog(options);
+//     const { canceled, filePath: _filepath } = await window.api.showSaveDialog(options);
 
-    if (canceled) {
-      notifyLoadEnd();
-      return;
-    }
-    filePath = _filepath;
-  }
+//     if (canceled) {
+//       notifyLoadEnd();
+//       return;
+//     }
+//     filePath = _filepath;
+//   }
 
-  await window.api.writeFile(filePath, getContent());
+//   await window.api.writeFile(filePath, getContent());
 
-  if (file.path === undefined || saveAs) {
-    print(`file saved as ${filePath}`);
-  }
-  _setFileInfo(filePath);
+//   if (file.path === undefined || saveAs) {
+//     print(`file saved as ${filePath}`);
+//   }
+//   _setFileInfo(filePath);
 
-  notifyLoadEnd();
-}
+//   notifyLoadEnd();
+// }
 
 /* ------------- UI ------------- */
 
@@ -646,12 +646,12 @@ async function _initialize() {
   //   });
   // });
 
-  if (!windowConfig.native_frame) {
-    document.body.classList.add('rounded');
-  }
-  if (localWindowConfig.maximized) {
-    document.body.classList.add('fullscreen');
-  }
+  // if (!windowConfig.native_frame) {
+  //   document.body.classList.add('rounded');
+  // }
+  // if (localWindowConfig.maximized) {
+  //   document.body.classList.add('fullscreen');
+  // }
 
   const ro = new ResizeObserver(() => {
     editor.resize();

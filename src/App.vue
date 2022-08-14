@@ -11,7 +11,7 @@ import langInfo from "./assets/lang.json";
 
 import { store } from "./store";
 import { ref } from "@vue/reactivity";
-import { onMounted } from "@vue/runtime-core";
+import { onBeforeMount, onMounted } from "@vue/runtime-core";
 
 
 store.lang.options = langInfo;
@@ -48,7 +48,14 @@ function setLanguage(langKey) {
   store.lang.selectedLang = langKey;
 }
 
-const openFile = async (filePaths = []) => {
+function getContent() {
+  return editorRef.value.getContent();
+}
+function setContent(text) {
+  editorRef.value.setContent(text);
+}
+
+async function openFile(filePaths = []) {
   statusbarRef.value.notifyLoadStart();
 
   let filePathsArray = Array.isArray(filePaths) ? filePaths : [filePaths];
@@ -65,7 +72,7 @@ const openFile = async (filePaths = []) => {
     const fileToOpen = filePathsArray.shift();
     window.api.readFile(fileToOpen)
       .then((data) => {        
-        editorRef.value.setContent(data);
+        setContent(data);
         //editor.setValue(data, -1);
         _setFileInfo(fileToOpen);
         consoleRef.value.print(`Opened file ${fileToOpen}`);
@@ -85,6 +92,43 @@ const openFile = async (filePaths = []) => {
   statusbarRef.value.notifyLoadEnd();
 }
 
+async function saveFileAs() {
+  return saveFile(true);
+}
+
+async function saveFile(saveAs = false) {
+  statusbarRef.value.notifyLoadStart();
+
+  let filePath = store.file.path + store.file.name + store.file.extension;
+
+  if (store.file.path === undefined || saveAs) {
+    const lang = langInfo[store.lang.selectedLang];
+    const options = {
+      defaultPath: `~/${lang.tempname}`,
+      filters: [
+        { name: lang.name, extensions: lang.ext },
+        { name: 'All Files', extensions: ['*'] },
+      ],
+    };
+
+    const { canceled, filePath: _filepath } = await window.api.showSaveDialog(options);
+
+    if (canceled) {
+      statusbarRef.value.notifyLoadEnd();
+      return;
+    }
+    filePath = _filepath;
+  }
+
+  await window.api.writeFile(filePath, getContent());
+
+  if (store.file.path === undefined || saveAs) {
+    consoleRef.value.print(`file saved as ${filePath}`);
+  }
+  _setFileInfo(filePath);
+
+  statusbarRef.value.notifyLoadEnd();
+}
 
 
 
@@ -112,7 +156,9 @@ function _setFileInfo(filePath) {
 
 
 const exposedFunctions = {
-  openFile
+  openFile,
+  saveFile,
+  saveFileAs
 };
 
 onMounted(() => {
@@ -132,7 +178,15 @@ onMounted(() => {
   }, false);
 })
 
-
+onBeforeMount(async () => {
+  const settings = await window.api.getInitialSettings();
+  if (!settings.windowConfig.native_frame) {
+    document.body.classList.add('rounded');
+  }
+  if (settings.localWindowConfig.maximized) {
+    document.body.classList.add('fullscreen');
+  }
+});
 </script>
 
 <template>

@@ -253,6 +253,19 @@
 		],
 		"detector": "\\.py$"
 	},
+	"rust": {
+		"name": "Rust",
+		"mode": "rust",
+		"comp": "rustc <name>.rs",
+		"run": "<path><name><exe_extension>",
+		"templ": "fn main() {\n\tprintln!(\"Hello, world!\");\n}",
+		"linere": "",
+		"tempname": "MyRustCode",
+		"ext": [
+			"rs"
+		],
+		"detector": "\\.rs$"
+	},
 	"sql": {
 		"name": "SQL",
 		"mode": "sql",

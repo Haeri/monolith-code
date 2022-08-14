@@ -38,6 +38,10 @@ const options = ref({
 function setContent(text) {
   content.value = text;
 }
+function getContent() {
+  return content.value;
+}
+
 
 let editor = {};
 
@@ -46,7 +50,8 @@ function _editorInit(e) {
 }
 
 defineExpose({
-  setContent
+  setContent,
+  getContent
 });
 
 </script>
