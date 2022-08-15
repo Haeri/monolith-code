@@ -333,7 +333,7 @@ function openLanguageSettings() {
 
 async function killProcess() {
   // return new Promise((resolve, reject) => {
-  if (runningProcess != null) {
+  if (runningProcess !== null) {
     await runningProcess.dispatch('kill');
   }
   /*
@@ -416,7 +416,7 @@ function commandRunner(command, args, callback) {
   });
 
   runningProcess.registerHandler('stderr', (data) => {
-    if (file.lang !== undefined && langInfo[file.lang].linere != null) {
+    if (file.lang !== undefined && langInfo[file.lang].linere !== null) {
       const line = langInfo[file.lang].linere.replaceAll('<name>', file.name);
       const re = new RegExp(line, 'gi');
       data = data.replaceAll(re, '<a class="jump-to-line" href="#$2">$1</a>');
@@ -564,7 +564,7 @@ function _setFileInfo(filePath) {
   file.name = window.api.path.basename(filePath, file.extension);
 
   const lang = getModeFromName(file.name + file.extension);
-  if (lang == null) {
+  if (lang === null) {
     file.lang = 'plaintext';
   } else {
     file.lang = lang[0];
@@ -785,7 +785,7 @@ async function _initialize() {
       } else if (cmd.startsWith('!')) {
         print(pre, INFO_LEVEL.user);
         print('Command not recognized. Try !help.', INFO_LEVEL.warn);
-      } else if (runningProcess != null) {
+      } else if (runningProcess !== null) {
         runningProcess.dispatch('stdin', `${cmd}\n`);
       } else {
         runCommand(cmd);
