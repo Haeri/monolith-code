@@ -259,7 +259,7 @@
 		"comp": "rustc <name>.rs",
 		"run": "<path><name><exe_extension>",
 		"templ": "fn main() {\n\tprintln!(\"Hello, world!\");\n}",
-		"linere": "",
+		"linere": "( --> <name>\\.rs:(\\d*):\\d*)",
 		"tempname": "MyRustCode",
 		"ext": [
 			"rs"

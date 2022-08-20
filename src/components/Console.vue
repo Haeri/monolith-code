@@ -9,7 +9,7 @@ const logs = ref([]);
 
 const consoleRef = ref(null);
 
-function getModeName(mode){
+function getModeName(mode) {
 	return Object.keys(INFO_LEVEL).find((key) => INFO_LEVEL[key] === mode);
 }
 
@@ -40,14 +40,14 @@ defineExpose({
 </script>
 
 <template>
-<div class="shadow-caster">
-	<div ref="consoleRef" id="console">
-		<pre id="console-out" >
+	<div class="shadow-caster">
+		<div ref="consoleRef" id="console">
+			<pre id="console-out">
 			<div v-for="(log, i) in logs" :key="i" :class="getModeName(log.mode)" v-html="log.text"></div>
 		</pre>
-		<textarea id="console-in" spellcheck="false"></textarea>
-		<span id="process-indicator"></span>
-	</div>
+			<textarea id="console-in" spellcheck="false"></textarea>
+			<span id="process-indicator"></span>
+		</div>
 	</div>
 </template>
 
@@ -61,20 +61,21 @@ defineExpose({
 	position: relative;
 }
 
-.shadow-caster{
+.shadow-caster {
 	flex: 1;
 	height: 0;
 	display: flex;
 	position: relative;
 }
-.shadow-caster:before{
+
+.shadow-caster:before {
 	content: "";
-	background: linear-gradient(180deg, rgba(0,0,0,0.26) 0%, rgba(0,0,0,0) 100%);
+	background: linear-gradient(180deg, rgba(0, 0, 0, 0.26) 0%, rgba(0, 0, 0, 0) 100%);
 	position: absolute;
-    top: 0;
-    left: 0;
-    right: 0;
-    height: 30px;
+	top: 0;
+	left: 0;
+	right: 0;
+	height: 30px;
 	z-index: 1;
 }
 
@@ -96,6 +97,7 @@ defineExpose({
 	background: #1b1b1b;
 	color: #a9a9a9;
 	padding: 10px 0px;
+	flex-direction: column;
 }
 
 #console #console-in {

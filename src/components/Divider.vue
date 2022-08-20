@@ -117,7 +117,7 @@ onMounted(() => {
         </div>
         <div ref="resizer" class="divider"></div>
         <!--div class="second" :class="{ disabled: isResizing }"-->
-            <slot name="secondary" :class="{ disabled: isResizing }"></slot>
+        <slot name="secondary" :class="{ disabled: isResizing }"></slot>
         <!--/div-->
     </div>
 </template>
@@ -133,8 +133,8 @@ onMounted(() => {
     overflow: hidden;
 }
 
-.second{
-flex: 1;
+.second {
+    flex: 1;
 }
 
 .vertical {
@@ -142,7 +142,7 @@ flex: 1;
 }
 
 .horizontal {
-    flex-direction: row;    
+    flex-direction: row;
 }
 
 

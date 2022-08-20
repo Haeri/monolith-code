@@ -17,6 +17,8 @@ import { onBeforeMount, onMounted } from "@vue/runtime-core";
 store.lang.options = langInfo;
 store.lang.selectedLang = "plaintext";
 
+
+
 const editorRef = ref(null);
 const statusbarRef = ref(null);
 const consoleRef = ref(null);
@@ -71,7 +73,7 @@ async function openFile(filePaths = []) {
   if (!store.file.path && (store.isSaved === null || store.isSaved)) {
     const fileToOpen = filePathsArray.shift();
     window.api.readFile(fileToOpen)
-      .then((data) => {        
+      .then((data) => {
         setContent(data);
         //editor.setValue(data, -1);
         _setFileInfo(fileToOpen);
@@ -120,9 +122,9 @@ async function saveFile(saveAs = false) {
     filePath = _filepath;
   }
 
-  try{
+  try {
     await window.api.writeFile(filePath, getContent());
-  }catch(err){
+  } catch (err) {
     consoleRef.value.print(`an error occred while saving the file ${filePath}; ${err}`, INFO_LEVEL.err);
   }
 
@@ -158,6 +160,12 @@ function _setFileInfo(filePath) {
 
 
 
+function _dropOpen(e) {
+  Array.from(e.dataTransfer.files).forEach((f) => {
+    openFile(f.path);
+  });
+}
+
 
 const exposedFunctions = {
   getContent,
@@ -167,8 +175,22 @@ const exposedFunctions = {
   saveFileAs
 };
 
+let initialSettings;
+
+onBeforeMount(async () => {
+  initialSettings = await window.api.getInitialSettings();
+  consoleRef.value.print(`${initialSettings.appInfo.name} ${initialSettings.appInfo.version}`);
+
+  if (!initialSettings.windowConfig.native_frame) {
+    document.body.classList.add('rounded');
+  }
+  if (initialSettings.localWindowConfig.maximized) {
+    document.body.classList.add('fullscreen');
+  }
+});
+
 onMounted(() => {
-    window.addEventListener('keydown', (event) => {
+  window.addEventListener('keydown', (event) => {
     const lowerKey = event.key.toLowerCase();
     if (event.ctrlKey && !event.shiftKey) {
       if (lowerKey in keybindings.ctrl) {
@@ -182,24 +204,21 @@ onMounted(() => {
       }
     }
   }, false);
+
+  window.api.print((_, value) => {
+    consoleRef.value.print(value.text);
+  });
+
 })
 
-onBeforeMount(async () => {
-  const settings = await window.api.getInitialSettings();
-  if (!settings.windowConfig.native_frame) {
-    document.body.classList.add('rounded');
-  }
-  if (settings.localWindowConfig.maximized) {
-    document.body.classList.add('fullscreen');
-  }
-});
+
 </script>
 
 <template>
-  <Header />  
+  <Header />
   <Divider direction="vertical" :dbclick-percentage="60">
     <template #primary>
-      <Editor ref="editorRef" :lang="store.lang.selectedLang" />      
+      <Editor @dragover.prevent @drop.prevent="_dropOpen" ref="editorRef" :lang="store.lang.selectedLang" />
     </template>
     <template #secondary>
       <Console ref="consoleRef" :status-bar-ref="statusbarRef" />

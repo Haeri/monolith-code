@@ -17,7 +17,7 @@ const isOpen = ref(false);
 
 const optionRefs = ref([]);
 
-function choose(){
+function choose() {
     isOpen.value = false;
     emit("selected", selected.value.key);
 }
@@ -28,7 +28,7 @@ function select(key, close = true) {
         props: props.options[key]
     };
 
-    if (close) {        
+    if (close) {
         choose();
     } else {
         let index = Object.keys(props.options).findIndex(el => el === key);

@@ -49,6 +49,7 @@ function _editorInit(e) {
   window.editor = e;
 }
 
+
 defineExpose({
   setContent,
   getContent

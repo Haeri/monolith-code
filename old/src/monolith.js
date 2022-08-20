@@ -658,10 +658,10 @@ async function _initialize() {
   });
   ro.observe(document.getElementById('editor-wrapper'));
 
-  document.addEventListener('dragover', (e) => {
-    e.preventDefault();
-    e.stopPropagation();
-  });
+  // document.addEventListener('dragover', (e) => {
+  //   e.preventDefault();
+  //   e.stopPropagation();
+  // });
 
   document.addEventListener('mousewheel', (e) => {
     if (e.ctrlKey) {
@@ -922,7 +922,7 @@ async function _initialize() {
   document.getElementById('main-divider').style.height = editorConfig.console_div_percent;
   document.getElementById('embed-content').style.height = '100%';
 
-  print(`${appInfo.name} ${appInfo.version}`);
+  // print(`${appInfo.name} ${appInfo.version}`);
 
   if (settings.filePathsToOpen.length) {
     openFile(settings.filePathsToOpen);
@@ -933,5 +933,5 @@ async function _initialize() {
 
 
 
-/* ---- DOCUMENT READY ---- */
-document.addEventListener('DOMContentLoaded', _initialize);
+// /* ---- DOCUMENT READY ---- */
+// document.addEventListener('DOMContentLoaded', _initialize);
