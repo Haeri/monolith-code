@@ -3,6 +3,7 @@ import { ref } from "@vue/reactivity";
 import { onMounted } from "@vue/runtime-core";
 
 const props = defineProps({
+    initialPercentage: Number,
     direction: {
         type: String,
         required: true
@@ -12,7 +13,7 @@ const props = defineProps({
 
 const emit = defineEmits(["resized"]);
 
-const divisionPercentage = ref(props.dbclickPercentage);
+const divisionPercentage = ref(props.initialPercentage);
 const isResizing = ref(false);
 
 const resizer = ref(null);

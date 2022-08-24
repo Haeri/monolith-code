@@ -23,6 +23,7 @@ const props = defineProps({
   documentName: String,
 });
 
+const isPinned = ref(false);
 
 const title = computed(() => {
   let t = store.file.extension ? store.file.name + store.file.extension : 'new document';
@@ -34,12 +35,11 @@ const title = computed(() => {
   window.api.setTitle(t);
   return t;
 });
-const isPinned = ref(false);
 
 
-function togglePin() {
-  isPinned.value = !isPinned;
-  window.api.setAlwaysOnTop(isPinned.value);
+
+async function togglePin() {
+  isPinned.value = await window.api.toggleAlwaysOnTop();
 }
 
 function minimize() {

@@ -203,10 +203,10 @@ ipcMain.on('set-title', (event, title) => {
   win.setTitle(title);
 });
 
-ipcMain.handle('toggle-pin', (event) => {
+ipcMain.handle('toggle-always-on-top', (event) => {
   const win = BrowserWindow.fromWebContents(event.sender);
-  const pinned = win.isAlwaysOnTop();
-  win.setAlwaysOnTop(!pinned);
+  const pinned = !win.isAlwaysOnTop();
+  win.setAlwaysOnTop(pinned);
   return pinned;
 });
 

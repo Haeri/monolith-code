@@ -612,13 +612,13 @@ async function _initialize() {
   // Initialize all ui elements
 //  _assignUIVariables();
 
-  const settings = await window.api.getInitialSettings();
-  appInfo = settings.appInfo;
-  editorConfig = settings.editorConfig;
-  windowConfig = settings.windowConfig;
-  localWindowConfig = settings.localWindowConfig;
-  userPrefPath = settings.userPrefPath;
-  langPrefPath = settings.languageConfigPath;
+  // const settings = await window.api.getInitialSettings();
+  // appInfo = settings.appInfo;
+  // editorConfig = settings.editorConfig;
+  // windowConfig = settings.windowConfig;
+  // localWindowConfig = settings.localWindowConfig;
+  // userPrefPath = settings.userPrefPath;
+  // langPrefPath = settings.languageConfigPath;
 
   /*
   editor = ace.edit('main-text-area', {
@@ -679,27 +679,27 @@ async function _initialize() {
     }
   });
 
-  document.getElementById('min-button').addEventListener('click', () => {
-    window.api.minimize();
-  });
+  // document.getElementById('min-button').addEventListener('click', () => {
+  //   window.api.minimize();
+  // });
 
-  document.getElementById('max-button').addEventListener('click', () => {
-    window.api.toggleMaxUnmax();
-  });
+  // document.getElementById('max-button').addEventListener('click', () => {
+  //   window.api.toggleMaxUnmax();
+  // });
 
-  document.getElementById('close-button').addEventListener('click', () => {
-    killProcess().then(() => window.api.close());
-  });
+  // document.getElementById('close-button').addEventListener('click', () => {
+  //   killProcess().then(() => window.api.close());
+  // });
 
-  document.getElementById('pin-button').addEventListener('click', (e) => {
-    window.api.togglePin().then((pinned) => {
-      if (!pinned) {
-        e.target.classList.add('pinned');
-      } else {
-        e.target.classList.remove('pinned');
-      }
-    });
-  });
+  // document.getElementById('pin-button').addEventListener('click', (e) => {
+  //   window.api.togglePin().then((pinned) => {
+  //     if (!pinned) {
+  //       e.target.classList.add('pinned');
+  //     } else {
+  //       e.target.classList.remove('pinned');
+  //     }
+  //   });
+  // });
 
   window.api.updateMaxUnmax((_, value) => {
     _toggleFullscreenStyle(value);
@@ -707,9 +707,9 @@ async function _initialize() {
 
 
 
-  window.api.print((_, value) => {
-    print(value.text);
-  });
+  // window.api.print((_, value) => {
+  //   print(value.text);
+  // });
 
   const emittedOnce = (element, eventName) => new Promise((resolve) => {
     element.addEventListener(eventName, (event) => resolve(event), { once: true });
@@ -720,15 +720,15 @@ async function _initialize() {
 
   });
 
-  // Load Keybindings
-  try {
-    const response = await fetch('res/keybindings.json');
-    const data = await response.text();
-    keybindings = JSON.parse(data);
-  } catch (err) {
-    print(`An error ocurred reading the file :${err.message}`, INFO_LEVEL.err);
-    return;
-  }
+  // // Load Keybindings
+  // try {
+  //   const response = await fetch('res/keybindings.json');
+  //   const data = await response.text();
+  //   keybindings = JSON.parse(data);
+  // } catch (err) {
+  //   print(`An error ocurred reading the file :${err.message}`, INFO_LEVEL.err);
+  //   return;
+  // }
 
   // window.addEventListener('keydown', (event) => {
   //   const lowerKey = event.key.toLowerCase();
@@ -802,46 +802,46 @@ async function _initialize() {
     return true;
   }, false);
 
-  themeChoiceUi.addEventListener('change', () => {
-    setTheme(themeChoiceUi.value);
-  });
+  // themeChoiceUi.addEventListener('change', () => {
+  //   setTheme(themeChoiceUi.value);
+  // });
 
-  languageDisplaySelectedUi.addEventListener('click', (e1) => {
-    if (optionsContainer.classList.contains('active')) {
-      optionsContainer.classList.remove('active');
-    } else {
-      optionsContainer.classList.add('active');
-      e1.stopImmediatePropagation();
-      document.addEventListener('click', (e) => {
-        if (languageDisplaySelectedUi.contains(e.target)) return;
-        optionsContainer.classList.remove('active');
-      }, { once: true });
-    }
-  });
+  // languageDisplaySelectedUi.addEventListener('click', (e1) => {
+  //   if (optionsContainer.classList.contains('active')) {
+  //     optionsContainer.classList.remove('active');
+  //   } else {
+  //     optionsContainer.classList.add('active');
+  //     e1.stopImmediatePropagation();
+  //     document.addEventListener('click', (e) => {
+  //       if (languageDisplaySelectedUi.contains(e.target)) return;
+  //       optionsContainer.classList.remove('active');
+  //     }, { once: true });
+  //   }
+  // });
 
-  // Load Languages
-  try {
-    const response = await fetch('res/lang.json');
-    const data = await response.text();
-    langInfo = JSON.parse(data);
-    mergeDeep(langInfo, settings.languageConfig);
+  // // Load Languages
+  // try {
+  //   const response = await fetch('res/lang.json');
+  //   const data = await response.text();
+  //   langInfo = JSON.parse(data);
+  //   mergeDeep(langInfo, settings.languageConfig);
 
-    Object.entries(langInfo).forEach((el) => {
-      const option = document.createElement('div');
-      option.classList.add('option');
-      const [name, obj] = el;
-      option.innerText = obj.name;
-      option.dataset.value = name;
-      optionsContainer.appendChild(option);
-      option.addEventListener('click', () => {
-        optionsContainer.classList.remove('active');
-        setLanguage(option.dataset.value);
-      });
-    });
-  } catch (err) {
-    print(`An error ocurred reading the file :${err.message}`, INFO_LEVEL.err);
-    return;
-  }
+  //   Object.entries(langInfo).forEach((el) => {
+  //     const option = document.createElement('div');
+  //     option.classList.add('option');
+  //     const [name, obj] = el;
+  //     option.innerText = obj.name;
+  //     option.dataset.value = name;
+  //     optionsContainer.appendChild(option);
+  //     option.addEventListener('click', () => {
+  //       optionsContainer.classList.remove('active');
+  //       setLanguage(option.dataset.value);
+  //     });
+  //   });
+  // } catch (err) {
+  //   print(`An error ocurred reading the file :${err.message}`, INFO_LEVEL.err);
+  //   return;
+  // }
 
   webviewUi.addEventListener('console-message', (e) => {
     if (e.sourceId === 'electron/js2c/renderer_init.js') return;
@@ -872,47 +872,47 @@ async function _initialize() {
     print(`Message from ${fileSource}\n${e.message}`, mode);
   });
 
-  editorMediaDivUi.addEventListener('divider-move', () => {
-    const val = editorMediaDivUi.previousElementSibling.style.width;
-    window.api.storeSetting('media_div_percent', val);
-  });
-  editorConsoleDivUi.addEventListener('divider-move', () => {
-    const val = editorConsoleDivUi.previousElementSibling.style.height;
-    window.api.storeSetting('console_div_percent', val);
-  });
+  // editorMediaDivUi.addEventListener('divider-move', () => {
+  //   const val = editorMediaDivUi.previousElementSibling.style.width;
+  //   window.api.storeSetting('media_div_percent', val);
+  // });
+  // editorConsoleDivUi.addEventListener('divider-move', () => {
+  //   const val = editorConsoleDivUi.previousElementSibling.style.height;
+  //   window.api.storeSetting('console_div_percent', val);
+  // });
 
-  editorMediaDivUi.addEventListener('dblclick', () => {
-    const num = parseFloat(editorMediaDivUi.previousElementSibling.style.width.replace('%', ''));
-    const targetPercent = Math.abs(num - 50) < 1 ? '100%' : '50%';
+  // editorMediaDivUi.addEventListener('dblclick', () => {
+  //   const num = parseFloat(editorMediaDivUi.previousElementSibling.style.width.replace('%', ''));
+  //   const targetPercent = Math.abs(num - 50) < 1 ? '100%' : '50%';
 
-    const anim = editorMediaDivUi.previousElementSibling.animate([
-      { width: editorMediaDivUi.previousElementSibling.style.width },
-      { width: targetPercent },
-    ], {
-      duration: 450,
-      easing: 'cubic-bezier(0.860, 0.000, 0.070, 1.000)',
-    });
-    anim.finished.then(() => {
-      editorMediaDivUi.previousElementSibling.style.width = targetPercent;
-      window.api.storeSetting('media_div_percent', targetPercent);
-    });
-  });
-  editorConsoleDivUi.addEventListener('dblclick', () => {
-    const num = parseFloat(editorConsoleDivUi.previousElementSibling.style.height.replace('%', ''));
-    const targetPercent = Math.abs(num - 60) < 1 ? '100%' : '60%';
+  //   const anim = editorMediaDivUi.previousElementSibling.animate([
+  //     { width: editorMediaDivUi.previousElementSibling.style.width },
+  //     { width: targetPercent },
+  //   ], {
+  //     duration: 450,
+  //     easing: 'cubic-bezier(0.860, 0.000, 0.070, 1.000)',
+  //   });
+  //   anim.finished.then(() => {
+  //     editorMediaDivUi.previousElementSibling.style.width = targetPercent;
+  //     window.api.storeSetting('media_div_percent', targetPercent);
+  //   });
+  // });
+  // editorConsoleDivUi.addEventListener('dblclick', () => {
+  //   const num = parseFloat(editorConsoleDivUi.previousElementSibling.style.height.replace('%', ''));
+  //   const targetPercent = Math.abs(num - 60) < 1 ? '100%' : '60%';
 
-    const anim = editorConsoleDivUi.previousElementSibling.animate([
-      { height: editorConsoleDivUi.previousElementSibling.style.height },
-      { height: targetPercent },
-    ], {
-      duration: 450,
-      easing: 'cubic-bezier(0.860, 0.000, 0.070, 1.000)',
-    });
-    anim.finished.then(() => {
-      editorConsoleDivUi.previousElementSibling.style.height = targetPercent;
-      window.api.storeSetting('console_div_percent', targetPercent);
-    });
-  });
+  //   const anim = editorConsoleDivUi.previousElementSibling.animate([
+  //     { height: editorConsoleDivUi.previousElementSibling.style.height },
+  //     { height: targetPercent },
+  //   ], {
+  //     duration: 450,
+  //     easing: 'cubic-bezier(0.860, 0.000, 0.070, 1.000)',
+  //   });
+  //   anim.finished.then(() => {
+  //     editorConsoleDivUi.previousElementSibling.style.height = targetPercent;
+  //     window.api.storeSetting('console_div_percent', targetPercent);
+  //   });
+  // });
 
   previewDevDivUi.addEventListener('dblclick', () => {
     togglePreviewDivider();
@@ -924,11 +924,11 @@ async function _initialize() {
 
   // print(`${appInfo.name} ${appInfo.version}`);
 
-  if (settings.filePathsToOpen.length) {
-    openFile(settings.filePathsToOpen);
-  } else {
-    setLanguage('plaintext');
-  }
+  // if (settings.filePathsToOpen.length) {
+  //   openFile(settings.filePathsToOpen);
+  // } else {
+  //   setLanguage('plaintext');
+  // }
 }
 
 

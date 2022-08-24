@@ -11,18 +11,18 @@ import langInfo from "./assets/lang.json";
 
 import { store } from "./store";
 import { ref } from "@vue/reactivity";
-import { onBeforeMount, onMounted } from "@vue/runtime-core";
-
-
-store.lang.options = langInfo;
-store.lang.selectedLang = "plaintext";
-
+import { onBeforeMount, onMounted, watch, watchEffect } from "@vue/runtime-core";
+import { mergeDeep } from "./utils";
 
 
 const editorRef = ref(null);
 const statusbarRef = ref(null);
 const consoleRef = ref(null);
 
+const settings = ref(null);
+
+store.lang.options = langInfo;
+store.lang.selectedLang = "plaintext";
 
 window.api.canClose((event) => {
   event.sender.send('can-close-response', (store.isSaved === null || store.isSaved));
@@ -75,7 +75,6 @@ async function openFile(filePaths = []) {
     window.api.readFile(fileToOpen)
       .then((data) => {
         setContent(data);
-        //editor.setValue(data, -1);
         _setFileInfo(fileToOpen);
         consoleRef.value.print(`Opened file ${fileToOpen}`);
         // webviewUi.src = 'about:blank'
@@ -175,18 +174,27 @@ const exposedFunctions = {
   saveFileAs
 };
 
-let initialSettings;
 
-onBeforeMount(async () => {
-  initialSettings = await window.api.getInitialSettings();
-  consoleRef.value.print(`${initialSettings.appInfo.name} ${initialSettings.appInfo.version}`);
+async function bootstrap() {
+  settings.value = await window.api.getInitialSettings();
 
-  if (!initialSettings.windowConfig.native_frame) {
+  mergeDeep(langInfo, settings.languageConfig);
+  store.lang.options = langInfo;
+
+  if (!settings.value.windowConfig.native_frame) {
     document.body.classList.add('rounded');
   }
-  if (initialSettings.localWindowConfig.maximized) {
+  if (settings.value.localWindowConfig.maximized) {
     document.body.classList.add('fullscreen');
   }
+
+  if (settings.value.filePathsToOpen.length) {
+    openFile(settings.value.filePathsToOpen);
+  }
+}
+
+onBeforeMount(() => {
+  bootstrap();
 });
 
 onMounted(() => {
@@ -208,17 +216,23 @@ onMounted(() => {
   window.api.print((_, value) => {
     consoleRef.value.print(value.text);
   });
-
 })
 
+watch(() => consoleRef.value, () => {
+  consoleRef.value.print(`${settings.value.appInfo.name} ${settings.value.appInfo.version}`);
+})
 
+function _storeResize(type, val) {
+  window.api.storeSetting(type, val);
+}
 </script>
 
 <template>
   <Header />
-  <Divider direction="vertical" :dbclick-percentage="60">
+  <Divider v-if="settings != null" :initial-percentage="settings.editorConfig.console_div_percent" direction="vertical"
+    :dbclick-percentage="60" @resized="(e) => _storeResize('console_div_percent', e)">
     <template #primary>
-      <Editor @dragover.prevent @drop.prevent="_dropOpen" ref="editorRef" :lang="store.lang.selectedLang" />
+      <Editor config="" @dragover.prevent @drop.prevent="_dropOpen" ref="editorRef" :lang="store.lang.selectedLang" />
     </template>
     <template #secondary>
       <Console ref="consoleRef" :status-bar-ref="statusbarRef" />

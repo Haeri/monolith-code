@@ -113,7 +113,7 @@ const API = {
   unmaximize: () => ipcRenderer.send('unmaximize'),
   toggleMaxUnmax: () => ipcRenderer.send('toggle-max-unmax'),
   close: () => ipcRenderer.send('close'),
-  togglePin: () => ipcRenderer.invoke('toggle-pin'),
+  toggleAlwaysOnTop: () => ipcRenderer.invoke('toggle-always-on-top'),
   newWindow: (filePaths) => ipcRenderer.send('new-window', filePaths),
   setTitle: (title) => ipcRenderer.send('set-title', title),
 
