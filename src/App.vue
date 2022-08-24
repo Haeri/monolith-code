@@ -21,13 +21,6 @@ const consoleRef = ref(null);
 
 const settings = ref(null);
 
-store.lang.options = langInfo;
-store.lang.selectedLang = "plaintext";
-
-window.api.canClose((event) => {
-  event.sender.send('can-close-response', (store.isSaved === null || store.isSaved));
-});
-
 
 /* ------------- PUBLIC API ------------- */
 
@@ -136,8 +129,42 @@ async function saveFile(saveAs = false) {
 }
 
 
+function newWindow(filePaths = []) {
+  const filePathsArray = Array.isArray(filePaths) ? filePaths : [filePaths];
+  window.api.newWindow(filePathsArray);
+}
 
 
+const exposedFunctions = {
+  getContent,
+  setContent,
+  openFile,
+  saveFile,
+  saveFileAs,
+  newWindow
+};
+
+
+
+/* ------------- PRIVATE FUNCTIONS ------------- */
+
+async function _initialize() {
+  settings.value = await window.api.getInitialSettings();
+
+  mergeDeep(langInfo, settings.languageConfig);
+  store.lang.options = langInfo;
+
+  if (!settings.value.windowConfig.native_frame) {
+    document.body.classList.add('rounded');
+  }
+  if (settings.value.localWindowConfig.maximized) {
+    document.body.classList.add('fullscreen');
+  }
+
+  if (settings.value.filePathsToOpen.length) {
+    openFile(settings.value.filePathsToOpen);
+  }
+}
 
 function _setFileInfo(filePath) {
   store.file.extension = window.api.path.extname(filePath);
@@ -157,44 +184,22 @@ function _setFileInfo(filePath) {
   //_updateTitle();
 }
 
+function _onStoreResize(type, val) {
+  window.api.storeSetting(type, val);
+}
 
-
-function _dropOpen(e) {
+function _onDropOpen(e) {
   Array.from(e.dataTransfer.files).forEach((f) => {
     openFile(f.path);
   });
 }
 
 
-const exposedFunctions = {
-  getContent,
-  setContent,
-  openFile,
-  saveFile,
-  saveFileAs
-};
 
 
-async function bootstrap() {
-  settings.value = await window.api.getInitialSettings();
-
-  mergeDeep(langInfo, settings.languageConfig);
-  store.lang.options = langInfo;
-
-  if (!settings.value.windowConfig.native_frame) {
-    document.body.classList.add('rounded');
-  }
-  if (settings.value.localWindowConfig.maximized) {
-    document.body.classList.add('fullscreen');
-  }
-
-  if (settings.value.filePathsToOpen.length) {
-    openFile(settings.value.filePathsToOpen);
-  }
-}
 
 onBeforeMount(() => {
-  bootstrap();
+  _initialize();
 });
 
 onMounted(() => {
@@ -213,26 +218,27 @@ onMounted(() => {
     }
   }, false);
 
-  window.api.print((_, value) => {
-    consoleRef.value.print(value.text);
+
+  window.api.canClose((event) => {
+    event.sender.send('can-close-response', (store.isSaved === null || store.isSaved));
   });
 })
 
 watch(() => consoleRef.value, () => {
+  window.api.print((_, value) => {
+    consoleRef.value.print(value.text);
+  });
+
   consoleRef.value.print(`${settings.value.appInfo.name} ${settings.value.appInfo.version}`);
 })
-
-function _storeResize(type, val) {
-  window.api.storeSetting(type, val);
-}
 </script>
 
 <template>
   <Header />
   <Divider v-if="settings != null" :initial-percentage="settings.editorConfig.console_div_percent" direction="vertical"
-    :dbclick-percentage="60" @resized="(e) => _storeResize('console_div_percent', e)">
+    :dbclick-percentage="60" @resized="(e) => _onStoreResize('console_div_percent', e)">
     <template #primary>
-      <Editor config="" @dragover.prevent @drop.prevent="_dropOpen" ref="editorRef" :lang="store.lang.selectedLang" />
+      <Editor config="" @dragover.prevent @drop.prevent="_onDropOpen" ref="editorRef" :lang="store.lang.selectedLang" />
     </template>
     <template #secondary>
       <Console ref="consoleRef" :status-bar-ref="statusbarRef" />

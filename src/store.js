@@ -1,4 +1,5 @@
 import { computed, reactive } from 'vue'
+import langInfo from "./assets/lang.json";
 
 export const store = reactive({
   isSaved: null,
@@ -9,8 +10,8 @@ export const store = reactive({
     lang: undefined,
   },
   lang: {
-    options: null,
-    selectedLang: null
+    options: langInfo,
+    selectedLang: "plaintext"
   }
 })
 export const selectedMode = computed(() => store.lang.options[selectedLang].mode);

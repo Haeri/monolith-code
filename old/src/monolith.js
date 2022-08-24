@@ -148,10 +148,10 @@ const commandList = {
 //   editor.setValue(content, -1);
 // }
 
-function newWindow(filePaths = []) {
-  const filePathsArray = Array.isArray(filePaths) ? filePaths : [filePaths];
-  window.api.newWindow(filePathsArray);
-}
+// function newWindow(filePaths = []) {
+//   const filePathsArray = Array.isArray(filePaths) ? filePaths : [filePaths];
+//   window.api.newWindow(filePathsArray);
+// }
 
 // async function openFile(filePaths = []) {
 //   notifyLoadStart();
@@ -919,7 +919,7 @@ async function _initialize() {
   });
 
   document.getElementById('editor-wrapper').style.width = editorConfig.media_div_percent;
-  document.getElementById('main-divider').style.height = editorConfig.console_div_percent;
+//  document.getElementById('main-divider').style.height = editorConfig.console_div_percent;
   document.getElementById('embed-content').style.height = '100%';
 
   // print(`${appInfo.name} ${appInfo.version}`);
