@@ -14,7 +14,7 @@
     "bundle": {
       "active": true,
       "targets": "all",
-      "identifier": "com.tauri.dev",
+      "identifier": "monolith-code",
       "icon": [
         "icons/icon.png",
         "icons/icon.icns",
