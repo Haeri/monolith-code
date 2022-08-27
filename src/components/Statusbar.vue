@@ -1,51 +1,57 @@
+<script setup>
+import { ref } from "@vue/reactivity";
+
+const type = ref("");
+const loading = ref(false)
+
+async function notify(status) {
+  type.value = "";
+  setTimeout(() => {
+    type.value = status;
+  }, 0)
+}
+
+function notifyLoadStart() {
+  loading.value = true;
+}
+
+function notifyLoadEnd() {
+  loading.value = false;
+}
+
+defineExpose({
+  notify,
+  notifyLoadStart,
+  notifyLoadEnd
+});
+</script>
 
 <template>
-  <div id="status-display" :class="status">
-    <span id="status-bar" :class="{ loading: loading }"></span>
+  <div class="status-display" :class="type">
+    <span class="status-bar" :class="{ load: loading }"></span>
   </div>
 </template>
 
-<script>
-import { getCurrentInstance } from '@vue/runtime-core';
-
-export default {
-  name: "MonolithStatusBar",
-  props: {},
-  data() {
-    return {
-      status: "",
-      loading: false,
-    };
-  },
-  created() {
-    let app = getCurrentInstance();
-    app.appContext.config.globalProperties.$notify = this.notify;
-    app.appContext.config.globalProperties.$notifyLoadStart =
-      this.notifyLoadStart;
-    app.appContext.config.globalProperties.$notifyLoadEnd = this.notifyLoadEnd;
-  },
-  methods: {
-    notify(status) {
-      this.status = status;
-    },
-    notifyLoadStart() {
-      this.loading = true;
-    },
-    notifyLoadEnd() {
-      this.loading = false;
-    },
-  },
-};
-</script>
-
 <style scoped>
-#status-display {
+.status-display {
   height: 2px;
   position: relative;
   z-index: 4;
 }
 
-#status-display #status-bar {
+.status-display.confirm {
+  animation: confirm 4s;
+}
+
+.status-display.warn {
+  animation: warn 4s;
+}
+
+.status-display.error {
+  animation: err 4s;
+}
+
+.status-bar {
   background: transparent;
   position: absolute;
   display: block;
@@ -54,20 +60,9 @@ export default {
   top: 0;
 }
 
-#status-display.confirm {
-  animation: confirm 4s;
-}
 
-#status-display.warn {
-  animation: warn 4s;
-}
-
-#status-display.error {
-  animation: err 4s;
-}
-
-#status-display #status-bar.loading {
-  animation: load 2s cubic-bezier(0.86, 0, 0.07, 1) infinite;
+.status-bar.load {
+  animation: load 2s cubic-bezier(0.860, 0.000, 0.070, 1.000) infinite;
 }
 
 @keyframes confirm {
@@ -77,7 +72,7 @@ export default {
 
   3% {
     background-color: #4caf50;
-    box-shadow: 0px 0px 20px 1px #4caf50;
+    box-shadow: 0px 0px 20px 1px #4caf50
   }
 
   100% {
@@ -92,7 +87,7 @@ export default {
 
   3% {
     background-color: #ffeb3b;
-    box-shadow: 0px 0px 20px 1px #ffeb3b;
+    box-shadow: 0px 0px 20px 1px #ffeb3b
   }
 
   100% {
@@ -107,7 +102,7 @@ export default {
 
   3% {
     background-color: #f44336;
-    box-shadow: 0px 0px 20px 1px #f44336;
+    box-shadow: 0px 0px 20px 1px #f44336
   }
 
   100% {

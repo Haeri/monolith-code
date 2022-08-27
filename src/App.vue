@@ -1,160 +1,102 @@
-<template>
-  <MonolithHeader />
-  <div class="content">
-    <div id="main-divider">
-      <MonolithBody ref="editor" />
-      <div
-        id="editor-media-div"
-        class="resizer"
-        data-direction="horizontal"
-      ></div>
-      <PreviewFrame ref="preview" />
-    </div>
-    <MonolithConsole />
-  </div>
-  <MonolithFooter />
-  <MonolithStatusBar />
-</template>
+<script setup>
+import Header from "./components/Header.vue";
+import Editor from "./components/Editor.vue";
+import Console from "./components/Console.vue";
+import Footer from "./components/Footer.vue";
+import Statusbar from "./components/Statusbar.vue";
+import Divider from "./components/Divider.vue";
 
-<script>
-import { dialog, fs, path } from "@tauri-apps/api";
-
-import MonolithHeader from "./components/MonolithHeader.vue";
-import MonolithBody from "./components/MonolithBody.vue";
-import MonolithConsole from "./components/MonolithConsole.vue";
-import MonolithFooter from "./components/MonolithFooter.vue";
-import MonolithStatusBar from "./components/MonolithStatusBar.vue";
-import PreviewFrame from "./components/PreviewFrame.vue";
-
-import { store } from "./store";
-import { keyBindings } from "./assets/keybindings";
-
+import keybindings from "./assets/keybindings.json";
 import langInfo from "./assets/lang.json";
 
-export default {
-  name: "App",
-  data() {
-    return {
-      nativeFrame: false,
-      langInfo,
-    };
-  },
-  created() {
-    window.addEventListener("keydown", this._handleKeyEvent, false);
-  },
-  destroyed() {
-    window.removeEventListener("keydown", this._handleKeyEvent);
-  },
-  methods: {
-    _handleKeyEvent(event) {
-      let lowerKey = event.key.toLowerCase();
-      if (event.ctrlKey && !event.shiftKey) {
-        if (lowerKey in keyBindings.ctrl) {
-          event.preventDefault();
-          this[keyBindings.ctrl[lowerKey].func]();
-        }
-      } else if (event.ctrlKey && event.shiftKey) {
-        if (lowerKey in keyBindings.ctrlshift) {
-          event.preventDefault();
-          this[keyBindings.ctrlshift[lowerKey].func]();
-        }
-      }
-    },
-    _getModeFromName(filename) {
-      return Object.entries(this.langInfo).find((item) => {
-        const re = item[1].detector;
-        if (filename.toLowerCase().match(re)) {
-          return true;
-        }
+import { store } from "./store";
+import { ref } from "@vue/reactivity";
+import { onBeforeMount, onMounted, watch, watchEffect } from "@vue/runtime-core";
+import { mergeDeep } from "./utils";
 
-        return false;
+
+const editorRef = ref(null);
+const statusbarRef = ref(null);
+const consoleRef = ref(null);
+
+const settings = ref(null);
+
+
+/* ------------- PUBLIC API ------------- */
+
+function getModeFromName(filename) {
+  return Object.entries(langInfo).find((item) => {
+    const re = item[1].detector;
+    if (filename.toLowerCase().match(re)) {
+      return true;
+    }
+
+    return false;
+  });
+}
+
+function setLanguage(langKey) {
+  if (langKey !== 'markdown') {
+    //editor.off('input', markdownUpdater);
+  }
+
+  store.lang.selectedLang = langKey;
+}
+
+function getContent() {
+  return editorRef.value.getContent();
+}
+function setContent(text) {
+  editorRef.value.setContent(text);
+}
+
+async function openFile(filePaths = []) {
+  statusbarRef.value.notifyLoadStart();
+
+  let filePathsArray = Array.isArray(filePaths) ? filePaths : [filePaths];
+  if (!filePathsArray.length) {
+    const { canceled, filePaths: _filePaths } = await window.api.showOpenDialog();
+    if (canceled) {
+      statusbarRef.value.notifyLoadEnd();
+      return;
+    }
+    filePathsArray = _filePaths;
+  }
+
+  if (!store.file.path && (store.isSaved === null || store.isSaved)) {
+    const fileToOpen = filePathsArray.shift();
+    window.api.readFile(fileToOpen)
+      .then((data) => {
+        setContent(data);
+        _setFileInfo(fileToOpen);
+        consoleRef.value.print(`Opened file ${fileToOpen}`);
+        // webviewUi.src = 'about:blank'
+      })
+      .catch((err) => {
+        consoleRef.value.print(`Could not open file ${fileToOpen}<br>${err}`, INFO_LEVEL.error);
+        console.log(err)
+      }).finally(() => {
+        statusbarRef.value.notifyLoadEnd();
       });
-    },
+  }
 
-    async _setFileInfo(filePath) {
-      store.file.extension = await path.extname(filePath);
-      store.file.path = (await path.dirname(filePath)) + path.sep;
-      store.file.name = await path.basename(filePath, store.file.extension);
+  if (filePathsArray.length) {
+    newWindow(filePathsArray);
+  }
+  statusbarRef.value.notifyLoadEnd();
+}
 
-      const lang = this._getModeFromName(
-        store.file.name + store.file.extension
-      );
-      if (lang == null) {
-        store.file.lang = "plaintext";
-      } else {
-        store.file.lang = lang[0];
-      }
+async function saveFileAs() {
+  return saveFile(true);
+}
 
-      //setLanguage(store.file.lang);
-      store.isSaved = true;
-    },
+async function saveFile(saveAs = false) {
+  statusbarRef.value.notifyLoadStart();
 
-    _setLanguage(langKey) {
-      if (langKey === "markdown") {
-        //editor.on('input', markdownUpdater);
-      } else {
-        //editor.off('input', markdownUpdater);
-      }
+  let filePath = store.file.path + store.file.name + store.file.extension;
 
-      const lang = this.langInfo[langKey];
-      const { mode } = modelist.get().modesByName[lang.mode];
-      editor.session.setMode(mode);
-
-      //languageDisplaySelectedUi.innerText = lang.name;
-      //languageDisplaySelectedUi.dataset.value = langKey;
-    },
-
-    async openFile(filePaths = []) {
-      this.$notifyLoadStart();
-
-      filePaths = Array.isArray(filePaths) ? filePaths : [filePaths];
-
-      if (!filePaths.length) {
-        let ret = await dialog.open({ title: "Open a file", multiple: true });
-        if (ret === null) {
-          this.$notifyLoadEnd();
-          return false;
-        } else {
-          filePaths = ret;
-        }
-      }
-
-      if (!store.file.path && (store.isSaved === null || store.isSaved)) {
-        let fileToOpen = filePaths.shift();
-        fs.readTextFile(fileToOpen)
-          .then((data) => {
-            this.$refs.editor.setContent(data);
-            this._setFileInfo(fileToOpen);
-            this.$refs.preview.setContent(data); //webviewUi.src = 'about:blank'
-            this.$consoleLog(`Opened file ${fileToOpen}`);
-          })
-          .catch((err) => {
-            this.$consoleLog(
-              `Could not open file ${fileToOpen}<br>${err}`,
-              this.$INFO_LEVEL.error
-            );
-          })
-          .finally(() => {
-            this.$notifyLoadEnd();
-          });
-      }
-
-      if (filePaths.length) {
-        //newWindow(filePaths);
-      }
-      this.$notifyLoadEnd();
-    },
-    async saveFileAs() {
-      return saveFile(true);
-    },
-    async saveFile(saveAs = false) {
-      /*
-  notifyLoadStart();
-
-  let filePath = file.path + file.name + file.extension;
-
-  if (file.path === undefined || saveAs) {
-    const lang = langInfo[languageDisplaySelectedUi.dataset.value];
+  if (store.file.path === undefined || saveAs) {
+    const lang = langInfo[store.lang.selectedLang];
     const options = {
       defaultPath: `~/${lang.tempname}`,
       filters: [
@@ -162,113 +104,151 @@ export default {
         { name: 'All Files', extensions: ['*'] },
       ],
     };
-    
-    let { canceled, filePath: _filepath } = await window.api.showSaveDialog(options);
+
+    const { canceled, filePath: _filepath } = await window.api.showSaveDialog(options);
 
     if (canceled) {
-      notifyLoadEnd();
-      return false;
-    } else {
-      filePath = _filepath;
+      statusbarRef.value.notifyLoadEnd();
+      return;
     }
+    filePath = _filepath;
   }
 
-  await window.api.writeFile(filePath, getContent());
+  try {
+    await window.api.writeFile(filePath, getContent());
+  } catch (err) {
+    consoleRef.value.print(`an error occred while saving the file ${filePath}; ${err}`, INFO_LEVEL.err);
+  }
 
-  if (file.path === undefined || saveAs) {
-    print(`file saved as ${filePath}`);
+  if (store.file.path === undefined || saveAs) {
+    consoleRef.value.print(`file saved as ${filePath}`);
   }
   _setFileInfo(filePath);
 
-  notifyLoadEnd();
-  */
-    },
-  },
-  components: {
-    MonolithHeader,
-    MonolithBody,
-    MonolithConsole,
-    MonolithFooter,
-    MonolithStatusBar,
-    PreviewFrame,
-  },
+  statusbarRef.value.notifyLoadEnd();
+}
+
+
+function newWindow(filePaths = []) {
+  const filePathsArray = Array.isArray(filePaths) ? filePaths : [filePaths];
+  window.api.newWindow(filePathsArray);
+}
+
+
+const exposedFunctions = {
+  getContent,
+  setContent,
+  openFile,
+  saveFile,
+  saveFileAs,
+  newWindow
 };
+
+
+
+/* ------------- PRIVATE FUNCTIONS ------------- */
+
+async function _initialize() {
+  settings.value = await window.api.getInitialSettings();
+
+  mergeDeep(langInfo, settings.languageConfig);
+  store.lang.options = langInfo;
+
+  if (!settings.value.windowConfig.native_frame) {
+    document.body.classList.add('rounded');
+  }
+  if (settings.value.localWindowConfig.maximized) {
+    document.body.classList.add('fullscreen');
+  }
+
+  if (settings.value.filePathsToOpen.length) {
+    openFile(settings.value.filePathsToOpen);
+  }
+}
+
+function _setFileInfo(filePath) {
+  store.file.extension = window.api.path.extname(filePath);
+  store.file.path = window.api.path.dirname(filePath) + window.api.path.sep;
+  store.file.name = window.api.path.basename(filePath, store.file.extension);
+
+  const lang = getModeFromName(store.file.name + store.file.extension);
+  console.log("Lang detected", lang[0])
+  if (lang == null) {
+    store.file.lang = 'plaintext';
+  } else {
+    store.file.lang = lang[0];
+  }
+
+  setLanguage(store.file.lang);
+  store.isSaved = true;
+  //_updateTitle();
+}
+
+function _onStoreResize(type, val) {
+  window.api.storeSetting(type, val);
+}
+
+function _onDropOpen(e) {
+  Array.from(e.dataTransfer.files).forEach((f) => {
+    openFile(f.path);
+  });
+}
+
+
+
+
+
+onBeforeMount(() => {
+  _initialize();
+});
+
+onMounted(() => {
+  window.addEventListener('keydown', (event) => {
+    const lowerKey = event.key.toLowerCase();
+    if (event.ctrlKey && !event.shiftKey) {
+      if (lowerKey in keybindings.ctrl) {
+        event.preventDefault();
+        exposedFunctions[keybindings.ctrl[lowerKey].func]()
+      }
+    } else if (event.ctrlKey && event.shiftKey) {
+      if (lowerKey in keybindings.ctrlshift) {
+        event.preventDefault();
+        exposedFunctions[keybindings.ctrlshift[lowerKey].func]()
+      }
+    }
+  }, false);
+
+
+  window.api.canClose((event) => {
+    event.sender.send('can-close-response', (store.isSaved === null || store.isSaved));
+  });
+})
+
+watch(() => consoleRef.value, () => {
+  window.api.print((_, value) => {
+    consoleRef.value.print(value.text);
+  });
+
+  consoleRef.value.print(`${settings.value.appInfo.name} ${settings.value.appInfo.version}`);
+})
 </script>
 
+<template>
+  <Header />
+  <Divider v-if="settings != null" :initial-percentage="settings.editorConfig.console_div_percent" direction="vertical"
+    :dbclick-percentage="60" @resized="(e) => _onStoreResize('console_div_percent', e)">
+    <template #primary>
+      <Editor config="" @dragover.prevent @drop.prevent="_onDropOpen" ref="editorRef" :lang="store.lang.selectedLang" />
+    </template>
+    <template #secondary>
+      <Console ref="consoleRef" :status-bar-ref="statusbarRef" />
+    </template>
+  </Divider>
+  <Footer />
+  <Statusbar ref="statusbarRef" />
+</template>
+
 <style>
-/* ---------- FONT ---------- */
-
-@font-face {
-  font-family: "Source Code Pro";
-  font-style: normal;
-  font-weight: 400;
-  font-display: swap;
-  src: url(../font/SourceCodePro-Regular.ttf) format("truetype");
-}
-
-@font-face {
-  font-family: "Source Code Pro";
-  font-style: normal;
-  font-weight: 300;
-  font-display: swap;
-  src: url(../font/SourceCodePro-Light.ttf) format("truetype");
-}
-
-@font-face {
-  font-family: "Open Sans";
-  font-style: normal;
-  font-weight: 400;
-  font-display: swap;
-  src: url(../font/OpenSans-Regular.ttf) format("truetype");
-}
-
-@font-face {
-  font-family: "Open Sans";
-  font-style: normal;
-  font-weight: 300;
-  font-display: swap;
-  src: url(../font/OpenSans-Light.ttf) format("truetype");
-}
-
-/* ---------- ROOT ---------- */
-
-:root {
-  --foreground: #747474;
-  --background: #212121;
-  --foreground-light: #191919;
-  --background-light: #fafafa;
-  --font-size: 12px;
-}
-
-body {
-  -webkit-font-smoothing: antialiased;
-
-  color: var(--foreground);
-  font-family: "Open Sans", sans-serif;
-  font-size: var(--font-size);
-  overflow: hidden;
-  margin: 0;
-}
-
-body.rounded {
-  margin: 6px 8px 8px 6px;
-  box-shadow: 1px 1px 8px rgba(0, 0, 0, 0.2);
-  border-radius: 8px;
-  transition: 0.2s margin, border-radius, background-color;
-  background-color: transparent;
-}
-
-body.fullscreen {
-  margin: 0px;
-  box-shadow: 0px 0px 0px rgba(0, 0, 0, 0);
-  border-radius: 0px;
-  background-color: black;
-}
-
-body.light {
-  color: var(--foreground-light);
-}
-
 #app {
   background-color: var(--background);
   max-height: calc(100vh - 2px);
@@ -280,18 +260,9 @@ body.light {
   position: relative;
 }
 
-body.rounded #app {
-  border-radius: 8px;
-}
-
-body.rounded:not(.fullscreen) #app {
-  max-height: calc(100vh - 16px);
-  height: calc(100vh - 16px);
-}
-
 #app:before {
   content: "";
-  background-image: url(./assets/texture.jpg);
+  background-image: url(../img/texture.jpg);
   background-size: 91px;
   position: absolute;
   top: 0;
@@ -303,7 +274,16 @@ body.rounded:not(.fullscreen) #app {
   width: 100%;
   display: block;
   pointer-events: none;
-  opacity: 0.06;
+  opacity: 0.05;
+}
+
+body.rounded #app {
+  border-radius: 8px;
+}
+
+body.rounded:not(.fullscreen) #app {
+  max-height: calc(100vh - 16px);
+  height: calc(100vh - 16px);
 }
 
 body.light #app {
@@ -311,19 +291,12 @@ body.light #app {
   border: 1px solid #bdbdbd;
 }
 
-.content {
+header,
+footer {
+  padding: 10px 16px;
   display: flex;
-  flex-direction: column;
-  overflow: hidden;
-}
-
-#main-divider {
-  display: flex;
-  height: 100%;
-  box-shadow: 0px 2px 20px #0000006e;
-  z-index: 1;
-  overflow: hidden;
-
-  height: 80%;
+  flex-direction: row;
+  justify-content: space-between;
+  background-color: inherit;
 }
 </style>

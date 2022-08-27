@@ -1,8 +1,8 @@
 {
-  "name": "monolithcode2",
+  "name": "monolith-code",
   "version": "2.3.0",
   "description": "minimalistic coder editor",
-  "homepage": "https://haeri.github.io/MonolithCode2/",
+  "homepage": "https://haeri.github.io/monolith-code/",
   "keywords": [
     "code",
     "editor"
@@ -16,13 +16,13 @@
     "tauri": "tauri"
   },
   "dependencies": {
-    "@tauri-apps/api": "^1.0.0-rc.4",
-    "vue": "^3.2.25",
+    "@tauri-apps/api": "^1.0.2",
+    "vue": "^3.2.37",
     "vue3-ace-editor": "^2.2.2"
   },
   "devDependencies": {
-    "@tauri-apps/cli": "^1.0.0-rc.9",
-    "@vitejs/plugin-vue": "^2.3.1",
-    "vite": "^2.9.5"
+    "@tauri-apps/cli": "^1.0.5",
+    "@vitejs/plugin-vue": "^3.0.3",
+    "vite": "^3.0.7"
   }
 }

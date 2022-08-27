@@ -1,69 +1,75 @@
+<script setup>
+import './EditorImports.vue';
+import { VAceEditor } from "vue3-ace-editor";
+
+import "ace-builds/src-noconflict/theme-monokai";
+import "ace-builds/src-noconflict/ext-searchbox";
+import "ace-builds/src-noconflict/ext-language_tools";
+
+import langInfo from "../assets/lang.json";
+
+import { ref } from "@vue/reactivity";
+import { computed } from "@vue/runtime-core";
+
+const props = defineProps({
+  lang: String
+})
+
+const editorRef = ref(null);
+
+const mode = computed(() => langInfo[props.lang].mode);
+const content = ref("");
+
+const options = ref({
+  useWorker: true,
+  enableBasicAutocompletion: true,
+  showPrintMargin: false,
+  showLineNumbers: true,
+  showGutter: true,
+  wrap: true,
+  scrollPastEnd: 1,
+  fixedWidthGutter: true,
+  fadeFoldWidgets: true,
+  highlightActiveLine: false,
+  fontSize: 12,
+});
+
+
+function setContent(text) {
+  content.value = text;
+}
+function getContent() {
+  return content.value;
+}
+
+
+let editor = {};
+
+function _editorInit(e) {
+  window.editor = e;
+}
+
+
+defineExpose({
+  setContent,
+  getContent
+});
+
+</script>
+
 <template>
   <div id="editor-wrapper">
-    <v-ace-editor
-    id="main-text-area"
-      v-model:value="content"
-      lang="json"
-      theme="monokai"
-      style="height: 100%"
-      minLines="10"
-      :options="options"
-    />
+    <v-ace-editor id="main-text-area" v-model:value="content" :lang="mode" theme="monokai" style="height: 100%"
+      :minLines="10" :options="options" ref="editorRef" @init="_editorInit" />
   </div>
 </template>
 
-<script>
-import { VAceEditor } from "vue3-ace-editor";
-import "ace-builds/src-noconflict/mode-json";
-import "ace-builds/src-noconflict/theme-monokai";
-import ace from "ace-builds";
-import workerJsonUrl from "ace-builds/src-noconflict/worker-json?url";
-
-ace.config.setModuleUrl("ace/mode/json_worker", workerJsonUrl);
-
-export default {
-  name: "MonolithBody",
-  data() {
-    return {
-      content: "",
-      options: {
-        useWorker: true,
-        //enableBasicAutocompletion: true,
-        showPrintMargin: false,
-        showLineNumbers: true,
-        showGutter: true,
-        wrap: true,
-        scrollPastEnd: 1,
-        fixedWidthGutter: true,
-        fadeFoldWidgets: true,
-        highlightActiveLine: false,
-        fontSize: 12,
-      },
-    };
-  },
-  props: {},
-  methods: {
-    setContent(text) {
-      this.content = text;
-    },
-    getContent() {
-      return this.content;
-    },
-  },
-  components: {
-    VAceEditor,
-  },
-};
-</script>
-
-<style>
+<style scoped>
 #editor-wrapper {
   width: 100%;
   height: 100%;
   position: relative;
   overflow: hidden;
-
-  width: 80%;
 }
 
 #main-text-area {
@@ -80,6 +86,12 @@ export default {
   padding-right: 4px;
   background-color: transparent;
 }
+</style>
+
+<style>
+.ace_cursor {
+  color: #ffcc00 !important;
+}
 
 .ace_gutter {
   background-color: transparent !important;
@@ -88,10 +100,6 @@ export default {
 .ace_gutter-active-line {
   color: white;
   background-color: transparent !important;
-}
-
-.ace_cursor{
-  color: #ffcc00 !important;
 }
 
 .ace_dark.ace_editor.ace_autocomplete,
@@ -119,8 +127,8 @@ export default {
   background-color: #101010b5;
 }
 
-.ace_search .ace_search_form > *,
-.ace_search .ace_replace_form > * {
+.ace_search .ace_search_form>*,
+.ace_search .ace_replace_form>* {
   background: var(--background);
   border-color: #2d2d2d;
   color: var(--foreground);

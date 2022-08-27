@@ -1,14 +1,19 @@
 <!DOCTYPE html>
-<html lang="en">
-  <head>
-    <meta charset="UTF-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<html>
+
+<head>
+    <meta charset="UTF-8">
     <title>monolith code</title>
-    <link rel="icon" href="data:;base64,iVBORw0KGgo=">
+
+    <link rel="stylesheet" href="/style/style.css">
     <link rel="stylesheet" href="/style/bars.css">
-  </head>
-  <body class="rounded">
+
+    <meta http-equiv="Content-Security-Policy" content="script-src 'self' 'unsafe-eval'; worker-src 'self' blob:;">    
+</head>
+
+<body>
     <div id="app"></div>
     <script type="module" src="/src/main.js"></script>
-  </body>
+</body>
+
 </html>
