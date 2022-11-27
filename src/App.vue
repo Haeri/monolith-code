@@ -5,6 +5,7 @@ import Console from "./components/Console.vue";
 import Footer from "./components/Footer.vue";
 import Statusbar from "./components/Statusbar.vue";
 import Divider from "./components/Divider.vue";
+import Webview from "./components/Webview.vue";
 
 import keybindings from "./assets/keybindings.json";
 import langInfo from "./assets/lang.json";
@@ -198,6 +199,8 @@ function _onDropOpen(e) {
 
 
 
+
+
 onBeforeMount(() => {
   _initialize();
 });
@@ -238,7 +241,16 @@ watch(() => consoleRef.value, () => {
   <Divider v-if="settings != null" :initial-percentage="settings.editorConfig.console_div_percent" direction="vertical"
     :dbclick-percentage="60" @resized="(e) => _onStoreResize('console_div_percent', e)">
     <template #primary>
-      <Editor config="" @dragover.prevent @drop.prevent="_onDropOpen" ref="editorRef" :lang="store.lang.selectedLang" />
+
+      <Divider :initial-percentage="100" direction="horizontal">
+        <template #primary>
+          <Editor config="" @dragover.prevent @drop.prevent="_onDropOpen" ref="editorRef" :lang="store.lang.selectedLang" />
+        </template>
+        <template #secondary>
+          <Webview />
+        </template>
+      </Divider>
+      
     </template>
     <template #secondary>
       <Console ref="consoleRef" :status-bar-ref="statusbarRef" />

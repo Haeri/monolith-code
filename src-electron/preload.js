@@ -1,10 +1,16 @@
+console.log("HELLO THERE")
 const { contextBridge, ipcRenderer, webFrame } = require('electron');
-const { requireLazy, StandaloneEvent } = require('./common');
+//const { requireLazy, StandaloneEvent } = require('./common.js');
 
-const path = requireLazy(() => require('path'));
-const fsp = requireLazy(() => require('fs').promises);
-const treeKill = requireLazy(() => require('tree-kill'));
-const childProcess = requireLazy(() => require('child_process'));
+// const path = requireLazy(() => require('path'));
+// const fsp = requireLazy(() => require('fs').promises);
+// const treeKill = requireLazy(() => require('tree-kill'));
+// const childProcess = requireLazy(() => require('child_process'));
+
+const path =require('path');
+const fsp = require('fs').promises;
+const treeKill = require('tree-kill');
+const childProcess = require('child_process');
 
 let marked = null;
 

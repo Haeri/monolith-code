@@ -3,7 +3,7 @@ const {
 } = require('electron');
 const { autoUpdater } = require("electron-updater");
 const path = require('path');
-const { requireLazy } = require('./common');
+const { requireLazy } = require('./common.js');
 const UserData = require('./userData');
 
 const dialog = requireLazy(() => require('electron').dialog);
