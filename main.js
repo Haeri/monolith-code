@@ -12,11 +12,7 @@ const appInfo = {
   os: process.platform,
 };
 
-const axios = requireLazy(() => require('axios').default);
 const dialog = requireLazy(() => require('electron').dialog);
-
-const RELEASE_VERSION_URL = 'https://api.github.com/repos/Haeri/monolithcode/releases/latest';
-//const RELEASE_ZIP_URL = 'https://github.com/Haeri/monolithcode/releases/latest/download/';
 
 let filePathsToOpen = [];
 
@@ -42,6 +38,7 @@ const userPrefStore = new Store({
       theme: 'ace/theme/monokai',
       media_div_percent: '100%',
       console_div_percent: '100%',
+      key_bindings: 'ace/keyboard/ace',
       font_size: 10,
       line_wrapping: true,
       line_numbers: true,
@@ -60,16 +57,20 @@ const langStore = new Store({
 
 autoUpdater.on('update-downloaded', (info) => {
   BrowserWindow.getAllWindows().forEach((w) => {
-    w.webContents.send('print', { text: `new version ${info} will be installed after restart.` });
+    w.webContents.send('print', { text: `new version ${info.version} will be installed after restart.` });
   });
 });
 
 function createWindow(caller = undefined, filePaths = []) {
   filePathsToOpen = filePaths;
   let {
-    x, y, width, height, maximized,
+    x, y,
   } = localStore.get('window_config');
-  const { native_frame } = userPrefStore.get('window_config');
+  const {
+    width, height, maximized,
+  } = localStore.get('window_config');
+
+  let { native_frame } = userPrefStore.get('window_config');
 
   // Force custom frame to remove traficlights
   if (process.platform === 'darwin') {
@@ -109,6 +110,7 @@ function createWindow(caller = undefined, filePaths = []) {
       preload: path.join(__dirname, 'src/preload.js'),
       nodeIntegration: false,
       contextIsolation: true,
+      nodeIntegrationInWorker: true,
       webviewTag: true,
     },
     icon: path.join(__dirname, 'res/img/icon.png'),
@@ -122,15 +124,11 @@ function createWindow(caller = undefined, filePaths = []) {
   });
 
   win.on('resized', () => {
-    const {
-      x, y, width, height,
-    } = win.getBounds();
+    const bounds = win.getBounds();
     const prev = localStore.get('window_config');
     localStore.set('window_config', {
       ...prev,
-      ...{
-        x, y, width, height,
-      },
+      ...bounds,
     });
   });
 
@@ -213,12 +211,12 @@ ipcMain.on('close', (event) => {
 
 ipcMain.handle('show-open-dialog', async (event) => {
   const win = BrowserWindow.fromWebContents(event.sender);
-  return await dialog.get().showOpenDialog(win, { title: 'Open a file' });
+  return dialog.get().showOpenDialog(win, { title: 'Open a file' });
 });
 
 ipcMain.handle('show-save-dialog', async (event, options) => {
   const win = BrowserWindow.fromWebContents(event.sender);
-  return await dialog.get().showSaveDialog(win, options);
+  return dialog.get().showSaveDialog(win, options);
 });
 
 ipcMain.on('open-devtools', (_, targetContentsId, devtoolsContentsId) => {
@@ -274,8 +272,6 @@ app.whenReady().then(() => {
 
   if (userPrefStore.get('app_config').auto_update) {
     setTimeout(() => {
-      // TODO: There are a lot of issues with the updater so lets not bother
-      // checkLatestVersion();
       autoUpdater.checkForUpdatesAndNotify();
     }, 8000);
   }

@@ -1,5 +1,5 @@
+/* eslint-disable no-unused-vars */
 /* eslint-disable no-underscore-dangle */
-/* eslint-disable import/no-extraneous-dependencies */
 
 const modelist = requireLazy(() => ace.require('ace/ext/modelist'));
 const themelist = requireLazy(() => ace.require('ace/ext/themelist'));
@@ -29,15 +29,20 @@ let historyIndex;
 
 // UI Components
 let documentNameUi;
+//let languageDisplayUi;
 let languageDisplaySelectedUi;
 let optionsContainer;
 let themeChoiceUi;
-
+//let charDisplayUi;
+let consoleUi;
+let consoleInUi;
+let consoleOutUi;
 let webviewUi;
 let webviewDevUi;
+//let themeLink;
 let editorMediaDivUi;
-let previewDevDivUi;
 let editorConsoleDivUi;
+let previewDevDivUi;
 let processIndicatorUi;
 
 const errorSVG = requireLazy(async () => await fetch('res/img/err.svg').then((res) => res.text()));
@@ -96,7 +101,7 @@ const commandList = {
       let ret = '';
       const longest = Object.keys(commandList).reduce((prev, curr) => (curr.length > prev ? curr.length : prev), 0) + 6;
       Object.entries(commandList).forEach(([key, value]) => {
-        ret += `${key}${' '.repeat(longest - key.length)}${value.description}\n`;
+        ret += `${key}${' '.repeat(longest - key.length)}${value.desc}\n`;
       });
 
       ret += '------------------------------------------------------------------------\n';
@@ -225,6 +230,7 @@ async function saveFile(saveAs = false) {
   _setFileInfo(filePath);
 
   notifyLoadEnd();
+  notify('confirm');
 }
 
 /* ------------- UI ------------- */
@@ -241,9 +247,10 @@ function setFontSize(size) {
 }
 
 function notify(type) {
-  document.getElementById('status-display').className = '';
-  // document.getElementById('status-display').offsetWidth;
-  document.getElementById('status-display').classList.add(type);
+  let statusDisplay = document.getElementById('status-display');
+  statusDisplay.className = '';
+  statusDisplay.offsetWidth; // This is needed to reset the animation
+  statusDisplay.classList.add(type);
 }
 
 function notifyLoadStart() {
@@ -380,7 +387,7 @@ function toggleDevTool() {
   const targetId = webviewUi.getWebContentsId();
   const devtoolsId = webviewDevUi.getWebContentsId();
   window.api.openDevTool(targetId, devtoolsId);
-  togglePreviewDivider();
+  togglePreviewDevToolDivider();
 }
 
 function mdToHTML() {
@@ -523,9 +530,55 @@ async function buildRunFile() {
 }
 
 function togglePreviewDivider(open = undefined) {
+  const num = parseFloat(editorMediaDivUi.previousElementSibling.style.width.replace('%', ''));
+
+  let targetPercent;
+  if (open === undefined) {
+    targetPercent = Math.abs(num - 50) < 1 ? '100%' : '50%';
+  } else {
+    targetPercent = open ? '50%' : '100%';
+  }
+
+  const anim = editorMediaDivUi.previousElementSibling.animate([
+    { width: editorMediaDivUi.previousElementSibling.style.width },
+    { width: targetPercent },
+  ], {
+    duration: 450,
+    easing: 'cubic-bezier(0.860, 0.000, 0.070, 1.000)',
+  });
+  anim.finished.then(() => {
+    editorMediaDivUi.previousElementSibling.style.width = targetPercent;
+    window.api.storeSetting('media_div_percent', targetPercent);
+  });
+}
+
+function toggleConsoleDivider(open = undefined) {
+  const num = parseFloat(editorConsoleDivUi.previousElementSibling.style.height.replace('%', ''));
+
+  let targetPercent;
+  if (open === undefined) {
+    targetPercent = Math.abs(num - 60) < 1 ? '100%' : '60%';
+  } else {
+    targetPercent = open ? '60%' : '100%';
+  }
+
+  const anim = editorConsoleDivUi.previousElementSibling.animate([
+    { height: editorConsoleDivUi.previousElementSibling.style.height },
+    { height: targetPercent },
+  ], {
+    duration: 450,
+    easing: 'cubic-bezier(0.860, 0.000, 0.070, 1.000)',
+  });
+  anim.finished.then(() => {
+    editorConsoleDivUi.previousElementSibling.style.height = targetPercent;
+    window.api.storeSetting('console_div_percent', targetPercent);
+  });
+}
+
+function togglePreviewDevToolDivider(open = undefined) {
   const num = parseFloat(previewDevDivUi.previousElementSibling.style.height.replace('%', ''));
 
-  let targetPercent = '100%';
+  let targetPercent;
   if (open === undefined) {
     targetPercent = Math.abs(num - 60) < 1 ? '99%' : '60%';
   } else {
@@ -590,17 +643,17 @@ function _calculate(string) {
 
 function _assignUIVariables() {
   documentNameUi = document.getElementById('document-name');
-  languageDisplayUi = document.getElementById('language-display');
+  // languageDisplayUi = document.getElementById('language-display');
   languageDisplaySelectedUi = document.querySelector('#language-display .selected');
   optionsContainer = document.getElementsByClassName('options-container')[0];
   themeChoiceUi = document.getElementById('theme-choice');
-  charDisplayUi = document.getElementById('fchar-display');
+  // charDisplayUi = document.getElementById('fchar-display');
   consoleUi = document.getElementById('console');
   consoleInUi = document.getElementById('console-in');
   consoleOutUi = document.getElementById('console-out');
   webviewUi = document.getElementById('embed-content');
   webviewDevUi = document.getElementById('embed-content-dev-view');
-  themeLink = document.getElementById('theme-link');
+  // themeLink = document.getElementById('theme-link');
   editorMediaDivUi = document.getElementById('editor-media-div');
   editorConsoleDivUi = document.getElementById('editor-console-div');
   previewDevDivUi = document.getElementById('preview-dev-div');
@@ -642,6 +695,7 @@ async function _initialize() {
     highlightActiveLine: false,
     useWorker: false,
     theme: editorConfig.theme,
+    keyboardHandler: editorConfig.key_bindings === 'ace/keyboard/ace' ? undefined : editorConfig.key_bindings,
     fontSize: editorConfig.font_size,
   });
 
@@ -892,36 +946,10 @@ async function _initialize() {
   });
 
   editorMediaDivUi.addEventListener('dblclick', () => {
-    const num = parseFloat(editorMediaDivUi.previousElementSibling.style.width.replace('%', ''));
-    const targetPercent = Math.abs(num - 50) < 1 ? '100%' : '50%';
-
-    const anim = editorMediaDivUi.previousElementSibling.animate([
-      { width: editorMediaDivUi.previousElementSibling.style.width },
-      { width: targetPercent },
-    ], {
-      duration: 450,
-      easing: 'cubic-bezier(0.860, 0.000, 0.070, 1.000)',
-    });
-    anim.finished.then(() => {
-      editorMediaDivUi.previousElementSibling.style.width = targetPercent;
-      window.api.storeSetting('media_div_percent', targetPercent);
-    });
+    togglePreviewDivider();
   });
   editorConsoleDivUi.addEventListener('dblclick', () => {
-    const num = parseFloat(editorConsoleDivUi.previousElementSibling.style.height.replace('%', ''));
-    const targetPercent = Math.abs(num - 60) < 1 ? '100%' : '60%';
-
-    const anim = editorConsoleDivUi.previousElementSibling.animate([
-      { height: editorConsoleDivUi.previousElementSibling.style.height },
-      { height: targetPercent },
-    ], {
-      duration: 450,
-      easing: 'cubic-bezier(0.860, 0.000, 0.070, 1.000)',
-    });
-    anim.finished.then(() => {
-      editorConsoleDivUi.previousElementSibling.style.height = targetPercent;
-      window.api.storeSetting('console_div_percent', targetPercent);
-    });
+    toggleConsoleDivider();
   });
 
   previewDevDivUi.addEventListener('dblclick', () => {
