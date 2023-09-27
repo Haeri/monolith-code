@@ -57,7 +57,7 @@ const langStore = new Store({
 
 autoUpdater.on('update-downloaded', (info) => {
   BrowserWindow.getAllWindows().forEach((w) => {
-    w.webContents.send('print', { text: `new version ${info} will be installed after restart.` });
+    w.webContents.send('print', { text: `new version ${info.version} will be installed after restart.` });
   });
 });
 
