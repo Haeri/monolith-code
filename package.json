@@ -1,6 +1,6 @@
 {
   "name": "monolith-code",
-  "version": "2.2.3",
+  "version": "2.2.4",
   "description": "minimalistic coder editor",
   "homepage": "https://haeri.github.io/monolith-code/",
   "main": "main.js",
@@ -15,24 +15,24 @@
   "author": "Haeri",
   "license": "MIT",
   "devDependencies": {
-    "electron": "^19.0.6",
-    "electron-builder": "^23.1.0",
-    "eslint": "^7.2.0",
+    "electron": "^26.2.3",
+    "electron-builder": "^24.6.4",
+    "eslint": "^7.32.0",
     "eslint-config-airbnb-base": "^14.2.1",
-    "eslint-plugin-import": "^2.22.1"
+    "eslint-plugin-import": "^2.28.1"
   },
   "dependencies": {
-    "axios": "^0.21.1",
-    "electron-updater": "^5.0.5",
-    "highlight.js": "^10.6.0",
-    "katex": "^0.15.2",
-    "marked": "^4.0.10",
+    "axios": "^0.21.4",
+    "electron-updater": "^5.3.0",
+    "highlight.js": "^10.7.3",
+    "katex": "^0.15.6",
+    "marked": "^4.3.0",
     "tree-kill": "^1.2.2"
   },
   "build": {
     "appId": "monolith-code",
     "win": {
-      "target": [        
+      "target": [
         "zip",
         "nsis"
       ],
@@ -93,7 +93,7 @@
         ],
         "name": "DART",
         "role": "Editor"
-      },      
+      },
       {
         "ext": [
           "go"
