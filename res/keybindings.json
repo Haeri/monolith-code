@@ -31,6 +31,10 @@
     "m": {
       "description": "Evaluate a mathematical equation on the selected line",
       "func": "evaluateMathInline"
+    },
+    ",": {
+      "description": "Open editor settings",
+      "func": ""
     }
   },
   "ctrlshift": {
@@ -41,6 +45,14 @@
     "s": {
       "description": "Save the current document as new file",
       "func": "saveFileAs"
+    },
+    "x": {
+      "description": "Open/close terminal panel",
+      "func": "toggleConsoleDivider"
+    },
+    "t": {
+      "description": "Open/close preview panel",
+      "func": "togglePreviewDivider"
     }
   }
 }

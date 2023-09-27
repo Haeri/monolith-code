@@ -384,6 +384,9 @@ footer {
 	border-color: white;
 }
 
+.ace_cursor {
+	color: #ffcc00 !important;
+}
 
 
 /* ---------- CONSOLE ---------- */
