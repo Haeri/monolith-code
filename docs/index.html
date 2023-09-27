@@ -1,155 +1,195 @@
 <!DOCTYPE html>
 <html>
-	<head>
-		<meta charset="UTF-8">
-		<title>monolith code</title>
-		<link rel="shortcut icon" href="res/img/icon.ico">
-		<style>
-    		@font-face {
-            	font-family: 'Open Sans';
-            	font-style: normal;
-            	font-weight: 400;
-            	font-display: swap;
-            	src: url("res/font/OpenSans-Regular.ttf") format('truetype');
-            }
-		    body{
-		        margin: 0;
-		        padding: 0;
-		        font-family: 'Open Sans';
-		        background: #e5e5e5 !important;
-				color: #211f1e;
-		    }
-		    .main-wrapper{
-		        height: 100vh;
-		        position: relative;
-                overflow: hidden;
-                display: flex;
-                align-items: center;
-                justify-content: center;
-		    }
-		    .vertical-center{
-		        width: 700px;
-		    }
-		    .title-wrapper{
-                width: 520px;
-                text-align: center;
-                margin: 0px auto;
-		    }
-		    .title-wrapper h1{
-                font-weight: bold;
-                font-size: 4rem;
-                line-height: 1.1em;
-                margin-top: 0;
-                margin-bottom: 1rem;
-		    }
-		    .title-wrapper h1 img{
-                vertical-align: bottom;
-                height: 4rem;
-		    }
-		    .title-wrapper h3{
-                font-weight: 100;
-                font-size: 1.8em;
-                line-height: 1.1em;
-                margin-top: 0;
-                margin-bottom: 4rem;
-                color: gray;
-		    }
-		    .title-wrapper > span{
-		        margin-bottom: 12px;
-		        display: block;
-		    }
-		    .title-wrapper #version_insert{
-		        font-weight: bold;
-		    }
-		    .dl-panel{
-		        display: flex;
-				justify-content: center;
-    			gap: 30px;
-		    }
-		    .download-btn{
-				background: #231f1f;
-				border: 1px solid #2d2d2d;
-				border-radius: 10px;
-				padding: 10px 36px;
-				padding-left: 28px;
-				color: #aeaeae;
-				text-decoration: none;
-				display: inline-block;
-				font-size: 0.9rem;
-				text-align: center;
-				transition: 0.3s;
-				margin-top: 2px;				
-				display: flex;
-    			align-items: center;
-				min-width: 120px;
-				box-shadow: 1px 1px 8px rgba(0, 0, 0, 0.2);
-		    }
-		    .download-btn:hover{
-				background: #3a3535;
-				box-shadow: 1px 1px 10px rgba(0, 0, 0, 0.2);
-		    }
-		    .download-btn strong{
-		        color: white;
-		        font-size: 1rem;
-		    }
-		    .download-btn svg{
-				color: white;
-				width: 25px;
-				height: 25px;
-				vertical-align: bottom;
-				margin-right: 12px;
-		    }
-		    .demo{
-		        width: 100%;
-                display: block;
-		    }
-		    
-		</style>
-	</head>
-	<body>
-	    <section class="main-wrapper">
-	        <div class="vertical-center">
-    	        <div class="title-wrapper">
-        		    <h1><img src="res/img/icon.ico"> monolith code</h1>
-        		    <h3>minimalistic but powerful code editor</h3>
-    				<span>latest version <span id="version_insert"></span></span>
-    			</div>
-    			<div class="dl-panel">
-    				<a id="download-win" href="" class="download-btn">
-    					<i data-feather="download"></i>
-    					<span><strong>Download</strong><br>for windows</span>
-    				</a>
-    				<a id="download-linux" href="" class="download-btn"><i data-feather="download"></i>
-    					<span><strong>Download</strong><br>for linux</span>
-    				</a>
-    				<a id="download-mac" href="" class="download-btn"><i data-feather="download"></i>
-    					<span><strong>Download</strong><br>for macOS</span>
-    				</a>		        
-    	        </div>
-	        </div>
-	    </section>	
-		
-		<script src="res/js/feather.min.js"></script>
-		<script>
-            function initLatestVersion(){
-				fetch('https://api.github.com/repos/Haeri/monolith-code/releases/latest')
-					.then(response => response.json())
-					.then(data => {
-						document.getElementById("version_insert").innerHTML = data.tag_name;
+<head>
+    <meta charset="UTF-8">
+    <title>monolith code</title>
+    
+    <meta name="description" content="minimalistic but powerful code editor">
+    <meta name="keywords" content="monolith code, text editor">
+    <meta name="content-language" content="en">
 
-						const version = data.tag_name.replace("v", "");
-						const root_url = "https://github.com/Haeri/monolith-code/releases/latest/download";
+    <meta property="og:title" content="monolith code" />
+    <meta property="og:description" content="minimalistic but powerful code editor" />
+    <meta property="og:type" content="website" />
+    <meta property="og:image" content="res/img/screenshot.png.png" />
+    
+    <link rel="apple-touch-icon" href="res/img/icon.ico">
 
-						document.getElementById("download-win").href = `${root_url}/monolith-code-Setup-${version}.exe`;
-						document.getElementById("download-mac").href = `${root_url}/monolith-code-${version}-mac.tar.gz`;
-						document.getElementById("download-linux").href = `${root_url}/monolith-code-${version}-linux.tar.gz`;
-					});							
-            }
-            
-		     window.onload = function () {
-		        feather.replace();
-                initLatestVersion();
-		     }
-	    </script>
-	</body>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link rel="shortcut icon" href="res/img/icon.ico">
+    
+    <style>
+        @font-face {
+            font-family: 'Open Sans';
+            font-style: normal;
+            font-weight: 400;
+            font-display: swap;
+            src: url("res/font/OpenSans-Regular.ttf") format('truetype');
+        }
+        body {
+            margin: 0;
+            padding: 0;
+            font-family: 'Open Sans';
+            background: #e5e5e5 !important;
+            color: #211f1e;
+        }
+        .main-wrapper {
+            margin-top: 30vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+        .vertical-center {
+            width: 620px;
+        }
+        .title-wrapper {
+            width: 520px;
+            text-align: center;
+            margin: 0px auto;
+        }
+        .title-wrapper h1 {
+            font-weight: bold;
+            font-size: 4rem;
+            line-height: 1.1em;
+            margin-top: 0;
+            margin-bottom: 1rem;
+        }
+        .title-wrapper h1 img {
+            vertical-align: bottom;
+            height: 4rem;
+        }
+        .title-wrapper h3 {
+            font-weight: 100;
+            font-size: 1.8em;
+            line-height: 1.1em;
+            margin-top: 0;
+            margin-bottom: 4rem;
+            color: gray;
+        }
+        .title-wrapper > span {
+            margin-bottom: 12px;
+            display: block;
+        }
+        .title-wrapper #version_insert {
+            font-weight: bold;
+        }
+        .dl-panel {
+            display: flex;
+            justify-content: space-between;
+        }
+        .download-btn {
+            background: #231f1f;
+            border: 1px solid #2d2d2d;
+            border-radius: 10px;
+            padding: 10px 36px;
+            padding-left: 28px;
+            color: #aeaeae;
+            text-decoration: none;
+            display: inline-block;
+            font-size: 0.9rem;
+            text-align: center;
+            transition: 0.3s;
+            margin-top: 2px;
+            display: flex;
+            align-items: center;
+            min-width: 120px;
+            box-shadow: 1px 1px 8px rgba(0, 0, 0, 0.2);
+        }
+        .download-btn:hover {
+            background: #3a3535;
+            box-shadow: 1px 1px 10px rgba(0, 0, 0, 0.2);
+        }
+        .download-btn strong {
+            color: white;
+            font-size: 1rem;
+        }
+        .download-btn svg {
+            color: white;
+            width: 25px;
+            height: 25px;
+            vertical-align: bottom;
+            margin-right: 12px;
+        }
+        .instructions-panel {
+            margin: 100px auto;
+        }
+        
+    </style>
+</head>
+<body>
+    <section class="main-wrapper">
+        <div class="vertical-center">
+            <div class="title-wrapper">
+                <h1><img src="res/img/icon.ico"> monolith code</h1>
+                <h3>minimalistic but powerful code editor</h3>
+                <span>latest version <span id="version_insert"></span></span>
+            </div>
+            <div class="dl-panel">
+                <a id="download-win" href="" class="download-btn">
+                    <i data-feather="download"></i>
+                    <span><strong>Download</strong><br>for windows</span>
+                </a>
+                <a id="download-linux" href="" class="download-btn"><i data-feather="download"></i>
+                    <span><strong>Download</strong><br>for linux</span>
+                </a>
+                <a id="download-mac" href="" class="download-btn"><i data-feather="download"></i>
+                    <span><strong>Download</strong><br>for macOS</span>
+                </a>
+            </div>
+            <div class="instructions-panel">
+                <h3>Instructions</h3>
+                <pre>
+console commands
+!ver                Shows the current version of the application
+!cls                Clear console
+!kill               Kills the currently running process
+!hello              Hello There :D
+!dev                Open Chrome Devtools for the preview window
+!settings           Open settings file
+!lang_settings      Open language settings file
+!exp_pdf            Generate and export PDF of the current preview panel
+!help               Shows all the available commands
+------------------------------------------------------------------------
+keybindings
+ctrl + o            Open a file
+ctrl + b            Build and run the current file
+ctrl + s            Save the current file
+ctrl + n            Open a new editor window
+ctrl + i            Open settings
+ctrl + p            Export the preview window as PDF
+ctrl + t            Open a hello world tamplate for the current language
+ctrl + m            Evaluate a mathematical equation on the selected line
+ctrl + ,            Open editor settings
+ctrl + shift + b    Beautify the document
+ctrl + shift + s    Save the current document as new file
+ctrl + shift + x    Open/close terminal panel
+ctrl + shift + t    Open/close preview panel
+</pre>
+            </div>
+        </div>
+    </section>
+
+    <script src="res/js/feather.min.js"></script>
+    <script>
+        function initLatestVersion() {
+            fetch('https://api.github.com/repos/Haeri/monolith-code/releases/latest')
+            .then(response => response.json())
+            .then(data => {
+                document.getElementById("version_insert").innerHTML = data.tag_name;
+
+                const version = data.tag_name.replace("v", "");
+                const root_url = "https://github.com/Haeri/monolith-code/releases/latest/download";
+
+                document.getElementById("download-win").href = `${root_url}/monolith-code-Setup-${version}.exe`;
+                document.getElementById("download-mac").href = `${root_url}/monolith-code-${version}-mac.tar.gz`;
+                document.getElementById("download-linux").href = `${root_url}/monolith-code-${version}-linux.tar.gz`;
+            });
+        }
+
+        window.onload = function () {
+            feather.replace();
+            initLatestVersion();
+        }
+    </script>
+</body>
 </html>
