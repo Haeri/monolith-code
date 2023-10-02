@@ -1,10 +1,11 @@
 <!DOCTYPE html>
 <html lang="en">
+
 <head>
     <meta charset="UTF-8">
     <meta name="keywords" content="monolith code, text editor">
     <meta name="content-language" content="en">
-    
+
     <!-- HTML Meta Tags -->
     <title>monolith code</title>
     <meta name="description" content="minimalistic but powerful code editor">
@@ -22,13 +23,13 @@
     <meta property="twitter:url" content="https://haeri.github.io/monolith-code">
     <meta name="twitter:title" content="monolith code">
     <meta name="twitter:description" content="minimalistic but powerful code editor">
-    <meta name="twitter:image" content="https://haeri.github.io/monolith-code/res/img/screenshot.png">        
-    
+    <meta name="twitter:image" content="https://haeri.github.io/monolith-code/res/img/screenshot.png">
+
     <link rel="apple-touch-icon" href="res/img/icon.ico">
 
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <link rel="shortcut icon" href="res/img/icon.ico">
-    
+
     <style>
         @font-face {
             font-family: 'Open Sans';
@@ -37,6 +38,7 @@
             font-display: swap;
             src: url("res/font/OpenSans-Regular.ttf") format('truetype');
         }
+
         body {
             margin: 0;
             padding: 0;
@@ -44,20 +46,36 @@
             background: #e5e5e5 !important;
             color: #211f1e;
         }
+
+        .flex {
+            display: flex;
+        }
+
+        .justify-center {
+            justify-content: center;
+        }
+
+        .items-center {
+            align-items: center;
+        }
+
         .main-wrapper {
             margin-top: 30vh;
             display: flex;
             align-items: center;
             justify-content: center;
         }
+
         .vertical-center {
             width: 620px;
         }
+
         .title-wrapper {
             width: 520px;
             text-align: center;
             margin: 0px auto;
         }
+
         .title-wrapper h1 {
             font-weight: bold;
             font-size: 4rem;
@@ -65,10 +83,12 @@
             margin-top: 0;
             margin-bottom: 1rem;
         }
+
         .title-wrapper h1 img {
             vertical-align: bottom;
             height: 4rem;
         }
+
         .title-wrapper h2 {
             font-weight: 100;
             font-size: 1.8em;
@@ -77,17 +97,21 @@
             margin-bottom: 4rem;
             color: gray;
         }
-        .title-wrapper > span {
+
+        .title-wrapper>span {
             margin-bottom: 12px;
             display: block;
         }
+
         .title-wrapper #version_insert {
             font-weight: bold;
         }
+
         .dl-panel {
             display: flex;
             justify-content: space-between;
         }
+
         .download-btn {
             background: #231f1f;
             border: 1px solid #2d2d2d;
@@ -106,14 +130,17 @@
             min-width: 120px;
             box-shadow: 1px 1px 8px rgba(0, 0, 0, 0.2);
         }
+
         .download-btn:hover {
             background: #3a3535;
             box-shadow: 1px 1px 10px rgba(0, 0, 0, 0.2);
         }
+
         .download-btn strong {
             color: white;
             font-size: 1rem;
         }
+
         .download-btn svg {
             color: white;
             width: 25px;
@@ -121,15 +148,51 @@
             vertical-align: bottom;
             margin-right: 12px;
         }
+
         .instructions-panel {
             margin: 140px auto;
         }
-        
+
+        video {
+            margin: 6px 8px 8px 6px;
+            box-shadow: 1px 1px 8px rgba(0, 0, 0, 0.2);
+            border-radius: 8px;
+            border: 1px solid #2d2d2d;
+        }
+
+
+
+        .collapse-toggle:hover {
+            transition: 0.2s;
+        }
+
+        .collapse-toggle:hover {
+            stroke: #3a3535;
+            cursor: pointer;
+        }
+
+        .collapse-toggle.active {
+            transform: rotate(180deg);
+        }
+
+        .collapse-content {
+            padding: 0 18px;
+            max-height: 0;
+            overflow: hidden;
+            transition: max-height 0.2s ease-out;
+        }
     </style>
 </head>
+
 <body>
     <section class="main-wrapper">
         <div class="vertical-center">
+            <!-- <div class="flex justify-center">
+                <video autoplay loop muted width="420">
+                    <source src="./res/video.webm" type="video/webm">
+                    Your browser does not support the video tag.
+                </video>
+            </div> -->
             <div class="title-wrapper">
                 <h1><img src="res/img/icon.ico" alt="icon" width="64" height="64"> monolith code</h1>
                 <h2>minimalistic but powerful code editor</h2>
@@ -147,9 +210,14 @@
                     <span><strong>Download</strong><br>for macOS</span>
                 </a>
             </div>
+
             <div class="instructions-panel">
-                <h3>Instructions</h3>
-                <pre>
+                <div class="flex items-center justify-center">
+                    <h3>Instructions</h3>
+                    <i data-feather="chevron-down" class="collapse-toggle" data-collapse-target="instructions-body"></i>
+                </div>
+                <div class="collapse-content" id="instructions-body">
+                    <pre>
 console commands
 !ver                Shows the current version of the application
 !cls                Clear console
@@ -160,7 +228,8 @@ console commands
 !lang_settings      Open language settings file
 !exp_pdf            Generate and export PDF of the current preview panel
 !help               Shows all the available commands
-------------------------------------------------------------------------
+
+
 keybindings
 ctrl + o            Open a file
 ctrl + b            Build and run the current file
@@ -176,6 +245,7 @@ ctrl + shift + s    Save the current document as new file
 ctrl + shift + x    Open/close terminal panel
 ctrl + shift + t    Open/close preview panel
 </pre>
+                </div>
             </div>
         </div>
     </section>
@@ -184,23 +254,41 @@ ctrl + shift + t    Open/close preview panel
     <script>
         function initLatestVersion() {
             fetch('https://api.github.com/repos/Haeri/monolith-code/releases/latest')
-            .then(response => response.json())
-            .then(data => {
-                document.getElementById("version_insert").innerHTML = data.tag_name;
+                .then(response => response.json())
+                .then(data => {
+                    document.getElementById("version_insert").innerHTML = data.tag_name;
 
-                const version = data.tag_name.replace("v", "");
-                const root_url = "https://github.com/Haeri/monolith-code/releases/latest/download";
+                    const version = data.tag_name.replace("v", "");
+                    const root_url = "https://github.com/Haeri/monolith-code/releases/latest/download";
 
-                document.getElementById("download-win").href = `${root_url}/monolith-code-Setup-${version}.exe`;
-                document.getElementById("download-mac").href = `${root_url}/monolith-code-${version}-mac.tar.gz`;
-                document.getElementById("download-linux").href = `${root_url}/monolith-code-${version}-linux.tar.gz`;
+                    document.getElementById("download-win").href = `${root_url}/monolith-code-Setup-${version}.exe`;
+                    document.getElementById("download-mac").href = `${root_url}/monolith-code-${version}-mac.tar.gz`;
+                    document.getElementById("download-linux").href = `${root_url}/monolith-code-${version}-linux.tar.gz`;
+                });
+        }
+
+        function initCollapsible() {
+            const collapseBtns = [...document.getElementsByClassName("collapse-toggle")];
+
+            collapseBtns.forEach(element => {
+                element.addEventListener("click", function (e) {
+                    this.classList.toggle("active");
+                    const content = document.getElementById(this.dataset.collapseTarget);
+                    if (content.style.maxHeight) {
+                        content.style.maxHeight = null;
+                    } else {
+                        content.style.maxHeight = content.scrollHeight + "px";
+                    }
+                });
             });
         }
 
         window.onload = function () {
             feather.replace();
             initLatestVersion();
+            initCollapsible();
         }
     </script>
 </body>
+
 </html>
