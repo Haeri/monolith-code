@@ -185,25 +185,25 @@ header #window-buttons button#close-button {
 }
 
 header #window-buttons button#min-button:hover {
-	background-color: hsl(122, 39%, 63%);
-	/*border: 1px solid #4caf50;*/
-	box-shadow: 0px 0px 30px 1px #4caf50;
-}
-
-header #window-buttons button#min-button {
-	background-color: #4caf50;
-	border: 1px solid #4caf50;
-}
-
-header #window-buttons button#max-button:hover {
 	background-color: hsl(54, 100%, 76%);
 	/*border: 1px solid #ffeb3b;*/
 	box-shadow: 0px 0px 30px 1px #ffeb3b;
 }
 
-header #window-buttons button#max-button {
+header #window-buttons button#min-button {
 	background-color: #ffeb3b;
 	border: 1px solid #ffeb3b;
+}
+
+header #window-buttons button#max-button:hover {
+	background-color: hsl(122, 39%, 63%);
+	/*border: 1px solid #4caf50;*/
+	box-shadow: 0px 0px 30px 1px #4caf50;
+}
+
+header #window-buttons button#max-button {
+	background-color: #4caf50;
+	border: 1px solid #4caf50;
 }
 
 header,
