@@ -22,10 +22,14 @@ jobs:
       run: npm run package      
       env:
         GITHUB_TOKEN: ${{secrets.GITHUB_TOKEN}}
+    - name: Echo
+      run: |
+        cd dist
+        ls -la
     - name: Upload
       uses: actions/upload-artifact@v3
       with:
         name: ${{ matrix.os }}_artifacts
         path: |
           dist/monolith-code*
-          dist/latest.yml
+          dist/latest*.yml
