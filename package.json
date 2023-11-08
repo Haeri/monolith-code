@@ -1,6 +1,6 @@
 {
   "name": "monolith-code",
-  "version": "2.2.5",
+  "version": "2.2.6",
   "description": "minimalistic coder editor",
   "homepage": "https://haeri.github.io/monolith-code/",
   "main": "main.js",
@@ -39,10 +39,9 @@
       "icon": "build/icon.ico"
     },
     "linux": {
-      "target": "tar.gz"
-    },
+      "category": "Utility"
+    },      
     "mac": {
-      "target": "tar.gz"
     },
     "nsis": {
       "oneClick": false,
@@ -50,156 +49,142 @@
     },
     "fileAssociations": [
       {
-        "ext": [
-          "bat",
-          "cmd"
-        ],
+        "ext": "bat",
         "name": "Batch",
         "role": "Editor"
       },
       {
-        "ext": [
-          "c",
-          "h"
-        ],
+        "ext": "cmd",
+        "name": "Batch",
+        "role": "Editor"
+      },
+      {
+        "ext": "c",
         "name": "C",
         "role": "Editor"
       },
       {
-        "ext": [
-          "cpp",
-          "hpp"
-        ],
+        "ext": "h",
+        "name": "C",
+        "role": "Editor"
+      },
+      {
+        "ext": "cpp",
         "name": "C++",
         "role": "Editor"
       },
       {
-        "ext": [
-          "cs"
-        ],
+        "ext": "hpp",
+        "name": "C++",
+        "role": "Editor"
+      },
+      {
+        "ext": "cs",
         "name": "C#",
         "role": "Editor"
       },
       {
-        "ext": [
-          "css"
-        ],
+        "ext": "css",
         "name": "CSS",
         "role": "Editor"
       },
       {
-        "ext": [
-          "dart"
-        ],
+        "ext": "dart",
         "name": "DART",
         "role": "Editor"
       },
       {
-        "ext": [
-          "go"
-        ],
+        "ext": "go",
         "name": "Go",
         "role": "Editor"
       },
       {
-        "ext": [
-          "html"
-        ],
+        "ext": "html",
         "name": "HTML",
         "role": "Editor"
       },
       {
-        "ext": [
-          "java"
-        ],
+        "ext": "java",
         "name": "Java",
         "role": "Editor"
       },
       {
-        "ext": [
-          "js"
-        ],
+        "ext": "js",
         "name": "JavaScript",
         "role": "Editor"
       },
       {
-        "ext": [
-          "json"
-        ],
+        "ext": "json",
         "name": "JSON",
         "role": "Editor"
       },
       {
-        "ext": [
-          "tex",
-          "latex",
-          "bib"
-        ],
+        "ext": "tex",
         "name": "LaTeX",
         "role": "Editor"
       },
       {
-        "ext": [
-          "md",
-          "markdown"
-        ],
+        "ext": "latex",
+        "name": "LaTeX",
+        "role": "Editor"
+      },
+      {
+        "ext": "bib",
+        "name": "LaTeX",
+        "role": "Editor"
+      },
+      {
+        "ext": "md",
         "name": "Markdown",
         "role": "Editor"
       },
       {
-        "ext": [
-          "php"
-        ],
+        "ext": "markdown",
+        "name": "Markdown",
+        "role": "Editor"
+      },
+      {
+        "ext": "php",
         "name": "PHP",
         "role": "Editor"
       },
       {
-        "ext": [
-          "txt"
-        ],
+        "ext": "txt",
         "name": "Plain Text",
         "role": "Editor"
       },
       {
-        "ext": [
-          "ps1"
-        ],
+        "ext": "ps1",
         "name": "PowerShell",
         "role": "Editor"
       },
       {
-        "ext": [
-          "py"
-        ],
+        "ext": "py",
         "name": "Python",
         "role": "Editor"
       },
       {
-        "ext": [
-          "sql"
-        ],
+        "ext": "sql",
         "name": "SQL",
         "role": "Editor"
       },
       {
-        "ext": [
-          "ts"
-        ],
+        "ext": "ts",
         "name": "TypeScript",
         "role": "Editor"
       },
       {
-        "ext": [
-          "xml"
-        ],
+        "ext": "xml",
         "name": "XML",
         "role": "Editor"
       },
       {
-        "ext": [
-          "yml",
-          "yaml"
-        ],
+        "ext": "yaml",
+        "name": "YAML",
+        "role": "Editor"
+      },
+      {
+        "ext": "yml",
         "name": "YAML",
         "role": "Editor"
       }
