@@ -1,0 +1,21 @@
+name: Test Build
+
+on: 
+  push:
+    branches:
+    - dev
+
+jobs:
+  build:  
+   name: Test Build ${{ matrix.os }}
+   runs-on: ${{ matrix.os }}    
+   strategy:
+      matrix:
+        os: [macos-latest, ubuntu-latest, windows-latest]
+   steps:
+    - name: Download Repository
+      uses: actions/checkout@v4    
+    - name: Install Modules
+      run: npm install
+    - name: Test
+      run: npm run test-build
