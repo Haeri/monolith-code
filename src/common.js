@@ -4,12 +4,6 @@ const EXE_EXTENSION = Object.freeze({
   win32: '.exe',
 });
 
-const PLATFORM_ZIP = Object.freeze({
-  linux: 'monolith-code_linux.zip',
-  darwin: 'monolith-code_mac.tar',
-  win32: 'monolith-code_win.tar',
-});
-
 class lazyRequire {
   #requireValue = null;
   #requireFunk = null;
@@ -79,7 +73,6 @@ const mergeDeep = (target, ...sources) => {
 }
 
 if (typeof module !== 'undefined' && module.exports) {
-  module.exports.PLATFORM_ZIP = PLATFORM_ZIP;
   module.exports.getExeExtension = getExeExtension;
   module.exports.isObject = isObject;
   module.exports.mergeDeep = mergeDeep;
