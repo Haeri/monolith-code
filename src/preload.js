@@ -8,6 +8,23 @@ const childProcess = requireLazy(() => require('child_process'));
 
 let marked = null;
 
+function renderMathsExpression(katex, expr) {
+  if (expr[0] === '$' && expr[expr.length - 1] === '$') {
+    expr = expr.substr(1, expr.length - 2);
+    if (expr[0] === '$' && expr[expr.length - 1] === '$') {
+      expr = expr.substr(1, expr.length - 2);
+    }
+    let html = null;
+    try {
+      html = katex.renderToString(expr);
+    } catch (e) {
+      console.error(e);
+    }
+    return html;
+  }
+  return null;
+}
+
 function requireMarked() {
   if (marked === null) {
     marked = require('marked');
@@ -23,34 +40,17 @@ function requireMarked() {
       const inlineExprArray = text.match(inlineRegex);
       for (const i in blockExprArray) {
         const expr = blockExprArray[i];
-        const result = renderMathsExpression(expr);
+        const result = renderMathsExpression(katex, expr);
         text = text.replace(expr, result);
       }
       for (const i in inlineExprArray) {
         const expr = inlineExprArray[i];
-        const result = renderMathsExpression(expr);
+        const result = renderMathsExpression(katex, expr);
         text = text.replace(expr, result);
       }
       return originParagraph(text);
     };
-    function renderMathsExpression(expr) {
-      if (expr[0] === '$' && expr[expr.length - 1] === '$') {
-        let displayStyle = false;
-        expr = expr.substr(1, expr.length - 2);
-        if (expr[0] === '$' && expr[expr.length - 1] === '$') {
-          displayStyle = true;
-          expr = expr.substr(1, expr.length - 2);
-        }
-        let html = null;
-        try {
-          html = katex.renderToString(expr);
-        } catch (e) {
-          console.error(e);
-        }
-        return html;
-      }
-      return null;
-    }
+
 
     marked.setOptions({
       renderer,
