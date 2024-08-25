@@ -556,6 +556,7 @@ footer select option {
 	padding: 0;
 	border-radius: 8px;
 	text-transform: lowercase;
+	user-select: none;
 }
 
 .selected:hover {

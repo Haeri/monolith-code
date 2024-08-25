@@ -134,6 +134,7 @@ const API = {
   // Handler
   updateMaxUnmax: (callback) => ipcRenderer.on('update-max-unmax', callback),
   canClose: (callback) => ipcRenderer.on('can-close', callback),
+  canCloseResponse: (response) => ipcRenderer.send('can-close-response', response),
   print: (callback) => ipcRenderer.on('print', callback),
 
 };
