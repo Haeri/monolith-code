@@ -767,8 +767,8 @@ async function _initialize() {
     _toggleFullscreenStyle(value);
   });
 
-  window.api.canClose((event) => {
-    event.sender.send('can-close-response', (isSaved === null || isSaved));
+  window.api.canClose((_) => {
+    window.api.canCloseResponse(isSaved === null || isSaved);
   });
 
   window.api.print((_, value) => {
