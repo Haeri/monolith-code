@@ -32,7 +32,7 @@ const userPrefStore = new Store({
   configName: 'user-preferences',
   defaults: {
     window_config: {
-      native_frame: false,
+      native_frame: true,
     },
     editor_config: {
       theme: 'ace/theme/monokai',

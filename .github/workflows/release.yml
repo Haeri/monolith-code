@@ -16,8 +16,8 @@ jobs:
     - name: Download Repository
       uses: actions/checkout@v4    
     - name: Install Modules
-      run: npm install    
+      run: pnpm install    
     - name: Release
-      run: npm run package
+      run: pnpm run package
       env:
         GITHUB_TOKEN: ${{secrets.GITHUB_TOKEN}}

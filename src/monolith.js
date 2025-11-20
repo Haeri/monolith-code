@@ -105,11 +105,12 @@ const commandList = {
       });
 
       ret += '------------------------------------------------------------------------\n';
+      const modName = appInfo.os === 'darwin' ? 'cmd' : 'ctrl';
       Object.entries(keybindings.ctrl).forEach(([key, value]) => {
-        ret += `ctrl + ${key}            ${value.description}\n`;
+        ret += `${modName} + ${key}            ${value.description}\n`;
       });
       Object.entries(keybindings.ctrlshift).forEach(([key, value]) => {
-        ret += `ctrl + shift + ${key}    ${value.description}\n`;
+        ret += `${modName} + shift + ${key}    ${value.description}\n`;
       });
 
       print(ret);
@@ -726,7 +727,9 @@ async function _initialize() {
   });
 
   document.addEventListener('mousewheel', (e) => {
-    if (e.ctrlKey) {
+    const isMac = appInfo.os === 'darwin';
+    const isModifier = isMac ? e.metaKey : e.ctrlKey;
+    if (isModifier) {
       e.preventDefault();
       let size = editor.getFontSize() + Math.sign(e.deltaY);
       size = Math.min(Math.max(size, 3), 80);
@@ -796,12 +799,15 @@ async function _initialize() {
 
   window.addEventListener('keydown', (event) => {
     const lowerKey = event.key.toLowerCase();
-    if (event.ctrlKey && !event.shiftKey) {
+    const isMac = appInfo.os === 'darwin';
+    const isModifier = isMac ? event.metaKey : event.ctrlKey;
+
+    if (isModifier && !event.shiftKey) {
       if (lowerKey in keybindings.ctrl) {
         event.preventDefault();
         window[keybindings.ctrl[lowerKey].func]();
       }
-    } else if (event.ctrlKey && event.shiftKey) {
+    } else if (isModifier && event.shiftKey) {
       if (lowerKey in keybindings.ctrlshift) {
         event.preventDefault();
         window[keybindings.ctrlshift[lowerKey].func]();
