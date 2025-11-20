@@ -16,6 +16,6 @@ jobs:
     - name: Download Repository
       uses: actions/checkout@v4    
     - name: Install Modules
-      run: npm install
+      run: pnpm install
     - name: Test
-      run: npm run test-build
+      run: pnpm run test-build
