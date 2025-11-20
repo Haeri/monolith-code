@@ -14,7 +14,11 @@ jobs:
         os: [macos-latest, ubuntu-latest, windows-latest]
    steps:
     - name: Download Repository
-      uses: actions/checkout@v4    
+      uses: actions/checkout@v4
+    - name: Install pnpm
+      uses: pnpm/action-setup@v4
+      with:
+        version: 10    
     - name: Install Modules
       run: pnpm install
     - name: Test
