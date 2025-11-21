@@ -1,6 +1,6 @@
 {
   "name": "monolith-code",
-  "version": "2.3.0",
+  "version": "2.3.1",
   "description": "minimalistic coder editor",
   "homepage": "https://haeri.github.io/monolith-code/",
   "main": "main.js",
@@ -16,17 +16,17 @@
   "author": "Haeri",
   "license": "MIT",
   "devDependencies": {
-    "electron": "^31.7.7",
-    "electron-builder": "^24.13.3",
-    "eslint": "^7.32.0",
-    "eslint-config-airbnb-base": "^14.2.1",
+    "electron": "^39.2.3",
+    "electron-builder": "^26.0.12",
+    "eslint": "^9.39.1",
+    "eslint-config-airbnb-base": "^15.0.0",
     "eslint-plugin-import": "^2.32.0"
   },
   "dependencies": {
     "electron-updater": "^6.6.2",
-    "highlight.js": "^10.7.3",
+    "highlight.js": "^11.11.1",
     "katex": "^0.16.25",
-    "marked": "^4.3.0",
+    "marked": "^17.0.1",
     "tree-kill": "^1.2.2"
   },
   "build": {
@@ -41,7 +41,12 @@
     "linux": {
       "category": "Utility"
     },
-    "mac": {},
+    "mac": {
+      "hardenedRuntime": true,
+      "gatekeeperAssess": false,
+      "entitlements": "build/entitlements.mac.plist",
+      "entitlementsInherit": "build/entitlements.mac.plist"
+    },
     "nsis": {
       "oneClick": false,
       "perMachine": true
