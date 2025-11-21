@@ -32,33 +32,39 @@ function requireMarked() {
     const katex = require('katex');
 
     const renderer = new marked.Renderer();
-    const originParagraph = renderer.paragraph.bind(renderer);
-    renderer.paragraph = (text) => {
+
+    renderer.paragraph = function ({ tokens }) {
+      let text = this.parser.parseInline(tokens);
+
       const blockRegex = /\$\$[^\$]*\$\$/g;
       const inlineRegex = /\$[^\$]*\$/g;
       const blockExprArray = text.match(blockRegex);
       const inlineExprArray = text.match(inlineRegex);
-      for (const i in blockExprArray) {
-        const expr = blockExprArray[i];
-        const result = renderMathsExpression(katex, expr);
-        text = text.replace(expr, result);
+
+      if (blockExprArray) {
+        for (const expr of blockExprArray) {
+          const result = renderMathsExpression(katex, expr);
+          if (result) text = text.replace(expr, result);
+        }
       }
-      for (const i in inlineExprArray) {
-        const expr = inlineExprArray[i];
-        const result = renderMathsExpression(katex, expr);
-        text = text.replace(expr, result);
+
+      if (inlineExprArray) {
+        for (const expr of inlineExprArray) {
+          const result = renderMathsExpression(katex, expr);
+          if (result) text = text.replace(expr, result);
+        }
       }
-      return originParagraph(text);
+
+      return `<p>${text}</p>`;
     };
 
+    renderer.code = function ({ text, lang }) {
+      const validLanguage = hljs.getLanguage(lang) ? lang : 'plaintext';
+      const highlighted = hljs.highlight(text, { language: validLanguage }).value;
+      return `<pre><code class="hljs language-${validLanguage}">${highlighted}</code></pre>`;
+    };
 
-    marked.setOptions({
-      renderer,
-      highlight: (code, lang) => {
-        const validLanguage = hljs.getLanguage(lang) ? lang : 'plaintext';
-        return hljs.highlight(code, { language: validLanguage }).value;
-      },
-    });
+    marked.use({ renderer });
   }
 
   return marked;
