@@ -10,7 +10,7 @@ function parseDataFile(filePath, defaults) {
     common.mergeDeep(tmp, defaults);
     common.mergeDeep(tmp, stored);
     return tmp;
-  } catch (error) {
+  } catch {
     return defaults;
   }
 }

@@ -1,4 +1,6 @@
-const { contextBridge, ipcRenderer, webFrame } = require('electron');
+const {
+  contextBridge, ipcRenderer, webFrame, webUtils,
+} = require('electron');
 const { requireLazy, StandaloneEvent } = require('./common');
 
 const path = requireLazy(() => require('path'));
@@ -36,8 +38,8 @@ function requireMarked() {
     renderer.paragraph = function ({ tokens }) {
       let text = this.parser.parseInline(tokens);
 
-      const blockRegex = /\$\$[^\$]*\$\$/g;
-      const inlineRegex = /\$[^\$]*\$/g;
+      const blockRegex = /\$\$[^$]*\$\$/g;
+      const inlineRegex = /\$[^$]*\$/g;
       const blockExprArray = text.match(blockRegex);
       const inlineExprArray = text.match(inlineRegex);
 
@@ -136,6 +138,7 @@ const API = {
   spawnProcess: (command, args, cwd) => spawnProcess(command, args, cwd),
   markedParse: (...args) => requireMarked().parse(...args),
   openDevTool: (targetId, devtoolsId) => ipcRenderer.send('open-devtools', targetId, devtoolsId),
+  getPathForFile: (file) => webUtils.getPathForFile(file),
 
   // Handler
   updateMaxUnmax: (callback) => ipcRenderer.on('update-max-unmax', callback),

@@ -1,7 +1,7 @@
 const {
   app, BrowserWindow, ipcMain, webContents,
 } = require('electron');
-const { autoUpdater } = require("electron-updater");
+const fs = require('fs');
 const path = require('path');
 const { requireLazy } = require('./src/common');
 const Store = require('./src/store');
@@ -13,8 +13,11 @@ const appInfo = {
 };
 
 const dialog = requireLazy(() => require('electron').dialog);
+const electronUpdater = requireLazy(() => require('electron-updater').autoUpdater);
 
-let filePathsToOpen = [];
+const filesToOpenMap = new Map();
+let pendingFilesToOpen = [];
+let autoUpdaterEventsRegistered = false;
 
 const localStore = new Store({
   configName: 'local-settings',
@@ -55,14 +58,48 @@ const langStore = new Store({
   },
 });
 
-autoUpdater.on('update-downloaded', (info) => {
-  BrowserWindow.getAllWindows().forEach((w) => {
-    w.webContents.send('print', { text: `new version ${info.version} will be installed after restart.` });
-  });
-});
+function getAutoUpdater() {
+  const autoUpdater = electronUpdater.get();
+
+  if (!autoUpdaterEventsRegistered) {
+    autoUpdater.on('update-downloaded', (info) => {
+      BrowserWindow.getAllWindows().forEach((w) => {
+        w.webContents.send('print', { text: `new version ${info.version} will be installed after restart.` });
+      });
+    });
+    autoUpdaterEventsRegistered = true;
+  }
+
+  return autoUpdater;
+}
+
+function getFilePathsFromArgs(args, startIndex) {
+  return args
+    .slice(startIndex)
+    .filter((arg) => arg && !arg.startsWith('-'))
+    .map((arg) => path.resolve(arg))
+    .filter((arg) => {
+      try {
+        return fs.statSync(arg).isFile();
+      } catch {
+        return false;
+      }
+    });
+}
+
+function focusExistingWindow() {
+  const [win] = BrowserWindow.getAllWindows();
+  if (!win) return;
+
+  if (win.isMinimized()) {
+    win.restore();
+  }
+  win.focus();
+}
 
 function createWindow(caller = undefined, filePaths = []) {
-  filePathsToOpen = filePaths;
+  const winId = `win-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
+  filesToOpenMap.set(winId, filePaths);
   let {
     x, y,
   } = localStore.get('window_config');
@@ -77,20 +114,17 @@ function createWindow(caller = undefined, filePaths = []) {
     native_frame = false;
   }
 
-  let windowConfig = {};
-  if (native_frame) {
-    windowConfig = {
+  const windowConfig = native_frame
+    ? {
       frame: false,
       hasShadow: true,
       backgroundColor: '#212121',
-    };
-  } else {
-    windowConfig = {
+    }
+    : {
       frame: false,
       transparent: true,
       backgroundColor: '#00000000',
     };
-  }
 
   if (caller) {
     x = caller.getPosition()[0] + 30;
@@ -110,11 +144,13 @@ function createWindow(caller = undefined, filePaths = []) {
       preload: path.join(__dirname, 'src/preload.js'),
       nodeIntegration: false,
       contextIsolation: true,
-      nodeIntegrationInWorker: true,
+      sandbox: false,
       webviewTag: true,
     },
     icon: path.join(__dirname, 'res/img/icon.png'),
   });
+
+  win.winId = winId;
 
   win.on('close', (e) => {
     e.returnValue = false;
@@ -149,10 +185,14 @@ function createWindow(caller = undefined, filePaths = []) {
     }
   });
 
+  win.on('closed', () => {
+    filesToOpenMap.delete(win.winId);
+  });
+
   win.loadFile('index.html');
 }
 
-ipcMain.handle('initial-settings', () => {
+ipcMain.handle('initial-settings', (event) => {
   const editorConfig = userPrefStore.get('editor_config');
   const windowConfig = userPrefStore.get('window_config');
   const localWindowConfig = localStore.get('window_config');
@@ -161,7 +201,7 @@ ipcMain.handle('initial-settings', () => {
   const languageConfigPath = langStore.getFilePath();
   return {
     appInfo,
-    filePathsToOpen,
+    filePathsToOpen: filesToOpenMap.get(BrowserWindow.fromWebContents(event.sender).winId) || [],
     editorConfig,
     windowConfig,
     localWindowConfig,
@@ -260,20 +300,57 @@ ipcMain.on('can-close-response', (event, canClose) => {
   win.destroy();
 });
 
-app.whenReady().then(() => {
-  const num = app.isPackaged ? 1 : 2;
-  createWindow(null, process.argv.slice(num));
+const gotSingleInstanceLock = app.requestSingleInstanceLock();
 
-  app.on('activate', () => {
-    // On macOS it's common to re-create a window in the app when the
-    // dock icon is clicked and there are no other windows open.
-    if (BrowserWindow.getAllWindows().length === 0) createWindow();
+if (!gotSingleInstanceLock) {
+  app.quit();
+} else {
+  app.on('second-instance', (_, commandLine) => {
+    const num = app.isPackaged ? 1 : 2;
+    const filePaths = getFilePathsFromArgs(commandLine, num);
+
+    if (filePaths.length) {
+      createWindow(null, filePaths);
+      return;
+    }
+
+    focusExistingWindow();
   });
 
-  if (userPrefStore.get('app_config').auto_update) {
-    setTimeout(() => {
-      autoUpdater.checkForUpdatesAndNotify();
-    }, 8000);
+  app.whenReady().then(() => {
+    const num = app.isPackaged ? 1 : 2;
+    const argvFiles = getFilePathsFromArgs(process.argv, num);
+
+    const initialFiles = [...argvFiles, ...pendingFilesToOpen];
+    pendingFilesToOpen = [];
+
+    createWindow(null, initialFiles);
+
+    app.on('activate', () => {
+      // On macOS it's common to re-create a window in the app when the
+      // dock icon is clicked and there are no other windows open.
+      if (BrowserWindow.getAllWindows().length === 0) createWindow();
+    });
+
+    if (app.isPackaged && userPrefStore.get('app_config').auto_update) {
+      setTimeout(() => {
+        getAutoUpdater().checkForUpdatesAndNotify().catch((err) => {
+          BrowserWindow.getAllWindows().forEach((w) => {
+            w.webContents.send('print', { text: `Could not check for updates: ${err.message}` });
+          });
+        });
+      }, 10000);
+    }
+  });
+}
+
+app.on('open-file', (event, filePath) => {
+  event.preventDefault();
+  const absolutePath = path.resolve(filePath);
+  if (app.isReady()) {
+    createWindow(null, [absolutePath]);
+  } else {
+    pendingFilesToOpen.push(absolutePath);
   }
 });
 

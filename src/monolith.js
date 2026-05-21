@@ -1,5 +1,4 @@
 /* eslint-disable no-unused-vars */
-/* eslint-disable no-underscore-dangle */
 
 const modelist = requireLazy(() => ace.require('ace/ext/modelist'));
 const themelist = requireLazy(() => ace.require('ace/ext/themelist'));
@@ -638,7 +637,6 @@ function _toggleFullscreenStyle(isFullscreen) {
 }
 
 function _calculate(string) {
-  // eslint-disable-next-line no-new-func
   return Function(`return (${string})`)();
 }
 
@@ -704,9 +702,12 @@ async function _initialize() {
     event.preventDefault();
     event.stopPropagation();
 
-    Array.from(event.dataTransfer.files).forEach((f) => {
-      openFile(f.path);
-    });
+    const filePaths = Array.from(event.dataTransfer.files)
+      .map((f) => window.api.getPathForFile(f))
+      .filter(Boolean);
+    if (filePaths.length) {
+      openFile(filePaths);
+    }
   });
 
   if (!windowConfig.native_frame) {
@@ -916,7 +917,7 @@ async function _initialize() {
   webviewUi.addEventListener('console-message', (e) => {
     if (e.sourceId === 'electron/js2c/renderer_init.js') return;
 
-    let mode = 1;
+    let mode;
     switch (e.level) {
       case 1:
         mode = INFO_LEVEL.info;
