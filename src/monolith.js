@@ -45,6 +45,21 @@ let previewDevDivUi;
 let processIndicatorUi;
 
 const errorSVG = requireLazy(async () => await fetch('res/img/err.svg').then((res) => res.text()));
+const DANGEROUS_MARKDOWN_SELECTORS = [
+  'base',
+  'button',
+  'embed',
+  'form',
+  'iframe',
+  'input',
+  'link',
+  'meta',
+  'object',
+  'option',
+  'script',
+  'select',
+  'textarea',
+].join(',');
 
 // Constants
 const INFO_LEVEL = Object.freeze({
@@ -54,6 +69,193 @@ const INFO_LEVEL = Object.freeze({
   warn: 3,
   error: 4,
 });
+const MATH_CONSTANTS = Object.freeze({
+  e: Math.E,
+  pi: Math.PI,
+});
+const MATH_FUNCTIONS = Object.freeze({
+  abs: Math.abs,
+  acos: Math.acos,
+  asin: Math.asin,
+  atan: Math.atan,
+  atan2: Math.atan2,
+  cbrt: Math.cbrt,
+  ceil: Math.ceil,
+  cos: Math.cos,
+  exp: Math.exp,
+  floor: Math.floor,
+  ln: Math.log,
+  log: Math.log,
+  log10: Math.log10,
+  max: Math.max,
+  min: Math.min,
+  pow: Math.pow,
+  round: Math.round,
+  sin: Math.sin,
+  sqrt: Math.sqrt,
+  tan: Math.tan,
+});
+
+function escapeHtml(value) {
+  return value.replace(/[&<>"']/g, (char) => ({
+    '&': '&amp;',
+    '<': '&lt;',
+    '>': '&gt;',
+    '"': '&quot;',
+    "'": '&#39;',
+  }[char]));
+}
+
+function escapeAttribute(value) {
+  return escapeHtml(value).replace(/`/g, '&#96;');
+}
+
+function sanitizeHtmlDocument(html) {
+  const parser = new DOMParser();
+  const htmlDoc = parser.parseFromString(html, 'text/html');
+
+  htmlDoc.querySelectorAll(DANGEROUS_MARKDOWN_SELECTORS).forEach((el) => el.remove());
+  htmlDoc.body.querySelectorAll('*').forEach((el) => {
+    [...el.attributes].forEach((attr) => {
+      const name = attr.name.toLowerCase();
+      const value = attr.value.trim().toLowerCase();
+
+      if (name.startsWith('on') || name === 'srcdoc') {
+        el.removeAttribute(attr.name);
+        return;
+      }
+
+      if ((name === 'href' || name === 'src') && /^(javascript|vbscript|data:text\/html):/i.test(value)) {
+        el.removeAttribute(attr.name);
+      }
+    });
+  });
+
+  return htmlDoc;
+}
+
+function createMathParser(input) {
+  let index = 0;
+
+  function skipSpaces() {
+    while (input[index] === ' ') index += 1;
+  }
+
+  function match(char) {
+    skipSpaces();
+    if (input[index] !== char) return false;
+    index += 1;
+    return true;
+  }
+
+  function readNumber() {
+    skipSpaces();
+    const matchResult = input.slice(index).match(/^(?:\d+\.?\d*|\.\d+)(?:e[+-]?\d+)?/i);
+    if (!matchResult) return null;
+    index += matchResult[0].length;
+    return Number(matchResult[0]);
+  }
+
+  function readIdentifier() {
+    skipSpaces();
+    const matchResult = input.slice(index).match(/^[a-z][a-z0-9_]*/i);
+    if (!matchResult) return null;
+    index += matchResult[0].length;
+    return matchResult[0].toLowerCase();
+  }
+
+  function parseExpression() {
+    let value = parseTerm();
+    while (true) {
+      if (match('+')) {
+        value += parseTerm();
+      } else if (match('-')) {
+        value -= parseTerm();
+      } else {
+        return value;
+      }
+    }
+  }
+
+  function parseTerm() {
+    let value = parsePower();
+    while (true) {
+      if (match('*')) {
+        value *= parsePower();
+      } else if (match('/')) {
+        value /= parsePower();
+      } else if (match('%')) {
+        value %= parsePower();
+      } else {
+        return value;
+      }
+    }
+  }
+
+  function parsePower() {
+    const value = parseUnary();
+    if (match('^')) {
+      return value ** parsePower();
+    }
+    return value;
+  }
+
+  function parseUnary() {
+    if (match('+')) return parseUnary();
+    if (match('-')) return -parseUnary();
+    return parsePrimary();
+  }
+
+  function parseCall(name) {
+    const args = [];
+    if (!match(')')) {
+      do {
+        args.push(parseExpression());
+      } while (match(','));
+      if (!match(')')) throw new Error('Expected closing parenthesis.');
+    }
+
+    const fn = MATH_FUNCTIONS[name];
+    if (!fn) throw new Error(`Unknown function "${name}".`);
+    return fn(...args);
+  }
+
+  function parsePrimary() {
+    const number = readNumber();
+    if (number !== null) return number;
+
+    if (match('(')) {
+      const value = parseExpression();
+      if (!match(')')) throw new Error('Expected closing parenthesis.');
+      return value;
+    }
+
+    const identifier = readIdentifier();
+    if (identifier) {
+      if (match('(')) return parseCall(identifier);
+      if (Object.hasOwn(MATH_CONSTANTS, identifier)) return MATH_CONSTANTS[identifier];
+      throw new Error(`Unknown symbol "${identifier}".`);
+    }
+
+    throw new Error('Expected a number, constant, function, or parenthesis.');
+  }
+
+  return {
+    parse() {
+      const value = parseExpression();
+      skipSpaces();
+      if (index !== input.length) throw new Error(`Unexpected token "${input[index]}".`);
+      if (!Number.isFinite(value)) throw new Error('Result is not a finite number.');
+      return value;
+    },
+  };
+}
+
+function evaluateMathExpression(input) {
+  const normalizedInput = input.replace(/\s+/g, ' ').trim();
+  if (!normalizedInput) throw new Error('Expression is empty.');
+  return createMathParser(normalizedInput).parse();
+}
 
 const commandList = {
   '!ver': {
@@ -182,7 +384,7 @@ async function openFile(filePaths = []) {
         // webviewUi.src = 'about:blank'
       })
       .catch((err) => {
-        print(`Could not open file ${fileToOpen}<br>${err}`, INFO_LEVEL.error);
+        print(`Could not open file ${fileToOpen}\n${err}`, INFO_LEVEL.error);
       }).finally(() => {
         notifyLoadEnd();
       });
@@ -266,7 +468,12 @@ function print(text, mode = INFO_LEVEL.info) {
   block.classList.add(Object.keys(INFO_LEVEL).find((key) => INFO_LEVEL[key] === mode));
 
   errorSVG.get().then((svg) => {
-    block.innerHTML = (mode === 4 ? svg : '') + text;
+    if (mode === INFO_LEVEL.error) {
+      const icon = document.createElement('template');
+      icon.innerHTML = svg;
+      block.appendChild(icon.content.cloneNode(true));
+    }
+    block.appendChild(document.createTextNode(text));
   });
   consoleOutUi.appendChild(block);
 
@@ -294,17 +501,17 @@ function makeLanguageTemplate() {
 
 function evaluateMathInline() {
   const range = editor.selection.getRange();
-  let func = editor.getSelectedText();
+  let expression = editor.getSelectedText();
   if (range.start.row === range.end.row && range.start.column === range.end.column) {
-    func = editor.session.getLine(range.start.row);
+    expression = editor.session.getLine(range.start.row);
   }
 
   try {
-    const result = _calculate(func);
+    const result = evaluateMathExpression(expression);
     editor.session.insert(editor.selection.getRange().end, ` = ${result}`);
     notify('confirm');
   } catch (error) {
-    print(`Unable to calculate '${func}'`, INFO_LEVEL.error);
+    print(`Unable to calculate "${expression}": ${error.message}`, INFO_LEVEL.error);
   }
 }
 
@@ -380,7 +587,6 @@ function _debounce(func, wait, immediate) {
 const markdownUpdater = _debounce(() => {
   const markedHtml = mdToHTML();
   webviewUi.send('fill_content', markedHtml);
-  // webviewUi.contentWindow.document.body.innerHTML = markedHtml;
 }, 200);
 
 function toggleDevTool() {
@@ -395,14 +601,15 @@ function mdToHTML() {
   let pre = getContent();
   pre = pre.replaceAll(/src="\.\/(.*?)"/ig, `src="${basepath}$1"`);
   let markedHtml = window.api.markedParse(pre, { baseUrl: basepath });
-
-  const parser = new DOMParser();
-  const htmlDoc = parser.parseFromString(markedHtml, 'text/html');
+  const htmlDoc = sanitizeHtmlDocument(markedHtml);
   const sections = [...htmlDoc.querySelectorAll('h1[id], h2[id], h3[id], h4[id], h5[id], h6[id]')];
 
-  let toc = sections.map((el) => `<li><a href="#${el.id}">${el.nodeName} - ${el.innerText}</a></li>`).join('');
+  let toc = sections
+    .map((el) => `<li><a href="#${escapeAttribute(el.id)}">${escapeHtml(el.nodeName)} - ${escapeHtml(el.innerText)}</a></li>`)
+    .join('');
   toc = `<ul>${toc}</ul>`;
 
+  markedHtml = htmlDoc.body.innerHTML;
   markedHtml = markedHtml.replace(/\[TOC\]/, toc);
 
   return markedHtml;
@@ -634,10 +841,6 @@ function _toggleFullscreenStyle(isFullscreen) {
   } else {
     document.body.classList.remove('fullscreen');
   }
-}
-
-function _calculate(string) {
-  return Function(`return (${string})`)();
 }
 
 function _assignUIVariables() {
@@ -935,10 +1138,6 @@ async function _initialize() {
 
     const source = e.sourceId.split('/').pop();
     let fileSource = `${source}:${e.line}`;
-
-    if (source === (file.name + file.extension)) {
-      fileSource = `<a class="jump-to-line" href="#${e.line}">${fileSource}</a>`;
-    }
 
     print(`Message from ${fileSource}\n${e.message}`, mode);
   });

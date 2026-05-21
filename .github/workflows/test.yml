@@ -5,6 +5,9 @@ on:
     branches:
     - dev
 
+permissions:
+  contents: read
+
 jobs:
   build:  
    name: Test Build ${{ matrix.os }}
@@ -14,12 +17,16 @@ jobs:
         os: [macos-latest, ubuntu-latest, windows-latest]
    steps:
     - name: Download Repository
-      uses: actions/checkout@v4
+      uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5
     - name: Install pnpm
-      uses: pnpm/action-setup@v4
+      uses: pnpm/action-setup@f40ffcd9367d9f12939873eb1018b921a783ffaa
       with:
-        version: 10    
+        version: 11.1.2
     - name: Install Modules
-      run: pnpm install
+      run: pnpm install --frozen-lockfile
+    - name: Lint
+      run: pnpm run lint
+    - name: Security audit
+      run: pnpm run security:audit
     - name: Test
       run: pnpm run test-build

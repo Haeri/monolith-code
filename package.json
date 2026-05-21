@@ -7,6 +7,8 @@
   "packageManager": "pnpm@11.1.2",
   "scripts": {
     "start": "electron .",
+    "lint": "eslint main.js src/preload.js src/monolith.js src/common.js src/store.js eslint.config.js",
+    "security:audit": "pnpm audit --audit-level moderate",
     "package": "electron-builder",
     "test-build": "electron-builder --publish never"
   },
