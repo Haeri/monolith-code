@@ -43,6 +43,9 @@
       "icon": "build/icon.ico"
     },
     "linux": {
+      "target": [
+        "AppImage"
+      ],
       "category": "Utility"
     },
     "mac": {
