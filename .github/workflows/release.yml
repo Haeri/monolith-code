@@ -38,13 +38,6 @@ jobs:
     - name: Security audit
       run: pnpm run security:audit
 
-    - name: Install Snapcraft (Linux only)
-      if: matrix.os == 'ubuntu-latest'
-      run: |
-        sudo apt update
-        sudo apt install -y snapd
-        sudo snap install snapcraft --classic
-
     - name: Build & Publish Release
       run: pnpm run package
       env:
