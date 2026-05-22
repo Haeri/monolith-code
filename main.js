@@ -18,6 +18,9 @@ const electronUpdater = requireLazy(() => require('electron-updater').autoUpdate
 const filesToOpenMap = new Map();
 let pendingFilesToOpen = [];
 let autoUpdaterEventsRegistered = false;
+let isQuitting = false;
+let updateReadyToInstall = false;
+let updateInstallStarted = false;
 
 const localStore = new Store({
   configName: 'local-settings',
@@ -58,13 +61,46 @@ const langStore = new Store({
   },
 });
 
+function installDownloadedUpdate() {
+  if (updateInstallStarted) return;
+
+  updateInstallStarted = true;
+  isQuitting = true;
+  getAutoUpdater().quitAndInstall(false, true);
+}
+
 function getAutoUpdater() {
   const autoUpdater = electronUpdater.get();
 
   if (!autoUpdaterEventsRegistered) {
     autoUpdater.on('update-downloaded', (info) => {
-      BrowserWindow.getAllWindows().forEach((w) => {
+      updateReadyToInstall = true;
+
+      const windows = BrowserWindow.getAllWindows();
+      windows.forEach((w) => {
         w.webContents.send('print', { text: `new version ${info.version} will be installed after restart.` });
+      });
+
+      const options = {
+        type: 'info',
+        buttons: ['Restart now', 'Later'],
+        defaultId: 0,
+        cancelId: 1,
+        title: 'Update ready',
+        message: `monolith code ${info.version} is ready to install.`,
+        detail: 'Restart the app now to finish installing the update.',
+      };
+
+      const prompt = windows[0]
+        ? dialog.get().showMessageBox(windows[0], options)
+        : dialog.get().showMessageBox(options);
+
+      prompt.then(({ response }) => {
+        if (response === 0) installDownloadedUpdate();
+      }).catch((err) => {
+        windows.forEach((w) => {
+          w.webContents.send('print', { text: `Could not start update install: ${err.message}` });
+        });
       });
     });
     autoUpdaterEventsRegistered = true;
@@ -153,6 +189,8 @@ function createWindow(caller = undefined, filePaths = []) {
   win.winId = winId;
 
   win.on('close', (e) => {
+    if (isQuitting) return;
+
     e.returnValue = false;
     e.preventDefault();
 
@@ -356,4 +394,14 @@ app.on('open-file', (event, filePath) => {
 
 app.on('window-all-closed', () => {
   if (process.platform !== 'darwin') app.quit();
+});
+
+app.on('before-quit', (event) => {
+  if (updateReadyToInstall && !updateInstallStarted) {
+    event.preventDefault();
+    installDownloadedUpdate();
+    return;
+  }
+
+  isQuitting = true;
 });
