@@ -1,6 +1,6 @@
 {
   "name": "monolith-code",
-  "version": "2.3.2",
+  "version": "2.3.3",
   "description": "minimalistic coder editor",
   "homepage": "https://haeri.github.io/monolith-code/",
   "main": "main.js",
@@ -20,17 +20,17 @@
   "license": "MIT",
   "devDependencies": {
     "@eslint/js": "^10.0.1",
-    "electron": "^42.2.0",
-    "electron-builder": "^26.8.1",
-    "electron-builder-squirrel-windows": "26.8.1",
-    "eslint": "^10.4.0",
+    "electron": "^42.4.0",
+    "electron-builder": "^26.15.3",
+    "electron-builder-squirrel-windows": "26.15.3",
+    "eslint": "^10.5.0",
     "globals": "^17.6.0"
   },
   "dependencies": {
-    "electron-updater": "^6.8.3",
+    "electron-updater": "^6.8.9",
     "highlight.js": "^11.11.1",
-    "katex": "^0.16.47",
-    "marked": "^18.0.4",
+    "katex": "^0.17.0",
+    "marked": "^18.0.5",
     "tree-kill": "^1.2.2"
   },
   "build": {
@@ -199,11 +199,6 @@
         "name": "YAML",
         "role": "Editor"
       }
-    ]
-  },
-  "pnpm": {
-    "onlyBuiltDependencies": [
-      "electron"
     ]
   }
 }

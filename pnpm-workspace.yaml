@@ -1,3 +1,5 @@
+onlyBuiltDependencies:
+  - electron
 allowBuilds:
   electron-winstaller: false
 ignoredBuiltDependencies:
