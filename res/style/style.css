@@ -132,7 +132,12 @@ header #window-buttons {
 	-webkit-app-region: no-drag;
 	display: flex;
 	align-items: center;
+	gap: 8px;
 	height: 100%;
+	position: absolute;
+	top: 50%;
+	right: 14px;
+	transform: translateY(-50%);
 }
 
 header #window-buttons button {
@@ -144,22 +149,36 @@ header #window-buttons button {
 	outline: none;
 	background-color: transparent;
 	border: 1px solid var(--foreground);
-	transition: 0.3s;
-	margin-left: 8px;
+	transition: background-color 0.3s, border-color 0.3s, box-shadow 0.3s;
+	margin: 0;
 	cursor: pointer;
 	padding: 0;
 }
 
 header #window-buttons button#pin-button {
 	margin-right: 10px;
+	order: 0;
 	opacity: 0;
-	transition-delay: 1s;
+	transition: opacity 0.3s, background-color 0.3s, border-color 0.3s, box-shadow 0.3s;
+	transition-delay: 1s, 0s, 0s, 0s;
+}
+
+header #window-buttons button#min-button {
+	order: 1;
+}
+
+header #window-buttons button#max-button {
+	order: 2;
+}
+
+header #window-buttons button#close-button {
+	order: 3;
 }
 
 header #window-buttons:hover button#pin-button,
 header #window-buttons button#pin-button.pinned {
 	opacity: 1;
-	transition-delay: 0s;
+	transition-delay: 0s, 0s, 0s, 0s;
 }
 
 header #window-buttons button#pin-button:hover {
@@ -214,6 +233,36 @@ footer {
 	justify-content: space-between;
 	/*z-index: 2;*/
 	background-color: inherit;
+}
+
+header {
+	position: relative;
+}
+
+header #document-name {
+	max-width: calc(100% - 180px);
+	overflow: hidden;
+	text-overflow: ellipsis;
+	white-space: nowrap;
+}
+
+body.platform-darwin header #window-buttons {
+	left: 14px;
+	right: auto;
+}
+
+body.platform-darwin header {
+	justify-content: center;
+}
+
+body.platform-darwin header #window-buttons button#close-button {
+	order: 0;
+}
+
+body.platform-darwin header #window-buttons button#pin-button {
+	margin-right: 0;
+	margin-left: 10px;
+	order: 3;
 }
 
 .overlay {

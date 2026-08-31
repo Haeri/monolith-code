@@ -8,6 +8,10 @@ const fsp = requireLazy(() => require('fs').promises);
 const treeKill = requireLazy(() => require('tree-kill'));
 const childProcess = requireLazy(() => require('child_process'));
 
+window.addEventListener('DOMContentLoaded', () => {
+  document.body.classList.add(`platform-${process.platform}`);
+}, { once: true });
+
 let marked = null;
 
 function renderMathsExpression(katex, expr) {

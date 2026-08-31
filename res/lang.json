@@ -13,6 +13,20 @@
 		],
 		"detector": "(\\.bat$|\\.cmd$)"
 	},
+	"bash": {
+		"name": "Bash",
+		"mode": "sh",
+		"comp": null,
+		"run": "bash <name>.sh",
+		"templ": "#!/usr/bin/env bash\n\necho \"hello human\"",
+		"linere": null,
+		"tempname": "MyBashScript",
+		"ext": [
+			"sh",
+			"bash"
+		],
+		"detector": "(\\.sh$|\\.bash$)"
+	},
 	"c": {
 		"name": "C",
 		"mode": "c_cpp",
@@ -265,6 +279,19 @@
 			"sql"
 		],
 		"detector": "\\.sql$"
+	},
+	"swift": {
+		"name": "Swift",
+		"mode": "swift",
+		"comp": null,
+		"run": "swift <name>.swift",
+		"templ": "print(\"hello human\")",
+		"linere": null,
+		"tempname": "MySwiftCode",
+		"ext": [
+			"swift"
+		],
+		"detector": "\\.swift$"
 	},
 	"typescript": {
 		"name": "TypeScript",

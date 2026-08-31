@@ -216,6 +216,14 @@ function createWindow(caller = undefined, filePaths = []) {
     win.webContents.send('update-max-unmax', false);
   });
 
+  win.on('enter-full-screen', () => {
+    win.webContents.send('update-max-unmax', true);
+  });
+
+  win.on('leave-full-screen', () => {
+    win.webContents.send('update-max-unmax', win.isMaximized());
+  });
+
   win.once('ready-to-show', () => {
     win.show();
     if (maximized) {
@@ -263,6 +271,11 @@ ipcMain.on('unmaximize', (event) => {
 });
 ipcMain.on('toggle-max-unmax', (event) => {
   const win = BrowserWindow.fromWebContents(event.sender);
+  if (process.platform === 'darwin') {
+    win.setFullScreen(!win.isFullScreen());
+    return;
+  }
+
   if (!win.isMaximized()) {
     win.maximize();
   } else {

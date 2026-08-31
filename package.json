@@ -1,6 +1,6 @@
 {
   "name": "monolith-code",
-  "version": "2.3.3",
+  "version": "2.3.4",
   "description": "minimalistic coder editor",
   "homepage": "https://haeri.github.io/monolith-code/",
   "main": "main.js",
@@ -20,17 +20,17 @@
   "license": "MIT",
   "devDependencies": {
     "@eslint/js": "^10.0.1",
-    "electron": "^42.4.0",
+    "electron": "^44.0.0",
     "electron-builder": "^26.15.3",
     "electron-builder-squirrel-windows": "26.15.3",
-    "eslint": "^10.5.0",
-    "globals": "^17.6.0"
+    "eslint": "^10.9.1",
+    "globals": "^17.11.0"
   },
   "dependencies": {
     "electron-updater": "^6.8.9",
-    "highlight.js": "^11.11.1",
-    "katex": "^0.17.0",
-    "marked": "^18.0.5",
+    "highlight.js": "^11.12.0",
+    "katex": "^0.18.4",
+    "marked": "^18.0.11",
     "tree-kill": "^1.2.2"
   },
   "build": {
@@ -59,6 +59,11 @@
       "perMachine": true
     },
     "fileAssociations": [
+      {
+        "ext": "bash",
+        "name": "Bash",
+        "role": "Editor"
+      },
       {
         "ext": "bat",
         "name": "Batch",
@@ -170,6 +175,11 @@
         "role": "Editor"
       },
       {
+        "ext": "sh",
+        "name": "Bash",
+        "role": "Editor"
+      },
+      {
         "ext": "py",
         "name": "Python",
         "role": "Editor"
@@ -177,6 +187,11 @@
       {
         "ext": "sql",
         "name": "SQL",
+        "role": "Editor"
+      },
+      {
+        "ext": "swift",
+        "name": "Swift",
         "role": "Editor"
       },
       {
