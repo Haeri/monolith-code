@@ -420,18 +420,22 @@ ipcMain.on('store-setting', (_, key, value) => {
 ipcMain.on('can-close-response', (event, canClose) => {
   const win = BrowserWindow.fromWebContents(event.sender);
   if (!canClose) {
+    const documentName = win.getTitle().replace(/\*$/, '');
+    const action = quitRequested ? 'quit' : 'close this window';
     const options = {
       type: 'question',
-      buttons: ['Cancel', 'Yes', 'No'],
-      defaultId: 2,
-      title: 'Unsaved Content',
-      message: 'Do you want to close the window without saving?',
-      detail: 'You will lose the current document',
+      buttons: ['Yes', 'No'],
+      // Enter and Escape both keep the document open
+      defaultId: 1,
+      cancelId: 1,
+      title: 'Unsaved Changes',
+      message: `"${documentName}" has unsaved changes. Do you really want to ${action}?`,
+      detail: 'Your unsaved changes will be lost.',
     };
 
     const ret = dialog.get().showMessageBoxSync(win, options);
 
-    if (ret !== 1) {
+    if (ret !== 0) {
       quitRequested = false;
       return;
     }
