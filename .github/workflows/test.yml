@@ -3,7 +3,13 @@ name: Test Build
 on: 
   push:
     branches:
-    - dev
+    - '**'
+  workflow_dispatch:
+
+# A newer push to the same branch makes the previous run obsolete
+concurrency:
+  group: test-build-${{ github.ref }}
+  cancel-in-progress: true
 
 permissions:
   contents: read
