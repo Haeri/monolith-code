@@ -168,7 +168,8 @@
         }
 
         .download-caption {
-            margin: 16px 0 0;
+            margin: 14px 0 0;
+            font-size: 0.85rem;
             color: var(--muted);
         }
 
@@ -211,13 +212,27 @@
         }
 
         .option-links a {
-            padding: 6px 14px;
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            padding: 6px 14px 6px 11px;
             border-radius: 999px;
             background: var(--subtle);
             font-size: 0.9rem;
             text-decoration: none;
             white-space: nowrap;
             transition: background 0.2s;
+        }
+
+        .option-links svg {
+            width: 14px;
+            height: 14px;
+            flex-shrink: 0;
+        }
+
+        .format-hint {
+            color: var(--muted);
+            font-size: 0.85rem;
         }
 
         .option-links a:hover {
@@ -310,7 +325,7 @@
         </div>
 
         <section id="download-panel" role="tabpanel">
-            <a id="download-button" class="download-button" href="https://github.com/Haeri/monolith-code/releases/latest">Download</a>
+            <a id="download-button" class="download-button" href="https://github.com/Haeri/monolith-code/releases/latest" target="_blank" rel="noopener">Download</a>
             <p id="download-caption" class="download-caption"></p>
 
             <div id="download-options" class="options" hidden>
@@ -456,6 +471,29 @@ keybindings
             return "mac";
         }
 
+        // Same shape as the feather "download" icon; built here because these links are created dynamically
+        function downloadIcon() {
+            const ns = "http://www.w3.org/2000/svg";
+            const svg = document.createElementNS(ns, "svg");
+            svg.setAttribute("viewBox", "0 0 24 24");
+            svg.setAttribute("fill", "none");
+            svg.setAttribute("stroke", "currentColor");
+            svg.setAttribute("stroke-width", "2");
+            svg.setAttribute("stroke-linecap", "round");
+            svg.setAttribute("stroke-linejoin", "round");
+            svg.setAttribute("aria-hidden", "true");
+            [
+                ["path", { d: "M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" }],
+                ["polyline", { points: "7 10 12 15 17 10" }],
+                ["line", { x1: "12", y1: "15", x2: "12", y2: "3" }],
+            ].forEach(([tag, attrs]) => {
+                const el = document.createElementNS(ns, tag);
+                Object.entries(attrs).forEach(([key, value]) => el.setAttribute(key, value));
+                svg.append(el);
+            });
+            return svg;
+        }
+
         function renderOptions(os) {
             const rows = document.getElementById("option-rows");
             rows.replaceChildren();
@@ -468,14 +506,23 @@ keybindings
                 row.className = "option-row";
 
                 const label = document.createElement("span");
-                label.textContent = FORMAT_HINTS[format] ? `${format} · ${FORMAT_HINTS[format]}` : format;
+                label.append(format);
+                if (FORMAT_HINTS[format]) {
+                    const hint = document.createElement("span");
+                    hint.className = "format-hint";
+                    hint.textContent = ` · ${FORMAT_HINTS[format]}`;
+                    label.append(hint);
+                }
 
                 const links = document.createElement("div");
                 links.className = "option-links";
                 items.filter(d => d.format === format).forEach(item => {
                     const link = document.createElement("a");
                     link.href = item.url;
-                    link.textContent = archLabel(os, item.arch);
+                    // A new tab keeps this page usable while GitHub prepares the download
+                    link.target = "_blank";
+                    link.rel = "noopener";
+                    link.append(downloadIcon(), archLabel(os, item.arch));
                     links.append(link);
                 });
 
