@@ -71,6 +71,6 @@ jobs:
           *"H\"$fingerprint\""*) echo "Signed with build/mac-signing-cert.pem ($fingerprint)" ;;
           *) echo "::error::App is not signed with build/mac-signing-cert.pem (are MAC_CSC_LINK and MAC_CSC_KEY_PASSWORD set?)"; exit 1 ;;
         esac
-        codesign --verify -R="=$requirement" dist/mac-arm64/monolith-code.app
+        codesign --verify -R "=$requirement" dist/mac-arm64/monolith-code.app
         echo "An update signed with this certificate passes the auto-update check"
 
