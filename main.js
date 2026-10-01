@@ -231,8 +231,15 @@ function createWindow(caller = undefined, filePaths = []) {
 
   win.winId = winId;
 
+  // A crashed renderer can't answer 'can-close', so the window has to close without asking
+  let rendererGone = false;
+  win.webContents.on('render-process-gone', (_, details) => {
+    rendererGone = true;
+    console.error(`Renderer of window ${win.winId} is gone: ${details.reason}`);
+  });
+
   win.on('close', (e) => {
-    if (isQuitting) return;
+    if (isQuitting || rendererGone) return;
 
     e.preventDefault();
     win.webContents.send('can-close');
@@ -268,6 +275,11 @@ function createWindow(caller = undefined, filePaths = []) {
 
   win.on('closed', () => {
     filesToOpenMap.delete(win.winId);
+
+    // The last window to close finishes a pending quit
+    if (quitRequested && BrowserWindow.getAllWindows().every((w) => w === win || w.isDestroyed())) {
+      finishQuit();
+    }
   });
 
   win.loadFile('index.html');
@@ -443,10 +455,6 @@ ipcMain.on('can-close-response', (event, canClose) => {
 
   saveWindowBounds(win);
   win.destroy();
-
-  if (quitRequested && BrowserWindow.getAllWindows().every((w) => w.isDestroyed())) {
-    finishQuit();
-  }
 });
 
 const gotSingleInstanceLock = app.requestSingleInstanceLock();
