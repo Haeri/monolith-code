@@ -22,8 +22,8 @@
   "devDependencies": {
     "@eslint/js": "^10.0.1",
     "electron": "^44.5.0",
-    "electron-builder": "^26.15.3",
-    "electron-builder-squirrel-windows": "26.15.3",
+    "electron-builder": "^26.17.0",
+    "electron-builder-squirrel-windows": "26.17.0",
     "eslint": "^10.11.0",
     "globals": "^17.12.0"
   },
