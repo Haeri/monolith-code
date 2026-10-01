@@ -141,6 +141,29 @@
             font-size: 1rem;
         }
 
+        .download-btn .dl-arch {
+            display: block;
+            font-size: 0.75rem;
+            color: #808080;
+        }
+
+        #other-downloads {
+            margin: 18px auto 0;
+            max-width: 600px;
+            font-size: 0.8rem;
+            color: #808080;
+            text-align: center;
+            line-height: 1.8;
+        }
+
+        #other-downloads a {
+            color: #aeaeae;
+        }
+
+        #other-downloads a:hover {
+            color: white;
+        }
+
         .download-btn svg {
             color: white;
             width: 25px;
@@ -200,17 +223,19 @@
                 <span>latest version <span id="version_insert"></span></span>
             </div>
             <div class="dl-panel">
-                <a id="download-win" href="" class="download-btn">
+                <a id="download-windows" href="https://github.com/Haeri/monolith-code/releases/latest" class="download-btn">
                     <i data-feather="download"></i>
-                    <span><strong>Download</strong><br>for windows</span>
+                    <span><strong>Download</strong><br>for windows<span class="dl-arch"></span></span>
                 </a>
-                <a id="download-linux" href="" class="download-btn"><i data-feather="download"></i>
-                    <span><strong>Download</strong><br>for linux</span>
+                <a id="download-linux" href="https://github.com/Haeri/monolith-code/releases/latest" class="download-btn"><i data-feather="download"></i>
+                    <span><strong>Download</strong><br>for linux<span class="dl-arch"></span></span>
                 </a>
-                <a id="download-mac" href="" class="download-btn"><i data-feather="download"></i>
-                    <span><strong>Download</strong><br>for macOS</span>
+                <a id="download-mac" href="https://github.com/Haeri/monolith-code/releases/latest" class="download-btn"><i data-feather="download"></i>
+                    <span><strong>Download</strong><br>for macOS<span class="dl-arch"></span></span>
                 </a>
             </div>
+
+            <div id="other-downloads"></div>
 
             <div id="mac-hint"
                 style="display: none; text-align: center; margin-top: 15px; color: #666; font-size: 0.85rem; max-width: 600px; margin-left: auto; margin-right: auto;">
@@ -247,7 +272,7 @@ keybindings
 [ctrl/cmd] + n            Open a new editor window
 [ctrl/cmd] + i            Open settings
 [ctrl/cmd] + p            Export the preview window as PDF
-[ctrl/cmd] + t            Open a hello world tamplate for the current language
+[ctrl/cmd] + t            Open a hello world template for the current language
 [ctrl/cmd] + m            Evaluate a mathematical equation on the selected line
 [ctrl/cmd] + ,            Open editor settings
 [ctrl/cmd] + shift + b    Beautify the document
@@ -262,19 +287,128 @@ keybindings
 
     <script src="res/js/feather.min.js"></script>
     <script>
-        function initLatestVersion() {
-            fetch('https://api.github.com/repos/Haeri/monolith-code/releases/latest')
-                .then(response => response.json())
-                .then(data => {
-                    document.getElementById("version_insert").innerHTML = data.tag_name;
+        // The first rule per OS is the format used for the big download button
+        const ASSET_RULES = [
+            { os: "windows", format: "Installer", test: /\.exe$/ },
+            { os: "windows", format: "Portable .zip", test: /-win\.zip$/ },
+            { os: "mac", format: ".dmg", test: /\.dmg$/ },
+            { os: "linux", format: "AppImage", test: /\.AppImage$/ },
+            { os: "linux", format: ".deb", test: /\.deb$/ },
+            { os: "linux", format: ".rpm", test: /\.rpm$/ },
+            { os: "linux", format: ".pacman", test: /\.pacman$/ },
+        ];
+        const OS_NAMES = { windows: "Windows", mac: "macOS", linux: "Linux" };
 
-                    const version = data.tag_name.replace("v", "");
-                    const root_url = "https://github.com/Haeri/monolith-code/releases/latest/download";
+        function describeAssets(assets) {
+            const downloads = assets.flatMap(asset => {
+                const rule = ASSET_RULES.find(r => r.test.test(asset.name));
+                if (!rule) return [];
 
-                    document.getElementById("download-win").href = `${root_url}/monolith-code-Setup-${version}.exe`;
-                    document.getElementById("download-mac").href = `${root_url}/monolith-code-${version}-arm64.dmg`;
-                    document.getElementById("download-linux").href = `${root_url}/monolith-code-${version}.AppImage`;
+                const arch = /arm64|aarch64/i.test(asset.name) ? "arm64" : "x64";
+                return [{ ...rule, arch, url: asset.browser_download_url }];
+            });
+
+            // Multi-arch releases ship one Windows installer that picks the architecture while installing
+            if (downloads.some(d => d.os === "windows" && d.arch === "arm64")) {
+                downloads
+                    .filter(d => d.os === "windows" && d.format === "Installer")
+                    .forEach(d => { d.arch = "any"; });
+            }
+
+            const rank = d => ASSET_RULES.findIndex(r => r.format === d.format && r.os === d.os) * 2 + (d.arch === "arm64" ? 1 : 0);
+            return downloads.sort((a, b) => rank(a) - rank(b));
+        }
+
+        function archLabel(os, arch) {
+            if (arch === "any") return "x64 + ARM64";
+            if (os === "mac") return arch === "arm64" ? "Apple Silicon" : "Intel";
+            return arch === "arm64" ? "ARM64" : "x64";
+        }
+
+        function detectMacArch() {
+            // Safari and Firefox report "Intel Mac OS X" even on Apple Silicon, so ask the GPU instead
+            try {
+                const gl = document.createElement("canvas").getContext("webgl");
+                const info = gl && gl.getExtension("WEBGL_debug_renderer_info");
+                const renderer = info ? gl.getParameter(info.UNMASKED_RENDERER_WEBGL) : "";
+                if (/Intel|AMD|Radeon|NVIDIA/i.test(renderer)) return "x64";
+            } catch (e) {
+                // Fall through to the default
+            }
+            // All Macs sold since 2023 are Apple Silicon
+            return "arm64";
+        }
+
+        async function detectArch() {
+            try {
+                // Chromium based browsers can tell us directly
+                if (navigator.userAgentData && navigator.userAgentData.getHighEntropyValues) {
+                    const { architecture } = await navigator.userAgentData.getHighEntropyValues(["architecture"]);
+                    if (architecture) return architecture === "arm" ? "arm64" : "x64";
+                }
+            } catch (e) {
+                // Fall back to the user agent string
+            }
+
+            const ua = `${navigator.userAgent} ${navigator.platform || ""}`;
+            if (/aarch64|arm64|armv8/i.test(ua)) return "arm64";
+            if (/Mac/i.test(ua)) return detectMacArch();
+            return "x64";
+        }
+
+        function pickDownload(downloads, os, arch) {
+            const primaryFormat = ASSET_RULES.find(r => r.os === os).format;
+            const candidates = downloads.filter(d => d.os === os && d.format === primaryFormat);
+            return candidates.find(d => d.arch === arch || d.arch === "any") || candidates[0];
+        }
+
+        function renderOtherDownloads(downloads) {
+            const container = document.getElementById("other-downloads");
+            container.replaceChildren();
+
+            Object.keys(OS_NAMES).forEach(os => {
+                const items = downloads.filter(d => d.os === os);
+                if (!items.length) return;
+
+                const line = document.createElement("div");
+                line.append(`${OS_NAMES[os]}: `);
+                items.forEach((item, index) => {
+                    if (index) line.append(" · ");
+                    const link = document.createElement("a");
+                    link.href = item.url;
+                    link.textContent = `${item.format} (${archLabel(os, item.arch)})`;
+                    line.append(link);
                 });
+                container.append(line);
+            });
+
+            const all = document.createElement("div");
+            const allLink = document.createElement("a");
+            allLink.href = "https://github.com/Haeri/monolith-code/releases";
+            allLink.textContent = "All releases";
+            all.append(allLink);
+            container.append(all);
+        }
+
+        async function initLatestVersion() {
+            const [release, arch] = await Promise.all([
+                fetch("https://api.github.com/repos/Haeri/monolith-code/releases/latest").then(response => response.json()),
+                detectArch(),
+            ]);
+
+            document.getElementById("version_insert").textContent = release.tag_name;
+
+            const downloads = describeAssets(release.assets || []);
+            Object.keys(OS_NAMES).forEach(os => {
+                const download = pickDownload(downloads, os, arch);
+                if (!download) return;
+
+                const button = document.getElementById(`download-${os}`);
+                button.href = download.url;
+                button.querySelector(".dl-arch").textContent = archLabel(os, download.arch);
+            });
+
+            renderOtherDownloads(downloads);
         }
 
         function initCollapsible() {
@@ -295,7 +429,9 @@ keybindings
 
         window.onload = function () {
             feather.replace();
-            initLatestVersion();
+            initLatestVersion().catch(() => {
+                // Buttons keep pointing at the releases page
+            });
             initCollapsible();
 
             document.getElementById("download-mac").addEventListener("click", function () {
