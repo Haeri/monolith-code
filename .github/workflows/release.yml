@@ -59,7 +59,22 @@ jobs:
     - name: Security audit
       run: pnpm run security:audit
 
+    - name: Trust the macOS signing certificate
+      if: runner.os == 'macOS' && hashFiles('build/mac-signing-cert.pem') != ''
+      run: sudo security add-trusted-cert -d -r trustRoot -p codeSign -k /Library/Keychains/System.keychain build/mac-signing-cert.pem
+
     - name: Build & Publish Release
+      if: runner.os != 'macOS'
       run: pnpm run package
       env:
         GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+    # Only macOS is signed: with a self-signed certificate on Windows the NSIS
+    # updater would verify update signatures against an untrusted publisher and reject them
+    - name: Build & Publish Release (macOS, signed)
+      if: runner.os == 'macOS'
+      run: pnpm run package
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        CSC_LINK: ${{ secrets.MAC_CSC_LINK }}
+        CSC_KEY_PASSWORD: ${{ secrets.MAC_CSC_KEY_PASSWORD }}

@@ -41,5 +41,34 @@ jobs:
       run: pnpm run lint
     - name: Security audit
       run: pnpm run security:audit
+    - name: Trust the macOS signing certificate
+      if: runner.os == 'macOS' && hashFiles('build/mac-signing-cert.pem') != ''
+      run: sudo security add-trusted-cert -d -r trustRoot -p codeSign -k /Library/Keychains/System.keychain build/mac-signing-cert.pem
     - name: Test
+      if: runner.os != 'macOS'
       run: pnpm run test-build
+    # Only macOS is signed: with a self-signed certificate on Windows the NSIS
+    # updater would verify update signatures against an untrusted publisher and reject them
+    - name: Test (macOS, signed)
+      if: runner.os == 'macOS'
+      run: pnpm run test-build
+      env:
+        CSC_LINK: ${{ secrets.MAC_CSC_LINK }}
+        CSC_KEY_PASSWORD: ${{ secrets.MAC_CSC_KEY_PASSWORD }}
+    # Squirrel.Mac only installs an update that satisfies the running app's designated
+    # requirement; checking the arm64 build against the x64 build's requirement simulates that
+    - name: Verify macOS signature
+      if: runner.os == 'macOS' && hashFiles('build/mac-signing-cert.pem') != ''
+      run: |
+        for app in dist/mac/monolith-code.app dist/mac-arm64/monolith-code.app; do
+          codesign --verify --deep --strict --verbose=2 "$app"
+        done
+        requirement=$(codesign -d -r- dist/mac/monolith-code.app 2>&1 | sed -n 's/^designated => //p')
+        echo "Designated requirement: $requirement"
+        case "$requirement" in
+          *"certificate leaf"*) ;;
+          *) echo "::error::App is not signed with the self-signed certificate (are MAC_CSC_LINK and MAC_CSC_KEY_PASSWORD set?)"; exit 1 ;;
+        esac
+        codesign --verify -R="=$requirement" dist/mac-arm64/monolith-code.app
+        echo "An update signed with this certificate passes the auto-update check"
+

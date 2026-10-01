@@ -42,6 +42,7 @@
       "!docs/**",
       "!build/**",
       "!.github/**",
+      "!scripts/**",
       "!res/img/icon.pdn",
       "!eslint.config.js",
       "!pnpm-workspace.yaml",
