@@ -139,9 +139,9 @@
 		"mode": "java",
 		"comp": "javac <name>.java",
 		"run": "java <name>",
-		"templ": "public class CLASS_NAME {\r\n\tpublic static void main(String[] args){ \r\n\t\tSystem.out.println(\"hello human\");\r\n\t}\r\n}",
+		"templ": "public class Main {\r\n\tpublic static void main(String[] args){ \r\n\t\tSystem.out.println(\"hello human\");\r\n\t}\r\n}",
 		"linere": "(<name>\\.java:(\\d*):)",
-		"tempname": "<nama>",
+		"tempname": "Main",
 		"ext": [
 			"java"
 		],

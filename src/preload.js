@@ -1,115 +1,46 @@
 const {
   contextBridge, ipcRenderer, webFrame, webUtils,
 } = require('electron');
-const { requireLazy, StandaloneEvent } = require('./common');
-
-const path = requireLazy(() => require('path'));
-const fsp = requireLazy(() => require('fs').promises);
-const treeKill = requireLazy(() => require('tree-kill'));
-const childProcess = requireLazy(() => require('child_process'));
 
 window.addEventListener('DOMContentLoaded', () => {
   document.body.classList.add(`platform-${process.platform}`);
 }, { once: true });
 
-let marked = null;
+const processHandlers = new Map();
+let processCounter = 0;
 
-function renderMathsExpression(katex, expr) {
-  if (expr[0] === '$' && expr[expr.length - 1] === '$') {
-    expr = expr.substr(1, expr.length - 2);
-    if (expr[0] === '$' && expr[expr.length - 1] === '$') {
-      expr = expr.substr(1, expr.length - 2);
-    }
-    let html = null;
-    try {
-      html = katex.renderToString(expr);
-    } catch (e) {
-      console.error(e);
-    }
-    return html;
-  }
-  return null;
-}
+ipcRenderer.on('process-event', (_, id, type, data) => {
+  const handlers = processHandlers.get(id);
+  if (!handlers) return;
 
-function requireMarked() {
-  if (marked === null) {
-    marked = require('marked');
-    const hljs = require('highlight.js');
-    const katex = require('katex');
-
-    const renderer = new marked.Renderer();
-
-    renderer.paragraph = function ({ tokens }) {
-      let text = this.parser.parseInline(tokens);
-
-      const blockRegex = /\$\$[^$]*\$\$/g;
-      const inlineRegex = /\$[^$]*\$/g;
-      const blockExprArray = text.match(blockRegex);
-      const inlineExprArray = text.match(inlineRegex);
-
-      if (blockExprArray) {
-        for (const expr of blockExprArray) {
-          const result = renderMathsExpression(katex, expr);
-          if (result) text = text.replace(expr, result);
-        }
-      }
-
-      if (inlineExprArray) {
-        for (const expr of inlineExprArray) {
-          const result = renderMathsExpression(katex, expr);
-          if (result) text = text.replace(expr, result);
-        }
-      }
-
-      return `<p>${text}</p>`;
-    };
-
-    renderer.code = function ({ text, lang }) {
-      const validLanguage = hljs.getLanguage(lang) ? lang : 'plaintext';
-      const highlighted = hljs.highlight(text, { language: validLanguage }).value;
-      return `<pre><code class="hljs language-${validLanguage}">${highlighted}</code></pre>`;
-    };
-
-    marked.use({ renderer });
-  }
-
-  return marked;
-}
+  handlers[type]?.(data);
+  if (type === 'close') processHandlers.delete(id);
+});
 
 function spawnProcess(command, args, cwd) {
-  const event = new StandaloneEvent();
+  // The id is generated here so handlers exist before the first event can arrive
+  processCounter += 1;
+  const id = `${Date.now()}-${processCounter}`;
+  const handlers = {};
+  processHandlers.set(id, handlers);
 
-  const runningProcess = childProcess.get().spawn(command, args, {
-    encoding: 'utf8',
-    shell: true,
-    cwd,
-  });
+  ipcRenderer.send('spawn-process', id, command, args, cwd);
 
-  runningProcess.on('error', (err) => {
-    event.dispatch('error', err);
-  });
-
-  runningProcess.stdout.setEncoding('utf8');
-  runningProcess.stdout.on('data', (data) => {
-    event.dispatch('stdout', data.toString());
-  });
-
-  runningProcess.stderr.setEncoding('utf8');
-  runningProcess.stderr.on('data', (data) => {
-    event.dispatch('stderr', data.toString());
-  });
-
-  runningProcess.on('close', (code) => {
-    event.dispatch('close', code);
-  });
-
-  event.registerHandler('stdin', (data) => {
-    runningProcess.stdin.write(data);
-  });
-
-  event.registerHandler('kill', () => new Promise((resolve) => treeKill.get()(runningProcess.pid, 'SIGKILL', resolve)));
-
-  return event;
+  return {
+    registerHandler: (event, callback) => {
+      handlers[event] = callback;
+    },
+    dispatch: (event, data) => {
+      if (event === 'stdin') {
+        ipcRenderer.send('process-stdin', id, data);
+        return undefined;
+      }
+      if (event === 'kill') {
+        return ipcRenderer.invoke('process-kill', id);
+      }
+      return undefined;
+    },
+  };
 }
 
 webFrame.setVisualZoomLevelLimits(1, 3);
@@ -135,12 +66,11 @@ const API = {
 
   storeSetting: (key, value) => ipcRenderer.send('store-setting', key, value),
 
-  readFile: (filePath) => fsp.get().readFile(filePath, { encoding: 'utf-8' }),
-  writeFile: (filePath, content) => fsp.get().writeFile(filePath, content),
+  readFile: (filePath) => ipcRenderer.invoke('read-file', filePath),
+  writeFile: (filePath, content) => ipcRenderer.invoke('write-file', filePath, content),
 
-  path: path.get(),
   spawnProcess: (command, args, cwd) => spawnProcess(command, args, cwd),
-  markedParse: (...args) => requireMarked().parse(...args),
+  markedParse: (markdown) => ipcRenderer.invoke('markdown-parse', markdown),
   openDevTool: (targetId, devtoolsId) => ipcRenderer.send('open-devtools', targetId, devtoolsId),
   getPathForFile: (file) => webUtils.getPathForFile(file),
 
