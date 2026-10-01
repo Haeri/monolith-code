@@ -115,11 +115,11 @@ function getAutoUpdater() {
   return autoUpdater;
 }
 
-function getFilePathsFromArgs(args, startIndex) {
+function getFilePathsFromArgs(args, startIndex, workingDirectory = process.cwd()) {
   return args
     .slice(startIndex)
     .filter((arg) => arg && !arg.startsWith('-'))
-    .map((arg) => path.resolve(arg))
+    .map((arg) => path.resolve(workingDirectory, arg))
     .filter((arg) => {
       try {
         return fs.statSync(arg).isFile();
@@ -462,9 +462,10 @@ const gotSingleInstanceLock = app.requestSingleInstanceLock();
 if (!gotSingleInstanceLock) {
   app.quit();
 } else {
-  app.on('second-instance', (_, commandLine) => {
+  app.on('second-instance', (_, commandLine, workingDirectory) => {
     const num = app.isPackaged ? 1 : 2;
-    const filePaths = getFilePathsFromArgs(commandLine, num);
+    // Relative paths belong to the directory the second launch was started from
+    const filePaths = getFilePathsFromArgs(commandLine, num, workingDirectory);
 
     if (filePaths.length) {
       createWindow(null, filePaths);
