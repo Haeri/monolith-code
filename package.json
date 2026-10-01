@@ -1,9 +1,10 @@
 {
   "name": "monolith-code",
   "version": "2.4.0",
-  "description": "minimalistic coder editor",
+  "description": "minimalistic code editor",
   "homepage": "https://haeri.github.io/monolith-code/",
   "main": "main.js",
+  "desktopName": "monolith-code.desktop",
   "packageManager": "pnpm@11.1.2",
   "scripts": {
     "start": "electron .",
@@ -35,6 +36,17 @@
   },
   "build": {
     "appId": "monolith-code",
+    "files": [
+      "**/*",
+      "!dist/**",
+      "!docs/**",
+      "!build/**",
+      "!.github/**",
+      "!res/img/icon.pdn",
+      "!eslint.config.js",
+      "!pnpm-workspace.yaml",
+      "!README.md"
+    ],
     "win": {
       "target": [
         "zip",
@@ -44,9 +56,72 @@
     },
     "linux": {
       "target": [
-        "AppImage"
+        {
+          "target": "AppImage",
+          "arch": [
+            "x64",
+            "arm64"
+          ]
+        },
+        {
+          "target": "deb",
+          "arch": [
+            "x64",
+            "arm64"
+          ]
+        },
+        {
+          "target": "rpm",
+          "arch": [
+            "x64",
+            "arm64"
+          ]
+        },
+        {
+          "target": "pacman",
+          "arch": [
+            "x64",
+            "arm64"
+          ]
+        }
       ],
-      "category": "Utility"
+      "category": "Development;TextEditor;Utility",
+      "maintainer": "Haeri <7956606+Haeri@users.noreply.github.com>",
+      "synopsis": "Minimalistic code editor",
+      "syncDesktopName": true,
+      "desktop": {
+        "entry": {
+          "Name": "monolith code",
+          "Keywords": "code;editor;text;markdown;latex;"
+        }
+      },
+      "mimeTypes": [
+        "text/plain",
+        "text/markdown",
+        "text/x-csrc",
+        "text/x-chdr",
+        "text/x-c++src",
+        "text/x-c++hdr",
+        "text/x-csharp",
+        "text/x-java",
+        "text/x-python",
+        "text/x-python3",
+        "text/x-go",
+        "text/x-tex",
+        "text/x-bibtex",
+        "text/html",
+        "text/css",
+        "text/javascript",
+        "application/javascript",
+        "application/json",
+        "application/xml",
+        "text/xml",
+        "application/yaml",
+        "application/x-yaml",
+        "application/x-shellscript",
+        "application/x-php",
+        "application/sql"
+      ]
     },
     "mac": {
       "hardenedRuntime": true,
