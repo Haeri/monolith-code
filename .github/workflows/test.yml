@@ -65,9 +65,11 @@ jobs:
         done
         requirement=$(codesign -d -r- dist/mac/monolith-code.app 2>&1 | sed -n 's/^designated => //p')
         echo "Designated requirement: $requirement"
+        # For a self-signed certificate the requirement pins its SHA-1 hash (as "certificate root" or "leaf")
+        fingerprint=$(openssl x509 -in build/mac-signing-cert.pem -noout -fingerprint -sha1 | sed 's/.*=//; s/://g' | tr 'A-F' 'a-f')
         case "$requirement" in
-          *"certificate leaf"*) ;;
-          *) echo "::error::App is not signed with the self-signed certificate (are MAC_CSC_LINK and MAC_CSC_KEY_PASSWORD set?)"; exit 1 ;;
+          *"H\"$fingerprint\""*) echo "Signed with build/mac-signing-cert.pem ($fingerprint)" ;;
+          *) echo "::error::App is not signed with build/mac-signing-cert.pem (are MAC_CSC_LINK and MAC_CSC_KEY_PASSWORD set?)"; exit 1 ;;
         esac
         codesign --verify -R="=$requirement" dist/mac-arm64/monolith-code.app
         echo "An update signed with this certificate passes the auto-update check"
