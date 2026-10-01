@@ -174,6 +174,7 @@
         }
 
         .options {
+            padding-top: 10px;
             margin: 40px auto 0;
             max-width: 460px;
         }
@@ -329,7 +330,6 @@
             <p id="download-caption" class="download-caption"></p>
 
             <div id="download-options" class="options" hidden>
-                <h2>All downloads</h2>
                 <div id="option-rows"></div>
             </div>
 
@@ -461,6 +461,7 @@ keybindings
         let downloads = [];
         let detectedArch = "x64";
         let releaseTag = "";
+        let macDownloadStarted = false;
 
         function detectOS() {
             const platform = (navigator.userAgentData && navigator.userAgentData.platform) || navigator.platform || "";
@@ -555,7 +556,7 @@ keybindings
                 caption.textContent = releaseTag;
             }
 
-            document.getElementById("mac-note").hidden = os !== "mac";
+            document.getElementById("mac-note").hidden = !(os === "mac" && macDownloadStarted);
             renderOptions(os);
         }
 
@@ -591,6 +592,16 @@ keybindings
         window.addEventListener("DOMContentLoaded", () => {
             feather.replace();
             initTabs();
+
+            // The quarantine hint only matters to people who actually downloaded the macOS app.
+            // Delegated, because the option links are re-created on every tab switch.
+            document.getElementById("download-panel").addEventListener("click", event => {
+                const isMacTab = document.getElementById("tab-mac").getAttribute("aria-selected") === "true";
+                if (!isMacTab || !event.target.closest("a")) return;
+
+                macDownloadStarted = true;
+                document.getElementById("mac-note").hidden = false;
+            });
             selectOS(detectOS());
             initDownloads().catch(() => {
                 // The button keeps pointing at the releases page

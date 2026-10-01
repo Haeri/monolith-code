@@ -106,3 +106,4 @@ dist
 
 monolith-code-*/
 updater/updater*
+.DS_Store
