@@ -9,8 +9,25 @@ permissions:
   contents: write
 
 jobs:
+  # The build jobs run in parallel; if each of them created the release itself,
+  # they could race and end up uploading into separate drafts
+  create-release:
+   name: Create draft release
+   runs-on: ubuntu-latest
+   steps:
+    - name: Create draft release if missing
+      env:
+        GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        TAG: ${{ github.ref_name }}
+      run: |
+        existing=$(gh api "repos/$GITHUB_REPOSITORY/releases" --paginate --jq '.[] | select(.tag_name == env.TAG) | .id')
+        if [ -z "$existing" ]; then
+          gh release create "$TAG" --repo "$GITHUB_REPOSITORY" --draft --title "${TAG#v}" --notes ""
+        fi
+
   build:  
    name: Release ${{ matrix.os }}
+   needs: create-release
    runs-on: ${{ matrix.os }}    
    strategy:
       matrix:
