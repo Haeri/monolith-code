@@ -3,6 +3,7 @@ const {
 } = require('electron');
 const fs = require('fs');
 const path = require('path');
+const crypto = require('crypto');
 const { requireLazy } = require('./src/common');
 const Store = require('./src/store');
 
@@ -14,11 +15,15 @@ const appInfo = {
 
 const dialog = requireLazy(() => require('electron').dialog);
 const electronUpdater = requireLazy(() => require('electron-updater').autoUpdater);
+const markdown = requireLazy(() => require('./src/markdown'));
+const childProcess = requireLazy(() => require('child_process'));
 
 const filesToOpenMap = new Map();
+const runningProcesses = new Map();
 let pendingFilesToOpen = [];
 let autoUpdaterEventsRegistered = false;
 let isQuitting = false;
+let quitRequested = false;
 let updateReadyToInstall = false;
 let updateInstallStarted = false;
 
@@ -96,7 +101,8 @@ function getAutoUpdater() {
         : dialog.get().showMessageBox(options);
 
       prompt.then(({ response }) => {
-        if (response === 0) installDownloadedUpdate();
+        // Quitting goes through the unsaved-changes check before the update is installed
+        if (response === 0) app.quit();
       }).catch((err) => {
         windows.forEach((w) => {
           w.webContents.send('print', { text: `Could not start update install: ${err.message}` });
@@ -133,8 +139,45 @@ function focusExistingWindow() {
   win.focus();
 }
 
+function saveWindowBounds(win) {
+  if (win.isDestroyed()) return;
+
+  localStore.set('window_config', {
+    ...localStore.get('window_config'),
+    ...win.getNormalBounds(),
+  });
+}
+
+/**
+ * Kills a spawned process and everything it started. This is synchronous so it
+ * also works while the app is exiting.
+ */
+function killProcessTree(child) {
+  if (child.exitCode !== null || child.signalCode !== null) return;
+
+  try {
+    if (process.platform === 'win32') {
+      childProcess.get().spawnSync('taskkill', ['/pid', String(child.pid), '/T', '/F'], { windowsHide: true });
+    } else {
+      // Processes are spawned as group leaders, so a negative pid targets the whole group
+      process.kill(-child.pid, 'SIGKILL');
+    }
+  } catch {
+    // The process already exited
+  }
+}
+
+function finishQuit() {
+  isQuitting = true;
+  if (updateReadyToInstall && !updateInstallStarted) {
+    installDownloadedUpdate();
+  } else {
+    app.quit();
+  }
+}
+
 function createWindow(caller = undefined, filePaths = []) {
-  const winId = `win-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
+  const winId = `win-${crypto.randomUUID()}`;
   filesToOpenMap.set(winId, filePaths);
   let {
     x, y,
@@ -180,7 +223,7 @@ function createWindow(caller = undefined, filePaths = []) {
       preload: path.join(__dirname, 'src/preload.js'),
       nodeIntegration: false,
       contextIsolation: true,
-      sandbox: false,
+      sandbox: true,
       webviewTag: true,
     },
     icon: path.join(__dirname, 'res/img/icon.png'),
@@ -191,20 +234,12 @@ function createWindow(caller = undefined, filePaths = []) {
   win.on('close', (e) => {
     if (isQuitting) return;
 
-    e.returnValue = false;
     e.preventDefault();
-
     win.webContents.send('can-close');
   });
 
-  win.on('resized', () => {
-    const bounds = win.getBounds();
-    const prev = localStore.get('window_config');
-    localStore.set('window_config', {
-      ...prev,
-      ...bounds,
-    });
-  });
+  win.on('resized', () => saveWindowBounds(win));
+  win.on('moved', () => saveWindowBounds(win));
 
   win.on('maximize', () => {
     localStore.set('window_config.maximized', true);
@@ -310,9 +345,62 @@ ipcMain.handle('show-save-dialog', async (event, options) => {
   return dialog.get().showSaveDialog(win, options);
 });
 
-ipcMain.on('open-devtools', (_, targetContentsId, devtoolsContentsId) => {
+ipcMain.handle('read-file', (_, filePath) => fs.promises.readFile(filePath, { encoding: 'utf-8' }));
+ipcMain.handle('write-file', (_, filePath, content) => fs.promises.writeFile(filePath, content));
+ipcMain.handle('markdown-parse', (_, text) => markdown.get().parse(text));
+
+ipcMain.on('spawn-process', (event, id, command, args, cwd) => {
+  const sender = event.sender;
+  const send = (type, data) => {
+    if (!sender.isDestroyed()) sender.send('process-event', id, type, data);
+  };
+
+  const child = childProcess.get().spawn(command, args, {
+    shell: true,
+    cwd,
+    // Own process group on unix so the whole tree can be killed at once
+    detached: process.platform !== 'win32',
+  });
+  runningProcesses.set(id, child);
+
+  child.on('error', (err) => send('error', err.message));
+
+  child.stdout.setEncoding('utf8');
+  child.stdout.on('data', (data) => send('stdout', data));
+
+  child.stderr.setEncoding('utf8');
+  child.stderr.on('data', (data) => send('stderr', data));
+
+  child.on('close', (code) => {
+    runningProcesses.delete(id);
+    send('close', code);
+  });
+
+  // Don't leave orphaned processes behind when the window goes away
+  sender.once('destroyed', () => killProcessTree(child));
+});
+
+ipcMain.on('process-stdin', (_, id, data) => {
+  runningProcesses.get(id)?.stdin.write(data);
+});
+
+ipcMain.handle('process-kill', (_, id) => {
+  const child = runningProcesses.get(id);
+  if (!child) return undefined;
+
+  return new Promise((resolve) => {
+    child.once('close', () => resolve());
+    killProcessTree(child);
+  });
+});
+
+
+ipcMain.on('open-devtools', (event, targetContentsId, devtoolsContentsId) => {
   const target = webContents.fromId(targetContentsId);
   const devtools = webContents.fromId(devtoolsContentsId);
+
+  // Only allow attaching devtools between webviews hosted by the requesting window
+  if (target?.hostWebContents !== event.sender || devtools?.hostWebContents !== event.sender) return;
 
   target.setDevToolsWebContents(devtools);
   target.openDevTools();
@@ -332,23 +420,33 @@ ipcMain.on('store-setting', (_, key, value) => {
 ipcMain.on('can-close-response', (event, canClose) => {
   const win = BrowserWindow.fromWebContents(event.sender);
   if (!canClose) {
+    const documentName = win.getTitle().replace(/\*$/, '');
+    const action = quitRequested ? 'quit' : 'close this window';
     const options = {
       type: 'question',
-      buttons: ['Cancel', 'Yes', 'No'],
-      defaultId: 2,
-      title: 'Unsaved Content',
-      message: 'Do you want to quit the application without saving?',
-      detail: 'You will loose the current document',
+      buttons: ['Yes', 'No'],
+      // Enter and Escape both keep the document open
+      defaultId: 1,
+      cancelId: 1,
+      title: 'Unsaved Changes',
+      message: `"${documentName}" has unsaved changes. Do you really want to ${action}?`,
+      detail: 'Your unsaved changes will be lost.',
     };
 
     const ret = dialog.get().showMessageBoxSync(win, options);
 
-    if (ret !== 1) {
+    if (ret !== 0) {
+      quitRequested = false;
       return;
     }
   }
 
+  saveWindowBounds(win);
   win.destroy();
+
+  if (quitRequested && BrowserWindow.getAllWindows().every((w) => w.isDestroyed())) {
+    finishQuit();
+  }
 });
 
 const gotSingleInstanceLock = app.requestSingleInstanceLock();
@@ -410,11 +508,21 @@ app.on('window-all-closed', () => {
 });
 
 app.on('before-quit', (event) => {
-  if (updateReadyToInstall && !updateInstallStarted) {
-    event.preventDefault();
-    installDownloadedUpdate();
+  if (isQuitting) return;
+
+  // Ask every window about unsaved changes first; the last one to close finishes the quit
+  event.preventDefault();
+  quitRequested = true;
+
+  const windows = BrowserWindow.getAllWindows();
+  if (!windows.length) {
+    finishQuit();
     return;
   }
+  windows.forEach((w) => w.close());
+});
 
-  isQuitting = true;
+app.on('will-quit', () => {
+  runningProcesses.forEach((child) => killProcessTree(child));
+  [localStore, userPrefStore, langStore].forEach((store) => store.flush());
 });

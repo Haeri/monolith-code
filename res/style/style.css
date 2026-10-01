@@ -277,6 +277,9 @@ body.platform-darwin header #window-buttons button#pin-button {
 }
 
 .overlay.open {
+	display: flex;
+	align-items: center;
+	justify-content: center;
 	background: #00000066;
 	backdrop-filter: blur(4px);
 }

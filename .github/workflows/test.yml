@@ -3,7 +3,13 @@ name: Test Build
 on: 
   push:
     branches:
-    - dev
+    - '**'
+  workflow_dispatch:
+
+# A newer push to the same branch makes the previous run obsolete
+concurrency:
+  group: test-build-${{ github.ref }}
+  cancel-in-progress: true
 
 permissions:
   contents: read
@@ -26,6 +32,9 @@ jobs:
       uses: pnpm/action-setup@f40ffcd9367d9f12939873eb1018b921a783ffaa
       with:
         version: 11.1.2
+    - name: Install Linux packaging tools
+      if: runner.os == 'Linux'
+      run: sudo apt-get update && sudo apt-get install -y rpm libarchive-tools
     - name: Install Modules
       run: pnpm install --frozen-lockfile
     - name: Lint

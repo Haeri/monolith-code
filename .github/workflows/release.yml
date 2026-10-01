@@ -29,6 +29,10 @@ jobs:
       with:
         version: 11.1.2
 
+    - name: Install Linux packaging tools
+      if: runner.os == 'Linux'
+      run: sudo apt-get update && sudo apt-get install -y rpm libarchive-tools
+
     - name: Install dependencies
       run: pnpm install --frozen-lockfile
 

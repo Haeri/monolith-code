@@ -3,6 +3,8 @@ const path = require('path');
 const fs = require('fs');
 const common = require('./common');
 
+const WRITE_DELAY_MS = 250;
+
 function parseDataFile(filePath, defaults) {
   try {
     const stored = JSON.parse(fs.readFileSync(filePath));
@@ -23,6 +25,8 @@ function setDescendantProp(obj, desc, value) {
 }
 
 class Store {
+  #writeTimeout = null;
+
   constructor(opts) {
     const userDataPath = app.getPath('userData');
     this.path = path.join(userDataPath, `${opts.configName}.json`);
@@ -46,7 +50,26 @@ class Store {
 
   set(key, val) {
     setDescendantProp(this.data, key, val);
-    fs.writeFile(this.path, JSON.stringify(this.data, null, 4), () => { });
+
+    // Coalesce bursts of updates (e.g. zooming with the mouse wheel) into a single write
+    clearTimeout(this.#writeTimeout);
+    this.#writeTimeout = setTimeout(() => this.flush(), WRITE_DELAY_MS);
+  }
+
+  flush() {
+    if (this.#writeTimeout === null) return;
+
+    clearTimeout(this.#writeTimeout);
+    this.#writeTimeout = null;
+
+    // Write to a temp file and rename so a crash never leaves a half-written settings file
+    const tmpPath = `${this.path}.tmp`;
+    try {
+      fs.writeFileSync(tmpPath, JSON.stringify(this.data, null, 4));
+      fs.renameSync(tmpPath, this.path);
+    } catch (err) {
+      console.error(`Could not write ${this.path}: ${err.message}`);
+    }
   }
 }
 

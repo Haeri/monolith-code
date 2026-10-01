@@ -2,7 +2,10 @@
 
 const modelist = requireLazy(() => ace.require('ace/ext/modelist'));
 const themelist = requireLazy(() => ace.require('ace/ext/themelist'));
-const beautify = requireLazy(() => ace.require('ace/ext/beautify'));
+// Only loaded the first time the document gets beautified
+const beautify = requireLazy(() => new Promise((resolve) => {
+  ace.config.loadModule('ace/ext/beautify', resolve);
+}));
 
 let appInfo = null;
 let editor = null;
@@ -28,23 +31,30 @@ let historyIndex;
 
 // UI Components
 let documentNameUi;
-//let languageDisplayUi;
 let languageDisplaySelectedUi;
 let optionsContainer;
 let themeChoiceUi;
-//let charDisplayUi;
+let settingsOverlayUi;
+let lineWrapUi;
+let lineNumbersUi;
 let consoleUi;
 let consoleInUi;
 let consoleOutUi;
 let webviewUi;
 let webviewDevUi;
-//let themeLink;
 let editorMediaDivUi;
 let editorConsoleDivUi;
 let previewDevDivUi;
 let processIndicatorUi;
 
-const errorSVG = requireLazy(async () => await fetch('res/img/err.svg').then((res) => res.text()));
+let consoleScrollScheduled = false;
+let markdownRenderId = 0;
+
+const errorSVG = requireLazy(async () => {
+  const svgText = await fetch('res/img/err.svg').then((res) => res.text());
+  const svgDoc = new DOMParser().parseFromString(svgText, 'image/svg+xml');
+  return document.importNode(svgDoc.documentElement, true);
+});
 const DANGEROUS_MARKDOWN_SELECTORS = [
   'base',
   'button',
@@ -62,6 +72,11 @@ const DANGEROUS_MARKDOWN_SELECTORS = [
 ].join(',');
 
 // Constants
+const MAX_CONSOLE_ENTRIES = 5000;
+const DIVIDER_ANIMATION = Object.freeze({
+  duration: 450,
+  easing: 'cubic-bezier(0.860, 0.000, 0.070, 1.000)',
+});
 const INFO_LEVEL = Object.freeze({
   user: 0,
   info: 1,
@@ -108,6 +123,20 @@ function escapeHtml(value) {
 
 function escapeAttribute(value) {
   return escapeHtml(value).replace(/`/g, '&#96;');
+}
+
+function parseFilePath(filePath) {
+  const separators = appInfo.os === 'win32' ? ['/', '\\'] : ['/'];
+  const sepIndex = Math.max(...separators.map((sep) => filePath.lastIndexOf(sep)));
+  const base = filePath.slice(sepIndex + 1);
+  const dotIndex = base.lastIndexOf('.');
+  const extension = dotIndex > 0 ? base.slice(dotIndex) : '';
+
+  return {
+    dir: filePath.slice(0, sepIndex + 1),
+    name: base.slice(0, base.length - extension.length),
+    extension,
+  };
 }
 
 function sanitizeHtmlDocument(html) {
@@ -272,7 +301,7 @@ const commandList = {
       if (runningProcess) {
         killProcess().then(() => print('Process Killed', INFO_LEVEL.info));
       } else {
-        print('No nunning process to kill.', INFO_LEVEL.warn);
+        print('No running process to kill.', INFO_LEVEL.warn);
       }
     },
   },
@@ -365,48 +394,42 @@ function newWindow(filePaths = []) {
 }
 
 async function openFile(filePaths = []) {
-  notifyLoadStart();
-
   let filePathsArray = Array.isArray(filePaths) ? filePaths : [filePaths];
 
   if (!filePathsArray.length) {
-    const { canceled, filePaths: _filePaths } = await window.api.showOpenDialog();
-    if (canceled) {
-      notifyLoadEnd();
-      return;
-    }
-    filePathsArray = _filePaths;
+    const { canceled, filePaths: selectedPaths } = await window.api.showOpenDialog();
+    if (canceled) return;
+    filePathsArray = selectedPaths;
   }
 
   if (!file.path && (isSaved === null || isSaved)) {
     const fileToOpen = filePathsArray.shift();
-    window.api.readFile(fileToOpen)
-      .then((data) => {
-        editor.setValue(data, -1);
-        _setFileInfo(fileToOpen);
-        print(`Opened file ${fileToOpen}`);
-        // webviewUi.src = 'about:blank'
-      })
-      .catch((err) => {
-        print(`Could not open file ${fileToOpen}\n${err}`, INFO_LEVEL.error);
-      }).finally(() => {
-        notifyLoadEnd();
-      });
+    notifyLoadStart();
+    try {
+      const data = await window.api.readFile(fileToOpen);
+      editor.setValue(data, -1);
+      _setFileInfo(fileToOpen);
+      print(`Opened file ${fileToOpen}`);
+    } catch (err) {
+      print(`Could not open file ${fileToOpen}\n${err.message}`, INFO_LEVEL.error);
+    } finally {
+      notifyLoadEnd();
+    }
   }
 
   if (filePathsArray.length) {
     newWindow(filePathsArray);
   }
-  notifyLoadEnd();
 }
 
 async function saveFileAs() {
   return saveFile(true);
 }
 
+/**
+ * @returns {Promise<boolean>} true if the document was written to disk
+ */
 async function saveFile(saveAs = false) {
-  notifyLoadStart();
-
   let filePath = file.path + file.name + file.extension;
 
   if (file.path === undefined || saveAs) {
@@ -419,24 +442,27 @@ async function saveFile(saveAs = false) {
       ],
     };
 
-    const { canceled, filePath: _filepath } = await window.api.showSaveDialog(options);
-
-    if (canceled) {
-      notifyLoadEnd();
-      return;
-    }
-    filePath = _filepath;
+    const { canceled, filePath: selectedPath } = await window.api.showSaveDialog(options);
+    if (canceled || !selectedPath) return false;
+    filePath = selectedPath;
   }
 
-  await window.api.writeFile(filePath, getContent());
+  notifyLoadStart();
+  try {
+    await window.api.writeFile(filePath, getContent());
+  } catch (err) {
+    print(`Could not save file ${filePath}\n${err.message}`, INFO_LEVEL.error);
+    return false;
+  } finally {
+    notifyLoadEnd();
+  }
 
   if (file.path === undefined || saveAs) {
     print(`file saved as ${filePath}`);
   }
   _setFileInfo(filePath);
-
-  notifyLoadEnd();
   notify('confirm');
+  return true;
 }
 
 /* ------------- UI ------------- */
@@ -450,6 +476,27 @@ function setTheme(name) {
 function setFontSize(size) {
   editor.setFontSize(size);
   window.api.storeSetting('font_size', size);
+}
+
+function setLineWrapping(enabled) {
+  editor.setOption('wrap', enabled);
+  lineWrapUi.checked = enabled;
+  window.api.storeSetting('line_wrapping', enabled);
+}
+
+function setLineNumbers(enabled) {
+  editor.setOptions({ showLineNumbers: enabled, showGutter: enabled });
+  lineNumbersUi.checked = enabled;
+  window.api.storeSetting('line_numbers', enabled);
+}
+
+function toggleSettingsPanel(open = !settingsOverlayUi.classList.contains('open')) {
+  settingsOverlayUi.classList.toggle('open', open);
+  if (open) {
+    themeChoiceUi.focus();
+  } else {
+    editor.focus();
+  }
 }
 
 function notify(type) {
@@ -535,32 +582,66 @@ function handleLanguageSelectorKeydown(event) {
   }
 }
 
-function print(text, mode = INFO_LEVEL.info) {
-  const block = document.createElement('div');
-  block.classList.add(Object.keys(INFO_LEVEL).find((key) => INFO_LEVEL[key] === mode));
+function scheduleConsoleScroll() {
+  if (consoleScrollScheduled) return;
 
-  errorSVG.get().then((svg) => {
-    if (mode === INFO_LEVEL.error) {
-      const icon = document.createElement('template');
-      icon.innerHTML = svg;
-      block.appendChild(icon.content.cloneNode(true));
-    }
-    block.appendChild(document.createTextNode(text));
+  consoleScrollScheduled = true;
+  requestAnimationFrame(() => {
+    consoleScrollScheduled = false;
+    consoleUi.scrollTo({ top: consoleUi.scrollHeight, behavior: 'smooth' });
   });
-  consoleOutUi.appendChild(block);
+}
 
-  if (mode >= 2) {
-    const ret = Object.keys(INFO_LEVEL).find((key) => INFO_LEVEL[key] === mode);
-    notify(ret);
+/**
+ * @param {string|Node} content Text is always inserted as plain text; pass a Node for rich output
+ */
+function print(content, mode = INFO_LEVEL.info) {
+  const levelName = Object.keys(INFO_LEVEL).find((key) => INFO_LEVEL[key] === mode) || 'info';
+  const block = document.createElement('div');
+  block.classList.add(levelName);
+  block.appendChild(typeof content === 'string' ? document.createTextNode(content) : content);
+
+  if (mode === INFO_LEVEL.error) {
+    errorSVG.get().then((icon) => block.prepend(icon.cloneNode(true)));
   }
 
-  setTimeout(() => consoleUi.scrollTo({ top: consoleUi.scrollHeight, behavior: 'smooth' }), 0);
+  consoleOutUi.appendChild(block);
+  while (consoleOutUi.childElementCount > MAX_CONSOLE_ENTRIES) {
+    consoleOutUi.firstElementChild.remove();
+  }
+
+  if (mode >= INFO_LEVEL.confirm) {
+    notify(levelName);
+  }
+
+  scheduleConsoleScroll();
+}
+
+function linkifyErrorLines(text, lineRegex) {
+  const fragment = document.createDocumentFragment();
+  let lastIndex = 0;
+
+  for (const match of text.matchAll(lineRegex)) {
+    fragment.append(text.slice(lastIndex, match.index));
+
+    const link = document.createElement('a');
+    link.className = 'jump-to-line';
+    link.href = `#${match[2]}`;
+    link.textContent = match[1];
+    fragment.append(link);
+
+    lastIndex = match.index + match[0].length;
+  }
+
+  fragment.append(text.slice(lastIndex));
+  return fragment;
 }
 
 /* ------------- FEATURES ------------- */
 
-function beautifyDocument() {
-  beautify.get().beautify(editor.session);
+async function beautifyDocument() {
+  const module = await beautify.get();
+  module.beautify(editor.session);
 }
 
 function makeLanguageTemplate() {
@@ -597,15 +678,14 @@ async function exportPDFFromPreview() {
     return;
   }
 
-  const pdfPath = window.api.path.resolve(file.path, `${file.name}.pdf`);
+  const pdfPath = `${file.path}${file.name}.pdf`;
 
-  const data = await webviewUi.printToPDF({ landscape: false, pageSize: 'A4' });
-  const error = await window.api.writeFile(pdfPath, data);
-
-  if (error) {
-    print(`Failed to write PDF to ${pdfPath}:\n${error}`, INFO_LEVEL.error);
-  } else {
+  try {
+    const data = await webviewUi.printToPDF({ landscape: false, pageSize: 'A4' });
+    await window.api.writeFile(pdfPath, data);
     print(`PDF successfully stored to ${pdfPath}`, INFO_LEVEL.confirm);
+  } catch (err) {
+    print(`Failed to write PDF to ${pdfPath}:\n${err.message}`, INFO_LEVEL.error);
   }
 }
 
@@ -618,47 +698,33 @@ function openLanguageSettings() {
 }
 
 async function killProcess() {
-  // return new Promise((resolve, reject) => {
   if (runningProcess != null) {
     await runningProcess.dispatch('kill');
   }
-  /*
-    , (err) => {
-      if (err) {
-        print('Could not stop the running process.', INFO_LEVEL.error);
-        reject();
-      } else {
-        resolve();
-      }
-    });
-  } else {
-    resolve();
-  }
-});
-*/
 }
 
 /* ------------- PRIVATE HELPERS ------------- */
 
-function _debounce(func, wait, immediate) {
+function _debounce(func, wait) {
   let timeout;
-  return () => {
-    const context = this; const
-      args = arguments;
-    const later = () => {
-      timeout = null;
-      if (!immediate) func.apply(context, args);
-    };
-    const callNow = immediate && !timeout;
+  return (...args) => {
     clearTimeout(timeout);
-    timeout = setTimeout(later, wait);
-    if (callNow) func.apply(context, args);
+    timeout = setTimeout(() => func(...args), wait);
   };
 }
 
-const markdownUpdater = _debounce(() => {
-  const markedHtml = mdToHTML();
-  webviewUi.send('fill_content', markedHtml);
+const markdownUpdater = _debounce(async () => {
+  // Rendering is async, so drop results that were overtaken by a newer render
+  markdownRenderId += 1;
+  const renderId = markdownRenderId;
+  try {
+    const markedHtml = await mdToHTML();
+    if (renderId === markdownRenderId) {
+      webviewUi.send('fill_content', markedHtml);
+    }
+  } catch (err) {
+    print(`Could not render markdown: ${err.message}`, INFO_LEVEL.error);
+  }
 }, 200);
 
 function toggleDevTool() {
@@ -668,11 +734,11 @@ function toggleDevTool() {
   togglePreviewDevToolDivider();
 }
 
-function mdToHTML() {
+async function mdToHTML() {
   const basepath = file.path.replaceAll('\\', '/');
   let pre = getContent();
   pre = pre.replaceAll(/src="\.\/(.*?)"/ig, `src="${basepath}$1"`);
-  let markedHtml = window.api.markedParse(pre, { baseUrl: basepath });
+  let markedHtml = await window.api.markedParse(pre);
   const htmlDoc = sanitizeHtmlDocument(markedHtml);
   const sections = [...htmlDoc.querySelectorAll('h1[id], h2[id], h3[id], h4[id], h5[id], h6[id]')];
 
@@ -691,40 +757,37 @@ function commandRunner(command, args, callback) {
   notifyLoadStart();
   print(`> ${command}`, INFO_LEVEL.user);
 
-  runningProcess = window.api.spawnProcess(command, args, file.path);
+  const proc = window.api.spawnProcess(command, args, file.path);
+  runningProcess = proc;
 
-  runningProcess.registerHandler('error', (err) => {
-    print(err, INFO_LEVEL.err);
+  proc.registerHandler('error', (message) => {
+    print(message, INFO_LEVEL.error);
   });
 
-  runningProcess.registerHandler('stdout', (data) => {
-    print(data.toString());
+  proc.registerHandler('stdout', (data) => {
+    print(data);
   });
 
-  runningProcess.registerHandler('stderr', (data) => {
-    if (file.lang !== undefined && langInfo[file.lang].linere != null) {
-      const line = langInfo[file.lang].linere.replaceAll('<name>', file.name);
-      const re = new RegExp(line, 'gi');
-      data = data.replaceAll(re, '<a class="jump-to-line" href="#$2">$1</a>');
+  proc.registerHandler('stderr', (data) => {
+    const lineRe = file.lang !== undefined && langInfo[file.lang].linere;
+    if (lineRe) {
+      const re = new RegExp(lineRe.replaceAll('<name>', file.name), 'gi');
+      print(linkifyErrorLines(data, re), INFO_LEVEL.error);
+    } else {
+      print(data, INFO_LEVEL.error);
     }
-    print(data, INFO_LEVEL.error);
   });
   processIndicatorUi.classList.add('active');
 
-  runningProcess.registerHandler('close', (code) => {
-    // Here you can get the exit code of the script
-    switch (code) {
-      case 0:
-        notify('confirm');
-        break;
-      default:
-        notify('error');
-        break;
-    }
+  proc.registerHandler('close', (code) => {
+    notify(code === 0 ? 'confirm' : 'error');
 
-    processIndicatorUi.classList.remove('active');
-    notifyLoadEnd();
-    runningProcess = null;
+    // A killed process can report closing after its replacement already started
+    if (runningProcess === proc) {
+      processIndicatorUi.classList.remove('active');
+      notifyLoadEnd();
+      runningProcess = null;
+    }
 
     if (callback !== undefined) {
       callback(code);
@@ -752,7 +815,13 @@ async function runFile() {
     } else if (file.lang === 'markdown') {
       webviewUi.className = '';
 
-      const markedHtml = mdToHTML();
+      let markedHtml;
+      try {
+        markedHtml = await mdToHTML();
+      } catch (err) {
+        print(`Could not render markdown: ${err.message}`, INFO_LEVEL.error);
+        return;
+      }
 
       webviewUi.addEventListener('did-finish-load', () => {
         webviewUi.send('fill_content', markedHtml);
@@ -773,12 +842,8 @@ async function runFile() {
 }
 
 async function buildRunFile() {
-  if (file.path === undefined || !isSaved) {
-    try {
-      await saveFile();
-    } catch (err) {
-      return;
-    }
+  if ((file.path === undefined || !isSaved) && !(await saveFile())) {
+    return;
   }
 
   if (file.lang in langInfo) {
@@ -797,88 +862,49 @@ async function buildRunFile() {
       runFile();
     }
   } else {
-    // if(file.mime != "text/plain"){
     webviewUi.src = file.path + file.name + file.extension;
-    console.log(file.path + file.name + file.extension);
-    console.log(webviewUi.src);
-    // }else{
-    // notify("warn");
-    // print("No action defined for " + language_display_ui.value);
-    // }
   }
 }
 
-function togglePreviewDivider(open = undefined) {
-  const num = parseFloat(editorMediaDivUi.previousElementSibling.style.width.replace('%', ''));
+/**
+ * Animates the element in front of a divider between two sizes.
+ * @param {HTMLElement} divider
+ * @param {'width'|'height'} dimension
+ * @param {string} openSize Size when the panel behind the divider is open
+ * @param {string} closedSize Size when the panel behind the divider is closed
+ * @param {boolean} [open] Force a state instead of toggling
+ * @returns {Promise<string>} The size the element ended up with
+ */
+async function toggleDivider(divider, dimension, openSize, closedSize, open = undefined) {
+  const target = divider.previousElementSibling;
+  const isOpen = Math.abs(parseFloat(target.style[dimension]) - parseFloat(openSize)) < 1;
+  const targetSize = (open === undefined ? !isOpen : open) ? openSize : closedSize;
 
-  let targetPercent;
-  if (open === undefined) {
-    targetPercent = Math.abs(num - 50) < 1 ? '100%' : '50%';
-  } else {
-    targetPercent = open ? '50%' : '100%';
-  }
+  await target.animate([
+    { [dimension]: target.style[dimension] },
+    { [dimension]: targetSize },
+  ], DIVIDER_ANIMATION).finished;
 
-  const anim = editorMediaDivUi.previousElementSibling.animate([
-    { width: editorMediaDivUi.previousElementSibling.style.width },
-    { width: targetPercent },
-  ], {
-    duration: 450,
-    easing: 'cubic-bezier(0.860, 0.000, 0.070, 1.000)',
-  });
-  anim.finished.then(() => {
-    editorMediaDivUi.previousElementSibling.style.width = targetPercent;
-    window.api.storeSetting('media_div_percent', targetPercent);
-  });
+  target.style[dimension] = targetSize;
+  return targetSize;
 }
 
-function toggleConsoleDivider(open = undefined) {
-  const num = parseFloat(editorConsoleDivUi.previousElementSibling.style.height.replace('%', ''));
+async function togglePreviewDivider(open = undefined) {
+  const size = await toggleDivider(editorMediaDivUi, 'width', '50%', '100%', open);
+  window.api.storeSetting('media_div_percent', size);
+}
 
-  let targetPercent;
-  if (open === undefined) {
-    targetPercent = Math.abs(num - 60) < 1 ? '100%' : '60%';
-  } else {
-    targetPercent = open ? '60%' : '100%';
-  }
-
-  const anim = editorConsoleDivUi.previousElementSibling.animate([
-    { height: editorConsoleDivUi.previousElementSibling.style.height },
-    { height: targetPercent },
-  ], {
-    duration: 450,
-    easing: 'cubic-bezier(0.860, 0.000, 0.070, 1.000)',
-  });
-  anim.finished.then(() => {
-    editorConsoleDivUi.previousElementSibling.style.height = targetPercent;
-    window.api.storeSetting('console_div_percent', targetPercent);
-  });
+async function toggleConsoleDivider(open = undefined) {
+  const size = await toggleDivider(editorConsoleDivUi, 'height', '60%', '100%', open);
+  window.api.storeSetting('console_div_percent', size);
 }
 
 function togglePreviewDevToolDivider(open = undefined) {
-  const num = parseFloat(previewDevDivUi.previousElementSibling.style.height.replace('%', ''));
-
-  let targetPercent;
-  if (open === undefined) {
-    targetPercent = Math.abs(num - 60) < 1 ? '99%' : '60%';
-  } else {
-    targetPercent = open ? '99%' : '60%';
-  }
-
-  const anim = previewDevDivUi.previousElementSibling.animate([
-    { height: previewDevDivUi.previousElementSibling.style.height },
-    { height: targetPercent },
-  ], {
-    duration: 450,
-    easing: 'cubic-bezier(0.860, 0.000, 0.070, 1.000)',
-  });
-  anim.finished.then(() => {
-    previewDevDivUi.previousElementSibling.style.height = targetPercent;
-    // window.api.storeSetting('console_div_percent', targetPercent)
-  });
+  return toggleDivider(previewDevDivUi, 'height', '60%', '99%', open);
 }
 
 function _updateTitle() {
-  let title = file.extension ? file.name + file.extension : 'new document';
+  let title = file.path !== undefined ? file.name + file.extension : 'new document';
 
   if (!(isSaved === null || isSaved)) {
     title = `${title}*`;
@@ -891,9 +917,10 @@ function _updateTitle() {
 }
 
 function _setFileInfo(filePath) {
-  file.extension = window.api.path.extname(filePath);
-  file.path = window.api.path.dirname(filePath) + window.api.path.sep;
-  file.name = window.api.path.basename(filePath, file.extension);
+  const { dir, name, extension } = parseFilePath(filePath);
+  file.path = dir;
+  file.name = name;
+  file.extension = extension;
 
   const lang = getModeFromName(file.name + file.extension);
   if (lang == null) {
@@ -917,17 +944,17 @@ function _toggleFullscreenStyle(isFullscreen) {
 
 function _assignUIVariables() {
   documentNameUi = document.getElementById('document-name');
-  // languageDisplayUi = document.getElementById('language-display');
   languageDisplaySelectedUi = document.querySelector('#language-display .selected');
   optionsContainer = document.getElementsByClassName('options-container')[0];
   themeChoiceUi = document.getElementById('theme-choice');
-  // charDisplayUi = document.getElementById('fchar-display');
+  settingsOverlayUi = document.getElementById('settings-overlay');
+  lineWrapUi = document.getElementById('settings-line-wrap');
+  lineNumbersUi = document.getElementById('settings-line-numbers');
   consoleUi = document.getElementById('console');
   consoleInUi = document.getElementById('console-in');
   consoleOutUi = document.getElementById('console-out');
   webviewUi = document.getElementById('embed-content');
   webviewDevUi = document.getElementById('embed-content-dev-view');
-  // themeLink = document.getElementById('theme-link');
   editorMediaDivUi = document.getElementById('editor-media-div');
   editorConsoleDivUi = document.getElementById('editor-console-div');
   previewDevDivUi = document.getElementById('preview-dev-div');
@@ -1054,40 +1081,31 @@ async function _initialize() {
     print(value.text);
   });
 
-  const emittedOnce = (element, eventName) => new Promise((resolve) => {
-    element.addEventListener(eventName, (event) => resolve(event), { once: true });
-  });
-  const browserReady = emittedOnce(webviewUi, 'dom-ready');
-  const devtoolsReady = emittedOnce(webviewDevUi, 'dom-ready');
-  Promise.all([browserReady, devtoolsReady]).then(() => {
-
-  });
-
   // Load Keybindings
   try {
     const response = await fetch('res/keybindings.json');
     const data = await response.text();
     keybindings = JSON.parse(data);
   } catch (err) {
-    print(`An error ocurred reading the file :${err.message}`, INFO_LEVEL.err);
+    print(`An error occurred reading the keybindings: ${err.message}`, INFO_LEVEL.error);
     return;
   }
 
   window.addEventListener('keydown', (event) => {
-    const lowerKey = event.key.toLowerCase();
     const isMac = appInfo.os === 'darwin';
     const isModifier = isMac ? event.metaKey : event.ctrlKey;
+    if (!isModifier) return;
 
-    if (isModifier && !event.shiftKey) {
-      if (lowerKey in keybindings.ctrl) {
-        event.preventDefault();
-        window[keybindings.ctrl[lowerKey].func]();
-      }
-    } else if (isModifier && event.shiftKey) {
-      if (lowerKey in keybindings.ctrlshift) {
-        event.preventDefault();
-        window[keybindings.ctrlshift[lowerKey].func]();
-      }
+    const bindings = event.shiftKey ? keybindings.ctrlshift : keybindings.ctrl;
+    const binding = bindings[event.key.toLowerCase()];
+    if (!binding) return;
+
+    event.preventDefault();
+    const action = window[binding.func];
+    if (typeof action === 'function') {
+      action();
+    } else {
+      print(`Keybinding "${event.key}" points to unknown action "${binding.func}"`, INFO_LEVEL.warn);
     }
   }, false);
 
@@ -1148,8 +1166,19 @@ async function _initialize() {
     return true;
   }, false);
 
+  _initializeOptions(editorConfig);
   themeChoiceUi.addEventListener('change', () => {
     setTheme(themeChoiceUi.value);
+  });
+  lineWrapUi.checked = editorConfig.line_wrapping;
+  lineWrapUi.addEventListener('change', () => setLineWrapping(lineWrapUi.checked));
+  lineNumbersUi.checked = editorConfig.line_numbers;
+  lineNumbersUi.addEventListener('change', () => setLineNumbers(lineNumbersUi.checked));
+  settingsOverlayUi.addEventListener('click', (event) => {
+    if (event.target === settingsOverlayUi) toggleSettingsPanel(false);
+  });
+  settingsOverlayUi.addEventListener('keydown', (event) => {
+    if (event.key === 'Escape') toggleSettingsPanel(false);
   });
 
   languageDisplaySelectedUi.addEventListener('click', (event) => {
@@ -1185,12 +1214,13 @@ async function _initialize() {
       });
     });
   } catch (err) {
-    print(`An error ocurred reading the file :${err.message}`, INFO_LEVEL.err);
+    print(`An error occurred reading the languages: ${err.message}`, INFO_LEVEL.error);
     return;
   }
 
   webviewUi.addEventListener('console-message', (e) => {
-    if (e.sourceId === 'electron/js2c/renderer_init.js') return;
+    // Ignore Electron's own messages (e.g. dev-mode security warnings)
+    if (e.sourceId.includes('electron/js2c/')) return;
 
     let mode;
     switch (e.level) {
@@ -1209,9 +1239,7 @@ async function _initialize() {
     }
 
     const source = e.sourceId.split('/').pop();
-    let fileSource = `${source}:${e.line}`;
-
-    print(`Message from ${fileSource}\n${e.message}`, mode);
+    print(`Message from ${source}:${e.line}\n${e.message}`, mode);
   });
 
   editorMediaDivUi.addEventListener('divider-move', () => {
@@ -1231,7 +1259,7 @@ async function _initialize() {
   });
 
   previewDevDivUi.addEventListener('dblclick', () => {
-    togglePreviewDivider();
+    togglePreviewDevToolDivider();
   });
 
   document.getElementById('editor-wrapper').style.width = editorConfig.media_div_percent;

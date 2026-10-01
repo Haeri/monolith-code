@@ -1,13 +1,14 @@
 {
   "name": "monolith-code",
-  "version": "2.3.4",
-  "description": "minimalistic coder editor",
+  "version": "2.4.0",
+  "description": "minimalistic code editor",
   "homepage": "https://haeri.github.io/monolith-code/",
   "main": "main.js",
+  "desktopName": "monolith-code.desktop",
   "packageManager": "pnpm@11.1.2",
   "scripts": {
     "start": "electron .",
-    "lint": "eslint main.js src/preload.js src/monolith.js src/common.js src/store.js eslint.config.js",
+    "lint": "eslint main.js src/*.js eslint.config.js",
     "security:audit": "pnpm audit --audit-level moderate",
     "package": "electron-builder",
     "test-build": "electron-builder --publish never"
@@ -20,35 +21,137 @@
   "license": "MIT",
   "devDependencies": {
     "@eslint/js": "^10.0.1",
-    "electron": "^44.0.0",
+    "electron": "^44.5.0",
     "electron-builder": "^26.15.3",
     "electron-builder-squirrel-windows": "26.15.3",
-    "eslint": "^10.9.1",
-    "globals": "^17.11.0"
+    "eslint": "^10.11.0",
+    "globals": "^17.12.0"
   },
   "dependencies": {
     "electron-updater": "^6.8.9",
     "highlight.js": "^11.12.0",
-    "katex": "^0.18.4",
-    "marked": "^18.0.11",
-    "tree-kill": "^1.2.2"
+    "katex": "^0.18.9",
+    "marked": "^18.0.14",
+    "marked-katex-extension": "^5.1.13"
   },
   "build": {
     "appId": "monolith-code",
+    "files": [
+      "**/*",
+      "!dist/**",
+      "!docs/**",
+      "!build/**",
+      "!.github/**",
+      "!res/img/icon.pdn",
+      "!eslint.config.js",
+      "!pnpm-workspace.yaml",
+      "!README.md"
+    ],
     "win": {
       "target": [
-        "zip",
-        "nsis"
+        {
+          "target": "nsis",
+          "arch": [
+            "x64",
+            "arm64"
+          ]
+        },
+        {
+          "target": "zip",
+          "arch": [
+            "x64",
+            "arm64"
+          ]
+        }
       ],
       "icon": "build/icon.ico"
     },
     "linux": {
       "target": [
-        "AppImage"
+        {
+          "target": "AppImage",
+          "arch": [
+            "x64",
+            "arm64"
+          ]
+        },
+        {
+          "target": "deb",
+          "arch": [
+            "x64",
+            "arm64"
+          ]
+        },
+        {
+          "target": "rpm",
+          "arch": [
+            "x64",
+            "arm64"
+          ]
+        },
+        {
+          "target": "pacman",
+          "arch": [
+            "x64",
+            "arm64"
+          ]
+        }
       ],
-      "category": "Utility"
+      "category": "Development;TextEditor;Utility",
+      "maintainer": "Haeri <7956606+Haeri@users.noreply.github.com>",
+      "synopsis": "Minimalistic code editor",
+      "syncDesktopName": true,
+      "desktop": {
+        "entry": {
+          "Name": "monolith code",
+          "Keywords": "code;editor;text;markdown;latex;"
+        }
+      },
+      "mimeTypes": [
+        "text/plain",
+        "text/markdown",
+        "text/x-csrc",
+        "text/x-chdr",
+        "text/x-c++src",
+        "text/x-c++hdr",
+        "text/x-csharp",
+        "text/x-java",
+        "text/x-python",
+        "text/x-python3",
+        "text/x-go",
+        "text/x-tex",
+        "text/x-bibtex",
+        "text/html",
+        "text/css",
+        "text/javascript",
+        "application/javascript",
+        "application/json",
+        "application/xml",
+        "text/xml",
+        "application/yaml",
+        "application/x-yaml",
+        "application/x-shellscript",
+        "application/x-php",
+        "application/sql"
+      ]
     },
     "mac": {
+      "target": [
+        {
+          "target": "dmg",
+          "arch": [
+            "x64",
+            "arm64"
+          ]
+        },
+        {
+          "target": "zip",
+          "arch": [
+            "x64",
+            "arm64"
+          ]
+        }
+      ],
       "hardenedRuntime": true,
       "gatekeeperAssess": false,
       "entitlements": "build/entitlements.mac.plist",

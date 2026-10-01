@@ -5,12 +5,13 @@
     <meta charset="UTF-8">
     <title>monolith code</title>
 
-    <script src="res/lib/ace-builds-1.28.0/src-min/ace.js" type="text/javascript" charset="utf-8"></script>
-    <script src="res/lib/ace-builds-1.28.0/src-min/ext-modelist.js" type="text/javascript" charset="utf-8"></script>
-    <script src="res/lib/ace-builds-1.28.0/src-min/ext-language_tools.js" type="text/javascript"
-        charset="utf-8"></script>
-    <script src="res/lib/ace-builds-1.28.0/src-min/ext-themelist.js" type="text/javascript" charset="utf-8"></script>
-    <script src="res/lib/ace-builds-1.28.0/src-min/ext-beautify.js" type="text/javascript" charset="utf-8"></script>
+    <!-- Deferred scripts run in order once the document is parsed -->
+    <script src="res/lib/ace-builds-1.44.0/src-min/ace.js" defer></script>
+    <script src="res/lib/ace-builds-1.44.0/src-min/ext-modelist.js" defer></script>
+    <script src="res/lib/ace-builds-1.44.0/src-min/ext-language_tools.js" defer></script>
+    <script src="res/lib/ace-builds-1.44.0/src-min/ext-themelist.js" defer></script>
+    <script src="src/common.js" defer></script>
+    <script src="src/monolith.js" defer></script>
 
     <link rel="stylesheet" href="res/style/style.css">
     <link rel="stylesheet" href="res/style/bars.css">
@@ -57,10 +58,10 @@
             </div>
         </footer>
         <div id="status-display">
-            <spam id="status-bar"></spam>
+            <span id="status-bar"></span>
         </div>
 
-        <div class="overlay">
+        <div class="overlay" id="settings-overlay">
             <div class="panel">
                 <select id="theme-choice"></select>
                 <div>
@@ -69,15 +70,13 @@
                 </div>
                 <div>
                     <input type="checkbox" name="settings-line-numbers" id="settings-line-numbers">
-                    <label for="settings-line-numbers">Line nulbers</label>
+                    <label for="settings-line-numbers">Line numbers</label>
                 </div>
             </div>
         </div>
 
     </div>
 
-    <script src="src/common.js"></script>
-    <script src="src/monolith.js"></script>
 </body>
 
 </html>

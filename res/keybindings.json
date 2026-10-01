@@ -25,7 +25,7 @@
       "func": "exportPDFFromPreview"
     },
     "t": {
-      "description": "Open a hello world tamplate for the current language",
+      "description": "Open a hello world template for the current language",
       "func": "makeLanguageTemplate"
     },
     "m": {
@@ -34,7 +34,7 @@
     },
     ",": {
       "description": "Open editor settings",
-      "func": ""
+      "func": "toggleSettingsPanel"
     }
   },
   "ctrlshift": {
