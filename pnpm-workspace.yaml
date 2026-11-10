@@ -4,3 +4,6 @@ allowBuilds:
   electron-winstaller: false
 ignoredBuiltDependencies:
   - electron-winstaller
+overrides:
+  # GHSA-g3hv-75wg-m249 is only fixed in minimatch 11
+  'minimatch@>=7.0.0 <11.0.1': ^11.0.1
